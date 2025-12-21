@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>ألعاب 4fun 🎮</title>
+
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+    <meta name="theme-color" content="#2c3e50">
+
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- تنسيقات CSS --- */
+        
+        /* إعادة ضبط الهوامش والخطوط */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        /* تنسيق خلفية الصفحة والجسم */
+        body {
+            background: #0f172a; /* خلفية متدرجة جذابة */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
+
+        /* تنسيق الحاوية الرئيسية */
+        .container {
+            width: 90%;
+            max-width: 600px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1); /* خلفية شفافة */
+            backdrop-filter: blur(10px); /* تأثير الزجاج */
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* تنسيق العنوان الرئيسي */
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        p.description {
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            color: #eee;
+        }
+
+        /* تنسيق شبكة الألعاب (الأزرار) */
+        .games-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* تنسيق بطاقة اللعبة (الرابط) */
+        .game-card {
+            background: white;
+            color: #333;
+            text-decoration: none; /* إزالة الخط أسفل الرابط */
+            padding: 20px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* توزيع المسافات */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* تأثير عند مرور الماوس */
+        .game-card:hover {
+            transform: translateY(-5px); /* رفع البطاقة قليلاً */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            background: #f8f9fa;
+        }
+
+        /* تنسيق أيقونة وعنوان اللعبة */
+        .game-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .game-icon {
+            font-size: 2.5rem;
+            background: #eee;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .game-title {
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-align: right;
+        }
+
+        .play-btn {
+            background: #2c3e50;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        /* تحسين التذييل */
+        footer {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* تعديلات للشاشات الكبيرة */
+        @media (min-width: 600px) {
+            .games-grid {
+                flex-direction: row; /* عرض الألعاب بجانب بعضها في الشاشات الكبيرة */
+            }
+            .game-card {
+                flex: 1;
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+                padding: 30px 20px;
+            }
+            .game-info {
+                flex-direction: column;
+            }
+            .game-title {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ألعاب 4fun 🎮</h1>
+        <p class="description">اختر لعبتك المفضلة وابدأ التحدي الآن!</p>
+
+        <div class="games-grid">
+            
+            <a href="gasos.html" class="game-card">
+                <div class="game-info">
+                    <span class="game-icon">🕵️</span>
+                    <div class="game-title">من هو الجاسوس؟</div>
+                </div>
+                <span class="play-btn">ابدأ اللعب</span>
+            </a>
+
+            <a href="shafra.html" class="game-card">
+                <div class="game-info">
+                    <span class="game-icon">🧠</span>
+                    <div class="game-title">ورقة شفرة</div>
+                </div>
+                <span class="play-btn">ابدأ اللعب</span>
+            </a>
+
+        </div>
+
+        <footer>
+            Heka 👨🏻‍💻 <br>
+        
+        </footer>
+    </div>
+
+</body>
+</html>

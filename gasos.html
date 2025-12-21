@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🕵️ من هو الجاسوس</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           1. متغيرات الألوان (CSS Variables)
+           لسهولة تعديل الألوان في مكان واحد
+        ========================================= */
+        :root {
+            --bg-color: #0f172a;       /* لون الخلفية الغامق */
+            --card-color: #1e293b;     /* لون الكروت */
+            --primary-color: #3b82f6;  /* الأزرق الأساسي */
+            --create-btn: #8b5cf6;     /* لون زر الإنشاء (بنفسجي) */
+            --accent-color: #f43f5e;   /* الأحمر (للخطر أو الجاسوس) */
+            --text-main: #f8fafc;      /* النص الأبيض */
+            --text-muted: #94a3b8;     /* النص الرمادي */
+        }
+
+        /* تنسيقات الصفحة العامة */
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 18px;
+        }
+
+        .container { width: 100%; max-width: 550px; }
+
+        /* تنسيق الكارت (الصندوق الذي يحتوي العناصر) */
+        .card {
+            background-color: var(--card-color);
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid #334155;
+            margin-bottom: 20px;
+            transition: transform 0.2s; /* حركة بسيطة */
+        }
+
+        /* العناوين */
+        h1 { color: #60a5fa; margin: 0 0 10px 0; font-size: 32px; font-weight: 900; }
+        h2 { margin: 0 0 15px 0; font-weight: 700; font-size: 24px; }
+        p { color: var(--text-muted); line-height: 1.6; margin-bottom: 15px; }
+
+        /* =========================================
+           2. تنسيق الأزرار (Buttons Styling)
+        ========================================= */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            margin: 12px 0;
+            font-family: 'Tajawal', sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+        }
+        .btn:active { transform: scale(0.96); } /* تأثير عند الضغط */
+
+        /* أنواع الأزرار بألوان مختلفة */
+        .btn-blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); } /* دخول */
+        .btn-create { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); } /* إنشاء (بنفسجي) */
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); } /* خروج */
+        .btn-reveal { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); } /* كشف النتائج */
+        .btn-restart { background: linear-gradient(135deg, #10b981 0%, #059669 100%); } /* إعادة */
+        .btn-secondary { background: transparent; border: 2px solid #334155; color: var(--text-muted); }
+
+        /* أزرار التحكم بالمؤقت (صغيرة وجانب بعض) */
+        .timer-btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-small {
+            width: auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        /* حقول الإدخال */
+        input, select {
+            width: 100%;
+            padding: 16px;
+            margin: 10px 0;
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 14px;
+            color: white;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 18px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        input:focus { outline: none; border-color: var(--primary-color); }
+
+        /* إخفاء وإظهار الشاشات */
+        .screen { display: none; opacity: 0; transition: opacity 0.3s; }
+        .active { display: block; opacity: 1; }
+
+        /* =========================================
+           3. تنسيق عناصر اللعبة الخاصة
+        ========================================= */
+        
+        /* شبكة التصويت */
+        .voting-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .vote-card {
+            background: #334155;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .vote-card.selected { border-color: var(--accent-color); background: #451a1a; }
+        
+        /* دائرة عدد الأصوات */
+        .vote-count {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            position: absolute;
+            top: -5px; right: -5px;
+        }
+
+        /* صندوق النتائج */
+        #voting-results {
+            margin-top:20px; padding:20px; background: #0f172a; 
+            border: 2px solid #fbbf24; border-radius:15px; 
+            display:none; animation: popIn 0.5s ease;
+        }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* المؤقت */
+        .timer-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid #334155;
+            text-align: center; /* توسيط المحتوى */
+        }
+        .timer-display { 
+            font-size: 45px; 
+            font-weight: 900; 
+            color: #f8fafc; 
+            letter-spacing: 3px; 
+            line-height: 1;
+            margin: 10px 0;
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        /* حركة الإيموجي */
+        .big-emoji { font-size: 60px; display: block; margin: 10px 0; animation: float 3s infinite ease-in-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div id="main-menu" class="screen active card" style="text-align: center;">
+            <div style="font-size: 60px;">🕵️‍♂️</div>
+            <h1>من هو الجاسوس؟</h1>
+            <p>يلا بينا</p>
+            
+            <button class="btn btn-blue" onclick="window.showScreen('local-setup')">👥 لعب محلي (جهاز واحد)</button>
+            <button class="btn btn-create" onclick="window.showScreen('name-entry')">🌐 لعب أون لاين (مع تصويت)</button>
+        </div>
+
+        <div id="name-entry" class="screen card">
+            <h2>سجل اسمك يا بطل</h2>
+            <input type="text" id="player-name" placeholder="اكتب اسمك هنا..." maxlength="10">
+            <button class="btn btn-blue" onclick="window.submitName()">تم، التالي</button>
+            <button class="btn btn-secondary" onclick="window.showScreen('main-menu')">رجوع</button>
+        </div>
+
+        <div id="online-menu" class="screen card">
+            <h2>مرحباً <span id="display-player-name" style="color:var(--primary-color)"></span></h2>
+            
+            <button class="btn btn-create" onclick="window.createRoom()">✨ إنشاء غرفة جديدة</button>
+            
+            <div style="margin: 20px 0; border-top: 1px solid #334155;"></div>
+            
+            <input type="text" id="room-code-input" placeholder="أدخل كود الغرفة (4 أرقام)">
+            <button class="btn btn-blue" onclick="window.joinRoom()">دخول الغرفة</button>
+            
+            <button class="btn btn-secondary" onclick="window.showScreen('name-entry')">رجوع</button>
+        </div>
+
+        <div id="online-lobby" class="screen card">
+            <p>كود الغرفة</p>
+            <h1 id="display-room-code" style="letter-spacing:5px; font-size:45px; color:#fbbf24;">----</h1>
+            
+            <div style="background:#0f172a; padding:15px; border-radius:15px; margin-bottom:20px;">
+                <p style="margin:0;">🟢 المتواجدون الآن: <span id="connected-players-list" style="color:#fff; font-weight:bold;"></span></p>
+            </div>
+
+            <div id="host-controls" style="display:none;">
+                <label>⏱️ الوقت (دقائق)</label>
+                <input type="number" id="game-timer-input" value="5" min="1" max="15">
+                <label>🕵️ عدد الجواسيس</label>
+                <input type="number" id="online-spies-count" value="1" min="1">
+                <button class="btn btn-create" onclick="window.startOnlineGame()">🚀 ابدأ الجولة</button>
+            </div>
+            
+            <p id="waiting-msg">المضيف يظبط الإعدادات...</p>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="card">
+                <div class="timer-container">
+                    <span class="timer-label" style="color:#fbbf24;">⏳ الوقت المتبقي للكشف</span>
+                    <div id="timer-box" class="timer-display">00:00</div>
+                    
+                    <div id="host-timer-controls" class="timer-btn-group" style="display:none;">
+                        <button class="btn btn-blue btn-small" onclick="window.controlTimer('pause')">⏸ إيقاف</button>
+                        <button class="btn btn-create btn-small" onclick="window.controlTimer('resume')">▶ استئناف</button>
+                    </div>
+                </div>
+
+                <div style="text-align:center;">
+                    <span id="my-emoji" class="big-emoji"></span>
+                    <h2 id="my-role" style="font-size:28px;">...</h2>
+                    <p id="my-word" style="font-weight:bold; font-size:20px; color:#34d399;">...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🗳️ من هو الجاسوس؟</h3>
+                <p style="font-size:14px;">اضغط على اسم اللاعب لاتهامه</p>
+                <div id="voting-area" class="voting-grid"></div>
+                
+                <div id="voting-results">
+                    <h3 style="color:#fbbf24; margin-top:0;">🌟 نتائج التحقيق</h3>
+                    <p id="spy-identity-reveal" style="font-size:18px; color:#f43f5e; font-weight:bold;"></p>
+                    <hr style="border-color:#334155;">
+                    <p id="result-text" style="color:white; font-weight:bold; font-size:16px;"></p>
+                </div>
+
+                <div id="host-game-controls" style="display:none; margin-top:20px;">
+                    <button class="btn btn-reveal" onclick="window.revealResultsNow()">🛑 كشف النتائج وإنهاء اللعبة</button>
+                    <button class="btn btn-restart" onclick="window.startOnlineGame()">🔄 جولة جديدة</button>
+                </div>
+                
+                <button class="btn btn-danger" onclick="location.reload()" style="margin-top:20px;">خروج نهائي</button>
+            </div>
+        </div>
+
+        <div id="local-setup" class="screen card">
+            <h2>إعدادات المحلي</h2>
+            <input type="number" id="local-players-count" value="4" min="3">
+            <input type="number" id="local-spies-count" value="1" min="1">
+            <select id="local-category">
+                <option value="random">🎲 كوكتيل</option>
+                <option value="animals">🦁 حيوانات</option>
+                <option value="places">🕌 أماكن</option>
+            </select>
+            <button class="btn btn-blue" onclick="window.startLocalGame()">ابدأ</button>
+            <button class="btn btn-secondary" onclick="window.showScreen('main-menu')">رجوع</button>
+        </div>
+
+        <div id="local-reveal" class="screen card" style="text-align:center;">
+            <h2 id="player-turn-text">اللاعب 1</h2>
+            <p>اضغط للكشف</p>
+            <button class="btn btn-blue" onclick="window.revealRole()" id="reveal-btn">👁️ اكشف</button>
+            <div id="role-content" style="display:none;">
+                <span id="local-emoji" class="big-emoji"></span>
+                <p id="role-text" style="font-size:24px; font-weight:bold;"></p>
+                <p id="secret-word-display" style="font-size:20px; color:#fbbf24;"></p>
+                <button class="btn btn-blue" onclick="window.nextPlayer()">التالي</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // 1. استيراد دوال Firebase الضرورية
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, get, onDisconnect } 
+        from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+        // 2. إعدادات المشروع (Firebase Config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
+            authDomain: "heka-codenames.firebaseapp.com",
+            databaseURL: "https://heka-codenames-default-rtdb.firebaseio.com",
+            projectId: "heka-codenames",
+            storageBucket: "heka-codenames.firebasestorage.app",
+            messagingSenderId: "901713932504",
+            appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad",
+            measurementId: "G-TSSGCQ1CED"
+        };
+
+        // 3. تهيئة التطبيق
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 4. قاعدة بيانات الكلمات (يمكنك الإضافة هنا)
+        const wordsData = {
+            animals: [{t:"أسد",e:"🦁"},{t:"فيل",e:"🐘"},{t:"بطريق",e:"🐧"},{t:"قرش",e:"🦈"},{t:"صقر",e:"🦅"},{t:"نملة",e:"🐜"},{t:"قطة",e:"🐈"}],
+            places: [{t:"مدرسة",e:"🏫"},{t:"سجن",e:"👮"},{t:"مستشفى",e:"🏥"},{t:"مطار",e:"✈️"},{t:"فضاء",e:"🚀"},{t:"سينما",e:"🍿"},{t:"مطعم",e:"🍔"}]
+        };
+
+        // 5. متغيرات عالمية لحفظ حالة اللعبة
+        let myName = "";
+        let currentRoomId = null;
+        let myPlayerId = null;
+        let isHost = false; // هل أنا المضيف؟
+        let timerInterval = null; // مرجع لعداد الوقت
+        
+        // متغيرات للعب المحلي
+        let localPlayers = [];
+        let currentPlayerIndex = 0;
+
+        // --- دوال مساعدة ---
+        
+        // دالة لعرض شاشة محددة وإخفاء الباقي
+        window.showScreen = (id) => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            setTimeout(() => document.getElementById(id).classList.add('active'), 100);
+        };
+
+        // دالة لاختيار كلمة عشوائية من التصنيف
+        function getRandomWord(cat) {
+            let keys = cat === 'random' ? Object.keys(wordsData) : [cat];
+            let list = wordsData[keys[Math.floor(Math.random() * keys.length)]];
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        // دالة حفظ اسم اللاعب
+        window.submitName = () => {
+            const name = document.getElementById('player-name').value.trim();
+            if (!name) return alert("اكتب اسمك الأول على الأقل");
+            myName = name;
+            document.getElementById('display-player-name').innerText = name;
+            window.showScreen('online-menu');
+        };
+
+        // ============================================
+        // الجزء الأول: اللعب المحلي (جهاز واحد)
+        // ============================================
+        window.startLocalGame = () => {
+            const count = parseInt(document.getElementById('local-players-count').value);
+            const spies = parseInt(document.getElementById('local-spies-count').value);
+            const cat = document.getElementById('local-category').value;
+            
+            if (spies >= count) return alert("عدد الجواسيس لازم يكون أقل!");
+
+            const w = getRandomWord(cat);
+            // إنشاء مصفوفة اللاعبين
+            let roles = Array(count).fill({ role: "citizen", w: w.t, e: w.e });
+            // تعيين الجواسيس
+            for(let i=0; i<spies; i++) roles[i] = { role: "spy", w: "؟؟؟", e: "🕵️" };
+            // خلط الأدوار
+            roles.sort(() => Math.random() - 0.5);
+            
+            localPlayers = roles;
+            currentPlayerIndex = 0;
+            window.showScreen('local-reveal');
+            updateLocalUI();
+        };
+
+        function updateLocalUI() {
+            document.getElementById('player-turn-text').innerText = `اللاعب ${currentPlayerIndex+1}`;
+            document.getElementById('reveal-btn').style.display = 'block';
+            document.getElementById('role-content').style.display = 'none';
+        }
+
+        window.revealRole = () => {
+            const p = localPlayers[currentPlayerIndex];
+            const isSpy = p.role === "spy";
+            // تحديث الواجهة حسب الدور
+            document.getElementById('local-emoji').innerText = p.e;
+            document.getElementById('role-text').innerText = isSpy ? "أنت الجاسوس!" : "أنت لمّاح 😎";
+            document.getElementById('role-text').style.color = isSpy ? "#f43f5e" : "#34d399";
+            document.getElementById('secret-word-display').innerText = isSpy ? "مهمتك: اعرف الكلمة" : `الكلمة: ${p.w}`;
+            
+            document.getElementById('reveal-btn').style.display = 'none';
+            document.getElementById('role-content').style.display = 'block';
+        };
+
+        window.nextPlayer = () => {
+            currentPlayerIndex++;
+            if (currentPlayerIndex < localPlayers.length) updateLocalUI();
+            else { alert("ابدأوا اللعب!"); window.showScreen('main-menu'); }
+        };
+
+        // ============================================
+        // الجزء الثاني: اللعب أون لاين (Firebase)
+        // ============================================
+
+        // 1. إنشاء غرفة جديدة
+        window.createRoom = () => {
+            if (!myName) return alert("سجل اسمك أولاً");
+            const roomId = Math.floor(1000 + Math.random()*9000).toString(); // كود عشوائي من 4 أرقام
+            myPlayerId = "host_" + Date.now();
+            isHost = true;
+
+            // حفظ بيانات الغرفة في قاعدة البيانات
+            set(ref(db, `rooms/${roomId}`), {
+                status: "waiting", // الحالة: انتظار
+                timerStatus: "stopped", // حالة المؤقت
+                players: { [myPlayerId]: { name: myName, vote: "" } }
+            });
+            // حذف اللاعب تلقائياً إذا انقطع الاتصال
+            onDisconnect(ref(db, `rooms/${roomId}/players/${myPlayerId}`)).remove();
+            enterLobby(roomId);
+        };
+
+        // 2. الانضمام لغرفة
+        window.joinRoom = () => {
+            if (!myName) return alert("سجل اسمك أولاً");
+            const roomId = document.getElementById('room-code-input').value;
+            if (!roomId) return alert("أدخل الكود");
+            myPlayerId = "player_" + Date.now();
+            isHost = false;
+            
+            get(ref(db, `rooms/${roomId}`)).then(snap => {
+                if (snap.exists()) {
+                    // إضافة اللاعب للغرفة
+                    update(ref(db, `rooms/${roomId}/players/${myPlayerId}`), { name: myName, vote: "" });
+                    onDisconnect(ref(db, `rooms/${roomId}/players/${myPlayerId}`)).remove();
+                    enterLobby(roomId);
+                } else alert("غرفة غير موجودة");
+            });
+        };
+
+        // 3. دخول اللوبي والانتظار
+        function enterLobby(roomId) {
+            currentRoomId = roomId;
+            window.showScreen('online-lobby');
+            document.getElementById('display-room-code').innerText = roomId;
+            
+            // إظهار تحكم المضيف فقط للمضيف
+            document.getElementById('host-controls').style.display = isHost ? 'block' : 'none';
+            document.getElementById('waiting-msg').style.display = isHost ? 'none' : 'block';
+
+            // الاستماع للتغييرات في الغرفة (Realtime Listener)
+            onValue(ref(db, `rooms/${roomId}`), (snap) => {
+                const data = snap.val();
+                if (!data) return;
+
+                // تحديث قائمة المتصلين
+                const players = data.players || {};
+                document.getElementById('connected-players-list').innerText = Object.values(players).map(p => p.name).join('، ');
+
+                // إذا بدأت اللعبة، انتقل للشاشة التالية
+                if (data.status === 'playing') {
+                    renderGame(data);
+                }
+            });
+        }
+
+        // 4. بدء اللعبة (للمضيف فقط)
+        window.startOnlineGame = () => {
+            get(ref(db, `rooms/${currentRoomId}`)).then(snap => {
+                const data = snap.val();
+                const pIds = Object.keys(data.players);
+                const spiesCount = parseInt(document.getElementById('online-spies-count').value);
+                const minutes = parseInt(document.getElementById('game-timer-input').value);
+
+                if (spiesCount >= pIds.length) return alert("الجواسيس أكثر من اللاعبين!");
+
+                // إعداد البيانات
+                const w = getRandomWord("random");
+                let roles = Array(pIds.length).fill("citizen");
+                for(let i=0; i<spiesCount; i++) roles[i] = "spy";
+                roles.sort(() => Math.random() - 0.5); // خلط عشوائي
+
+                const updates = {};
+                updates[`rooms/${currentRoomId}/status`] = "playing";
+                updates[`rooms/${currentRoomId}/timerStatus`] = "running"; // تشغيل المؤقت
+                updates[`rooms/${currentRoomId}/endTime`] = Date.now() + (minutes * 60000);
+                updates[`rooms/${currentRoomId}/showResults`] = false; // إخفاء النتائج
+
+                // توزيع الأدوار
+                pIds.forEach((pid, idx) => {
+                    const isSpy = roles[idx] === "spy";
+                    updates[`rooms/${currentRoomId}/players/${pid}/role`] = isSpy ? "spy" : "citizen";
+                    updates[`rooms/${currentRoomId}/players/${pid}/word`] = isSpy ? "؟؟؟" : w.t;
+                    updates[`rooms/${currentRoomId}/players/${pid}/emoji`] = isSpy ? "🕵️" : w.e;
+                    updates[`rooms/${currentRoomId}/players/${pid}/vote`] = "";
+                });
+
+                // إرسال كل التحديثات دفعة واحدة
+                update(ref(db), updates);
+            });
+        };
+
+        // 5. التحكم بالمؤقت (إيقاف/استئناف) - خاص بالمضيف
+        window.controlTimer = (action) => {
+            const roomRef = ref(db, `rooms/${currentRoomId}`);
+            get(roomRef).then(snap => {
+                const data = snap.val();
+                if (action === 'pause' && data.timerStatus === 'running') {
+                    // حساب الوقت المتبقي وحفظه
+                    const remaining = data.endTime - Date.now();
+                    update(roomRef, { 
+                        timerStatus: 'paused', 
+                        timeRemaining: remaining 
+                    });
+                } else if (action === 'resume' && data.timerStatus === 'paused') {
+                    // حساب وقت الانتهاء الجديد
+                    const newEndTime = Date.now() + data.timeRemaining;
+                    update(roomRef, { 
+                        timerStatus: 'running', 
+                        endTime: newEndTime,
+                        timeRemaining: null // مسح الوقت المتبقي
+                    });
+                }
+            });
+        };
+
+        // زر المضيف لكشف النتائج يدوياً
+        window.revealResultsNow = () => {
+            update(ref(db, `rooms/${currentRoomId}`), { showResults: true });
+        };
+
+        // 6. رسم شاشة اللعب
+        function renderGame(data) {
+            window.showScreen('game-screen');
+            const myData = data.players[myPlayerId];
+            if (!myData) return;
+
+            // عرض الدور
+            const isSpy = myData.role === "spy";
+            document.getElementById('my-emoji').innerText = myData.emoji;
+            document.getElementById('my-role').innerText = isSpy ? "أنت الجاسوس! 🤫" : "أنت لمّاح 😎";
+            document.getElementById('my-role').style.color = isSpy ? "#f43f5e" : "#34d399";
+            document.getElementById('my-word').innerText = isSpy ? "حاول معرفة الكلمة" : `الكلمة: ${myData.word}`;
+            
+            // إدارة المؤقت
+            handleTimer(data);
+
+            // لوحة التصويت
+            renderVotingBoard(data.players);
+
+            // التحكم في عرض النتائج
+            checkResultsVisibility(data.players, data.showResults);
+
+            // أزرار التحكم الخاصة بالمضيف
+            if (isHost) {
+                document.getElementById('host-game-controls').style.display = 'block';
+                document.getElementById('host-timer-controls').style.display = 'flex'; // إظهار أزرار المؤقت
+            }
+        }
+
+        // 7. منطق المؤقت (معقد قليلاً لدعم الإيقاف)
+        function handleTimer(data) {
+            const timerEl = document.getElementById('timer-box');
+            
+            if (timerInterval) clearInterval(timerInterval); // تنظيف أي عداد سابق
+
+            // الحالة 1: المؤقت متوقف مؤقتاً
+            if (data.timerStatus === 'paused' && data.timeRemaining) {
+                const m = Math.floor(data.timeRemaining / 60000);
+                const s = Math.floor((data.timeRemaining % 60000) / 1000);
+                timerEl.innerText = `${m}:${s.toString().padStart(2,'0')} ⏸`; // علامة التوقف
+                timerEl.style.color = "#fbbf24"; // لون أصفر عند التوقف
+                return;
+            }
+
+            // الحالة 2: المؤقت يعمل
+            if (data.timerStatus === 'running') {
+                timerInterval = setInterval(() => {
+                    const now = Date.now();
+                    const diff = data.endTime - now;
+                    
+                    if (diff <= 0) {
+                        timerEl.innerText = "انتهى الوقت!";
+                        timerEl.style.color = "#f43f5e";
+                        clearInterval(timerInterval);
+                        
+                        // إذا انتهى الوقت وأنا المضيف، اكشف النتائج
+                        if (isHost) window.revealResultsNow();
+                    } else {
+                        const m = Math.floor(diff / 60000);
+                        const s = Math.floor((diff % 60000) / 1000);
+                        timerEl.innerText = `${m}:${s.toString().padStart(2,'0')}`;
+                        timerEl.style.color = "#f8fafc";
+                    }
+                }, 1000); // التحديث كل ثانية
+            }
+        }
+
+        // 8. رسم شبكة التصويت
+        function renderVotingBoard(players) {
+            const container = document.getElementById('voting-area');
+            container.innerHTML = '';
+            
+            Object.keys(players).forEach(pid => {
+                // حساب عدد الأصوات لكل لاعب
+                const votesReceived = Object.values(players).filter(p => p.vote === pid).length;
+                const p = players[pid];
+
+                const btn = document.createElement('div');
+                // إضافة كلاس selected إذا كنت أنا صوتت لهذا الشخص
+                btn.className = `vote-card ${players[myPlayerId].vote === pid ? 'selected' : ''}`;
+                btn.innerHTML = `
+                    <div style="font-weight:bold; color:white;">${p.name}</div>
+                    ${votesReceived > 0 ? `<div class="vote-count">${votesReceived}</div>` : ''}
+                `;
+                
+                // إضافة حدث الضغط للتصويت
+                if (pid !== myPlayerId) {
+                    btn.onclick = () => update(ref(db, `rooms/${currentRoomId}/players/${myPlayerId}`), { vote: pid });
+                } else {
+                    btn.style.opacity = "0.6"; // تغميق اسمي (لا يمكن التصويت لنفسي)
+                    btn.style.cursor = "default";
+                }
+                container.appendChild(btn);
+            });
+        }
+
+        // 9. التحقق من الفائزين وعرض النتائج
+        function checkResultsVisibility(players, showResults) {
+            const resultsDiv = document.getElementById('voting-results');
+            
+            if (!showResults) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            resultsDiv.style.display = 'block';
+            
+            // تحديد الجواسيس
+            const spies = Object.keys(players).filter(pid => players[pid].role === 'spy');
+            const spyNames = spies.map(pid => players[pid].name).join(' و ');
+            
+            document.getElementById('spy-identity-reveal').innerText = `الجاسوس كان: ${spyNames}`;
+
+            // تحديد الأبطال (من صوت للجاسوس)
+            let winners = [];
+            Object.keys(players).forEach(pid => {
+                if (players[pid].role !== 'spy' && spies.includes(players[pid].vote)) {
+                    winners.push(players[pid].name);
+                }
+            });
+
+            if (winners.length > 0) {
+                document.getElementById('result-text').innerHTML = `🌟 الأبطال الذين كشفوا الجاسوس:<br><span style="color:#34d399; font-size:20px;">${winners.join('، ')}</span>`;
+            } else {
+                document.getElementById('result-text').innerHTML = `❌ للأسف، هرب الجاسوس! لم يكتشفه أحد.`;
+            }
+        }
+    </script>
+</body>
+</html>

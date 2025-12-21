@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ورقة شفرة - نسخة هيكا</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Cairo:wght@400;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a; --card-default: #ffffff;
+            --team1-color: #2563eb; --team2-color: #dc2626;
+            --neutral-color: #000000; --bomb-color: #10b981;
+            --text-dark: #1e293b; --accent-color: #fbbf24;
+            --revealed-mark: #ffff00;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif; background-color: var(--bg-color); color: white;
+            margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+        }
+
+        .lobby-box {
+            background: #1e293b; padding: 30px; border-radius: 25px; border: 2px solid var(--accent-color);
+            text-align: center; margin-top: 40px; width: 90%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .main-btn { width: 100%; padding: 15px; margin: 10px 0; border-radius: 15px; border: none; font-size: 1.2rem; font-weight: 900; cursor: pointer; transition: 0.2s; }
+        .btn-local { background: #6366f1; color: white; }
+        .btn-online { background: var(--accent-color); color: black; }
+        input { padding: 12px; border-radius: 10px; border: none; width: 85%; margin: 10px 0; text-align: center; font-size: 1.1rem; }
+
+        .role-selector { display: flex; gap: 10px; margin: 15px 0; }
+        .role-btn { flex: 1; padding: 12px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; font-weight: 800; background: #334155; color: white; }
+        .role-btn.active { border-color: var(--accent-color); background: rgba(251, 191, 36, 0.4); color: var(--accent-color); }
+
+        #gameArea { display: none; width: 100%; flex-direction: column; align-items: center; }
+        .timer-ui { background: rgba(0,0,0,0.4); padding: 10px 20px; border-radius: 20px; border: 2px solid var(--accent-color); margin-bottom: 10px; }
+        #timerDisplay { font-size: 2rem; font-weight: 900; color: var(--accent-color); font-family: monospace; }
+        .stats { background: rgba(255,255,255,0.1); padding: 10px 25px; border-radius: 50px; display: flex; gap: 30px; margin-bottom: 15px; font-weight: 900; font-size: 1.2rem; }
+        .controls { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; justify-content: center; }
+        .ctrl-btn { padding: 10px 18px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; font-size: 0.9rem; }
+
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 1000px; }
+        .card {
+            background-color: var(--card-default); color: var(--text-dark); height: 130px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 15px; box-shadow: 0 4px 0px #cbd5e1; cursor: pointer; user-select: none; transition: 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .emoji { font-size: 2.8rem; line-height: 1; margin-bottom: 5px; }
+        .word { font-size: 1.1rem; font-weight: 900; }
+
+        .master-view .card.team1 { background-color: var(--team1-color) !important; color: white !important; border: 2px solid #fff; }
+        .master-view .card.team2 { background-color: var(--team2-color) !important; color: white !important; border: 2px solid #fff; }
+        .master-view .card.neutral { background-color: var(--neutral-color) !important; color: white !important; border: 1px solid #444; }
+        .master-view .card.bomb { background-color: var(--bomb-color) !important; color: white !important; border: 2px solid #fff; }
+
+        .master-view .card.revealed::after {
+            content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 12px;
+            background-color: var(--revealed-mark); box-shadow: 0 -2px 10px rgba(255,255,0,0.8);
+        }
+
+        .card.revealed.team1 { background-color: var(--team1-color) !important; color: white !important; box-shadow: none; transform: translateY(4px); }
+        .card.revealed.team2 { background-color: var(--team2-color) !important; color: white !important; box-shadow: none; transform: translateY(4px); }
+        .card.revealed.neutral { background-color: var(--neutral-color) !important; color: white !important; box-shadow: none; transform: translateY(4px); }
+        .card.revealed.bomb { background-color: var(--bomb-color) !important; color: white !important; box-shadow: none; transform: translateY(4px); }
+
+        .footer-heka { margin-top: 20px; font-family: 'Pacifico', cursive; font-size: 2.2rem; color: var(--accent-color); opacity: 0.6; }
+        .return-footer { background: transparent; color: #64748b; border: 1px solid #334155; margin: 20px 0; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        
+        @media (max-width: 700px) { .grid { grid-template-columns: repeat(3, 1fr); } .card { height: 110px; } }
+    </style>
+</head>
+<body>
+
+    <div id="mainLobby" class="lobby-box">
+        <h1 style="color:var(--accent-color); margin-bottom:20px;">🧠 ورقة شفرة</h1>
+        <button class="main-btn btn-local" onclick="startLocal()">لعب محلي (Local) 🏠</button>
+        <button class="main-btn btn-online" onclick="showOnlineMenu()">لعب أونلاين (Online) 🌐</button>
+    </div>
+
+    <div id="onlineMenu" class="lobby-box" style="display:none;">
+        <h2 style="color:var(--accent-color)">دخول الغرفة 🌐</h2>
+        <input type="text" id="roomInput" placeholder="رقم الغرفة (مثلاً heka7)">
+        <p>اختار دورك:</p>
+        <div class="role-selector">
+            <button id="roleMaster" class="role-btn" onclick="setRole('master')">سيد الكود 🕶️</button>
+            <button id="roleExplorer" class="role-btn active" onclick="setRole('explorer')">مستكشف 🕵️‍♂️</button>
+        </div>
+        <button class="main-btn btn-online" onclick="joinOnline()">دخول الآن</button>
+        <button style="background:transparent; color:white; border:none; cursor:pointer;" onclick="location.reload()">رجوع 🏠</button>
+    </div>
+
+    <div id="gameArea">
+        <h2 id="roomLabel" style="color:var(--accent-color); margin:5px;"></h2>
+
+        <div id="localTimer" class="timer-ui">
+            <span id="timerDisplay">01:00</span>
+            <div style="margin-top:5px">
+                <button onclick="controlTimer('start')">▶️</button>
+                <button onclick="controlTimer('reset')">🔄</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div id="bLeft" style="color:#60a5fa">🔵: 9</div>
+            <div id="rLeft" style="color:#f87171">🔴: 8</div>
+        </div>
+
+        <div class="controls">
+            <button class="ctrl-btn" style="background:#10b981; color:white;" onclick="resetGameAction()">جولة جديدة 🔄</button>
+            <button class="ctrl-btn" style="background:#6366f1; color:white;" onclick="toggleFS()">ملء الشاشة 📺</button>
+            <button id="btnMasterToggle" class="ctrl-btn" style="background:#f59e0b; color:black;" onclick="toggleMasterView()">تبديل الوضع 🕶️</button>
+        </div>
+
+        <div id="gameBoard" class="grid"></div>
+        
+        <div class="footer-heka">heka</div>
+        
+        <button class="return-footer" onclick="location.reload()">العودة للقائمة الرئيسية 🏠</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
+            authDomain: "heka-codenames.firebaseapp.com",
+            databaseURL: "https://heka-codenames-default-rtdb.firebaseio.com",
+            projectId: "heka-codenames",
+            storageBucket: "heka-codenames.firebasestorage.app",
+            messagingSenderId: "901713932504",
+            appId: "1:901713932504:web:7079662022a501e9c4e7ad"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentMode = "local", myRole = "explorer", roomId = "", timerInt, timeLeft = 60;
+        // قائمة الكلمات الكاملة (يرجى ملؤها بكلماتك الـ 300)
+        const words = [
+            {w: "أسد", e: "🦁"}, {w: "فيل", e: "🐘"}, {w: "زرافة", e: "🦒"}, {w: "نمر", e: "🐯"}, {w: "صقر", e: "🦅"},
+            {w: "قطة", e: "🐱"}, {w: "كلب", e: "🐶"}, {w: "حصان", e: "🐴"}, {w: "خروف", e: "🐑"}, {w: "جمل", e: "🐪"},
+            {w: "دب", e: "🐻"}, {w: "أرنب", e: "🐰"}, {w: "ثعلب", e: "🦊"}, {w: "ذئب", e: "🐺"}, {w: "قرد", e: "🐵"},
+            {w: "خنزير", e: "🐷"}, {w: "بقرة", e: "🐮"}, {w: "حمار", e: "🦓"}, {w: "فأر", e: "🐭"}, {w: "سنجاب", e: "🐿️"},
+            {w: "بطة", e: "🦆"}, {w: "دجاجة", e: "🐔"}, {w: "بومة", e: "🦉"}, {w: "بطريق", e: "🐧"}, {w: "ببغاء", e: "🦜"},
+            {w: "ثعبان", e: "🐍"}, {w: "تمساح", e: "🐊"}, {w: "سلحفاة", e: "🐢"}, {w: "ضفدع", e: "🐸"}, {w: "حوت", e: "🐋"},
+            {w: "دولفين", e: "🐬"}, {w: "قرش", e: "🦈"}, {w: "أخطبوط", e: "🐙"}, {w: "نحلة", e: "🐝"}, {w: "نملة", e: "🐜"},
+            {w: "فراشة", e: "🦋"}, {w: "عنكبوت", e: "🕷️"}, {w: "عقرب", e: "🦂"}, {w: "كانجرو", e: "🦘"}, {w: "باندا", e: "🐼"},
+            {w: "تفاح", e: "🍎"}, {w: "موز", e: "🍌"}, {w: "عنب", e: "🍇"}, {w: "بطيخ", e: "🍉"}, {w: "برتقال", e: "🍊"},
+            {w: "فراولة", e: "🍓"}, {w: "مانجو", e: "🥭"}, {w: "أناناس", e: "🍍"}, {w: "ليمون", e: "🍋"}, {w: "كرز", e: "🍒"},
+            {w: "جوز الهند", e: "🥥"}, {w: "كيوي", e: "🥝"}, {w: "طماطم", e: "🍅"}, {w: "خيار", e: "🥒"}, {w: "جزر", e: "🥕"},
+            {w: "بصل", e: "🧅"}, {w: "ثوم", e: "🧄"}, {w: "بطاطس", e: "🥔"}, {w: "ذرة", e: "🌽"}, {w: "باذنجان", e: "🍆"},
+            {w: "فلفل", e: "🌶"}, {w: "فطر", e: "🍄"}, {w: "بيتزا", e: "🍕"}, {w: "برجر", e: "🍔"}, {w: "بطاطس مقلية", e: "🍟"},
+            {w: "تاكو", e: "🌮"}, {w: "سوشي", e: "🍣"}, {w: "دجاج", e: "🍗"}, {w: "لحم", e: "🥩"}, {w: "بيض", e: "🥚"},
+            {w: "خبز", e: "🍞"}, {w: "كرواسون", e: "🥐"}, {w: "كيك", e: "🍰"}, {w: "دونات", e: "🍩"}, {w: "شوكولاتة", e: "🍫"},
+            {w: "آيس كريم", e: "🍦"}, {w: "قهوة", e: "☕"}, {w: "شاي", e: "🍵"}, {w: "عصير", e: "🍹"}, {w: "حليب", e: "🥛"},
+            {w: "ماء", e: "💧"}, {w: "عسل", e: "🍯"}, {w: "سكر", e: "🍬"}, {w: "فشار", e: "🍿"}, {w: "بسكويت", e: "🍪"},
+            {w: "جبنة", e: "🧀"}, {w: "شوربة", e: "🥣"}, {w: "مكرونة", e: "🍝"}, {w: "أرز", e: "🍚"}, {w: "فجل", e: "🥗"},
+            {w: "شمس", e: "☀️"}, {w: "قمر", e: "🌙"}, {w: "نجمة", e: "⭐"}, {w: "سحاب", e: "☁️"}, {w: "مطر", e: "🌧️"},
+            {w: "برق", e: "⚡"}, {w: "ثلج", e: "❄️"}, {w: "نار", e: "🔥"}, {w: "بحر", e: "🌊"}, {w: "جبل", e: "⛰️"},
+            {w: "بركان", e: "🌋"}, {w: "صحراء", e: "🏜️"}, {w: "غابة", e: "🌳"}, {w: "جزيرة", e: "🏝️"}, {w: "شلال", e: "🏞️"},
+            {w: "نهر", e: "🏞️"}, {w: "إعصار", e: "🌪️"}, {w: "قوس قزح", e: "🌈"}, {w: "نخلة", e: "🌴"}, {w: "صبار", e: "🌵"},
+            {w: "وردة", e: "🌹"}, {w: "شجرة", e: "🌲"}, {w: "خريف", e: "🍂"}, {w: "بلوره", e: "🔮"}, {w: "صخرة", e: "🪨"},
+            {w: "ليل", e: "🌃"}, {w: "نهار", e: "🏙️"}, {w: "بركة", e: "🟦"}, {w: "موجة", e: "🌊"}, {w: "كوكب", e: "🪐"},
+            {w: "فجر", e: "🌄"}, {w: "غروب", e: "🌇"}, {w: "ضباب", e: "🌫️"}, {w: "غصن", e: "🌿"}, {w: "برسيم", e: "🍀"},
+            {w: "هاتف", e: "📱"}, {w: "كمبيوتر", e: "💻"}, {w: "ساعة", e: "⌚"}, {w: "كاميرا", e: "📷"}, {w: "تلفزيون", e: "📺"},
+            {w: "سماعات", e: "🎧"}, {w: "مذياع", e: "📻"}, {w: "مصباح", e: "💡"}, {w: "بطارية", e: "🔋"}, {w: "شاحن", e: "🔌"},
+            {w: "مفتاح", e: "🔑"}, {w: "قفل", e: "🔒"}, {w: "مطرقة", e: "🔨"}, {w: "مفك", e: "🔧"}, {w: "فأس", e: "🪓"},
+            {w: "مقص", e: "✂️"}, {w: "قلم", e: "✏️"}, {w: "كتاب", e: "📖"}, {w: "شنطة", e: "🎒"}, {w: "نظارة", e: "👓"},
+            {w: "تاج", e: "👑"}, {w: "خاتم", e: "💍"}, {w: "هدية", e: "🎁"}, {w: "فلوس", e: "💰"}, {w: "كأس", e: "🏆"},
+            {w: "خريطة", e: "🗺️"}, {w: "بوصلة", e: "🧭"}, {w: "برج", e: "🗼"}, {w: "قنبلة", e: "💣"}, {w: "سيف", e: "⚔️"},
+            {w: "درع", e: "🛡️"}, {w: "مظلة", e: "☂️"}, {w: "طبله", e: "🥁"}, {w: "صابون", e: "🧼"}, {w: "فوطة", e: "🧻"},
+            {w: "غسالة", e: "🧺"}, {w: "مكنسة", e: "🧹"}, {w: "مسمار", e: "📍"}, {w: "سبحة", e: "📿"}, {w: "صندوق", e: "📦"},
+            {w: "ورقة", e: "📄"}, {w: "مظروف", e: "✉️"}, {w: "كرسي", e: "🪑"}, {w: "طاولة", e: "🍽️"}, {w: "سرير", e: "🛏️"},
+            {w: "بيانو", e: "🎹"}, {w: "باب", e: "🚪"}, {w: "مروحة", e: "🌀"}, {w: "رمل", e: "⏳"}, {w: "صافرة", e: "📣"},
+            {w: "كرة قدم", e: "⚽"}, {w: "كرة سلة", e: "🏀"}, {w: "تنس", e: "🎾"}, {w: "سباحة", e: "🏊"}, {w: "دراجة", e: "🚲"},
+            {w: "سيارة", e: "🚗"}, {w: "طائرة", e: "✈️"}, {w: "سفينة", e: "🚢"}, {w: "قطار", e: "🚆"}, {w: "صاروخ", e: "🚀"},
+            {w: "هليكوبتر", e: "🚁"}, {w: "توك توك", e: "🛺"}, {w: "موتوسيكل", e: "🏍️"}, {w: "شاحنة", e: "🚛"}, {w: "حافلة", e: "🚌"},
+            {w: "تاكسي", e: "🚕"}, {w: "إسعاف", e: "🚑"}, {w: "مطافئ", e: "🚒"}, {w: "جرار", e: "🚜"}, {w: "مضرب", e: "🏓"},
+            {w: "ملاكمة", e: "🥊"}, {w: "تزلج", e: "⛸️"}, {w: "كوتشينة", e: "🃏"}, {w: "نرد", e: "🎲"}, {w: "شطرنج", e: "♟️"},
+            {w: "بلياردو", e: "🎱"}, {w: "صيد", e: "🎣"}, {w: "تخييم", e: "⛺"}, {w: "جري", e: "🏃"}, {w: "سفر", e: "✈️"},
+            {w: "تذكرة", e: "🎟️"}, {w: "ميدالية", e: "🥇"}, {w: "قفاز ملاكمة", e: "🥊"}, {w: "بالون", e: "🎈"}, {w: "ملعب", e: "🏟️"},
+            {w: "طبيب", e: "👨‍⚕️"}, {w: "مهندس", e: "👷"}, {w: "شرطي", e: "👮"}, {w: "طباخ", e: "👨‍🍳"}, {w: "طيار", e: "👨‍✈️"},
+            {w: "معلم", e: "👨‍🏫"}, {w: "فنان", e: "👨‍🎨"}, {w: "رائد فضاء", e: "👨‍🚀"}, {w: "قاضي", e: "⚖️"}, {w: "مزارع", e: "👨‍🌾"},
+            {w: "ملك", e: "👑"}, {w: "هكر", e: "👨‍💻"}, {w: "مغني", e: "👨‍🎤"}, {w: "محامي", e: "👨‍⚖️"}, {w: "بحار", e: "⚓"},
+            {w: "رجل آلي", e: "🤖"}, {w: "فضائي", e: "🛸"}, {w: "شبح", e: "👻"}, {w: "تنين", e: "🐲"}, {w: "حورية", e: "🧜‍♀️"},
+            {w: "ساحر", e: "🧙‍♂️"}, {w: "مومياء", e: "🧟"}, {w: "هيكل عظمي", e: "💀"}, {w: "قلب", e: "❤️"}, {w: "عين", e: "👁️"},
+            {w: "يد", e: "✋"}, {w: "طفل", e: "👶"}, {w: "عائلة", e: "👨‍👩‍👧‍👦"}, {w: "بصمة", e: "👣"}, {w: "عضلات", e: "🦾"},
+            {w: "دماغ", e: "🧠"}, {w: "رجل", e: "👨"}, {w: "امرأة", e: "👩"}, {w: "جد", e: "👴"}, {w: "جدة", e: "👵"},
+            {w: "قميص", e: "👕"}, {w: "بنطلون", e: "👖"}, {w: "فستان", e: "👗"}, {w: "حذاء", e: "👞"}, {w: "قبعة", e: "🧢"},
+            {w: "جورب", e: "🧦"}, {w: "سترة", e: "🧥"}, {w: "نظارة شمس", e: "🕶️"}, {w: "مستشفى", e: "🏥"}, {w: "مدرسة", e: "🏫"},
+            {w: "منزل", e: "🏠"}, {w: "مسجد", e: "🕌"}, {w: "كنيسة", e: "⛪"}, {w: "بنك", e: "🏦"}, {w: "مطعم", e: "🍴"},
+            {w: "سينما", e: "🎬"}, {w: "مطار", e: "🛫"}, {w: "قلعة", e: "🏰"}, {w: "مكتبة", e: "📚"}, {w: "سوق", e: "🛒"},
+            {w: "صيدلية", e: "💊"}, {w: "قسم شرطة", e: "🚓"}, {w: "مكتب", e: "🏢"}, {w: "حديقة", e: "🏡"}, {w: "فندق", e: "🏨"},
+            {w: "مخبز", e: "🥖"}, {w: "متحف", e: "🖼️"}, {w: "سيرك", e: "🎪"}, {w: "ملاهي", e: "🎡"}, {w: "جسر", e: "🌉"},
+            {w: "طريق", e: "🛣️"}, {w: "مصنع", e: "🏭"}, {w: "مخيم", e: "⛺"}, {w: "حمام", e: "🚿"}, {w: "سجائر", e: "🚬"},
+            {w: "منشار", e: "🪚"}, {w: "منشار", e: "🪚"}
+        ];
+        
+
+        function showOnlineMenu() { document.getElementById('mainLobby').style.display='none'; document.getElementById('onlineMenu').style.display='block'; }
+        function setRole(r) { myRole = r; document.getElementById('roleMaster').classList.toggle('active', r==='master'); document.getElementById('roleExplorer').classList.toggle('active', r==='explorer'); }
+
+        function startLocal() { currentMode = "local"; prepareUI(); resetLocalGame(); }
+
+        function joinOnline() {
+            roomId = document.getElementById('roomInput').value.trim();
+            if(!roomId) return alert("فين رقم الغرفة؟");
+            currentMode = "online"; prepareUI();
+            db.ref('rooms/' + roomId).on('value', (snap) => {
+                const data = snap.val();
+                if(data && data.cards) {
+                    renderBoard(data.cards);
+                    document.getElementById('bLeft').innerText = `🔵: ${data.bCount}`;
+                    document.getElementById('rLeft').innerText = `🔴: ${data.rCount}`;
+                    
+                    // فحص الفوز في الأونلاين
+                    if(data.bCount === 0) { alert("تهانينا للفريق الأزرق! لقد فزتم بالمهمة! 🔵🥳"); }
+                    if(data.rCount === 0) { alert("تهانينا للفريق الأحمر! لقد فزتم بالمهمة! 🔴🥳"); }
+                } else { resetOnlineGame(); }
+            });
+        }
+
+        function prepareUI() {
+            document.getElementById('mainLobby').style.display='none';
+            document.getElementById('onlineMenu').style.display='none';
+            document.getElementById('gameArea').style.display='flex';
+            const board = document.getElementById('gameBoard');
+            if(currentMode === "online") {
+                document.getElementById('localTimer').style.display = 'none';
+                document.getElementById('btnMasterToggle').style.display = 'none';
+                document.getElementById('roomLabel').innerText = `غرفة: ${roomId}`;
+                if(myRole === 'master') board.classList.add('master-view');
+                else board.classList.remove('master-view');
+            } else {
+                document.getElementById('localTimer').style.display = 'block';
+                document.getElementById('btnMasterToggle').style.display = 'inline-block';
+                document.getElementById('roomLabel').innerText = "لعب محلي";
+                board.classList.remove('master-view');
+            }
+        }
+
+        function resetGameAction() { if(currentMode === "local") resetLocalGame(); else resetOnlineGame(); }
+
+        function resetLocalGame() {
+            let s = [...words].sort(() => 0.5-Math.random()).slice(0, 25);
+            let r = [...Array(9).fill('team1'), ...Array(8).fill('team2'), ...Array(7).fill('neutral'), 'bomb'].sort(() => 0.5-Math.random());
+            let localCards = s.map((w, i) => ({w: w.w, e: w.e, r: r[i], v: false}));
+            renderBoard(localCards);
+            document.getElementById('bLeft').innerText = `🔵: 9`; 
+            document.getElementById('rLeft').innerText = `🔴: 8`;
+            controlTimer('reset');
+        }
+
+        function resetOnlineGame() {
+            let s = [...words].sort(() => 0.5 - Math.random()).slice(0, 25);
+            let r = [...Array(9).fill('team1'), ...Array(8).fill('team2'), ...Array(7).fill('neutral'), 'bomb'].sort(() => 0.5 - Math.random());
+            let cards = s.map((item, i) => ({w: item.w, e: item.e, r: r[i], v: false}));
+            db.ref('rooms/' + roomId).set({ cards, bCount: 9, rCount: 8 });
+        }
+
+        function renderBoard(cards) {
+            const b = document.getElementById('gameBoard'); b.innerHTML = '';
+            cards.forEach((c, i) => {
+                const d = document.createElement('div');
+                d.className = `card ${c.r} ${c.v ? 'revealed' : ''}`;
+                d.innerHTML = `<div class="emoji">${c.e}</div><div class="word">${c.w}</div>`;
+                d.onclick = () => {
+                    const isMasterView = b.classList.contains('master-view');
+                    if(isMasterView) {
+                        alert("يا هيكا أنت سيد كود، المستكشف هو اللي بيفتح الكروت! 🕶️");
+                        return;
+                    }
+                    if(c.v) return;
+
+                    if(currentMode === "online") {
+                        db.ref(`rooms/${roomId}/cards/${i}`).update({v: true});
+                        if(c.r === 'bomb') {
+                            alert("بـوووم! الفريق اللي ضغط على القنبلة خسر الجيم! 💣💥");
+                        } else {
+                            let teamKey = c.r === 'team1' ? 'bCount' : (c.r === 'team2' ? 'rCount' : null);
+                            if(teamKey) db.ref(`rooms/${roomId}/${teamKey}`).transaction(n => (n || 0) - 1);
+                        }
+                    } else {
+                        // وضع المحلي (Local)
+                        c.v = true;
+                        if(c.r === 'bomb') { alert("بـوووم! الفريق اللي ضغط على القنبلة خسر الجيم! 💣💥"); }
+                        renderBoard(cards);
+                        
+                        // تحديث العدادات محلياً
+                        let bRem = cards.filter(card => card.r === 'team1' && !card.v).length;
+                        let rRem = cards.filter(card => card.r === 'team2' && !card.v).length;
+                        document.getElementById('bLeft').innerText = `🔵: ${bRem}`;
+                        document.getElementById('rLeft').innerText = `🔴: ${rRem}`;
+                        
+                        if(bRem === 0) alert("تهانينا للفريق الأزرق! لقد فزتم بالمهمة! 🔵🥳");
+                        if(rRem === 0) alert("تهانينا للفريق الأحمر! لقد فزتم بالمهمة! 🔴🥳");
+                    }
+                };
+                b.appendChild(d);
+            });
+        }
+
+        function toggleMasterView() { document.getElementById('gameBoard').classList.toggle('master-view'); }
+        function toggleFS() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+        function controlTimer(action) {
+            if(action === 'start') { clearInterval(timerInt); timerInt = setInterval(() => { if(timeLeft > 0) { timeLeft--; updateTimerUI(); } }, 1000); }
+            else if(action === 'stop') { clearInterval(timerInt); }
+            else { clearInterval(timerInt); timeLeft = 60; updateTimerUI(); }
+        }
+        function updateTimerUI() { let m = Math.floor(timeLeft/60).toString().padStart(2,'0'), s = (timeLeft%60).toString().padStart(2,'0'); document.getElementById('timerDisplay').innerText = `${m}:${s}`; }
+    </script>
+</body>
+</html>

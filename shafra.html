@@ -50,6 +50,13 @@
             border-radius: 15px; box-shadow: 0 4px 0px #cbd5e1; cursor: pointer; user-select: none; transition: 0.3s;
             position: relative; overflow: hidden;
         }
+    /* fullscreen-mode adjustments: keep scroll, use 4 columns for phones, smaller cards */
+    #gameArea.fs-mode { padding: 8px; height: 100vh; overflow: auto; -webkit-overflow-scrolling: touch; }
+    /* Prefer 4 columns in fullscreen mode so more cards fit across the width */
+    #gameArea.fs-mode .grid { transition: transform 0.18s ease; transform-origin: top center; width: 100%; max-width: 1000px; grid-template-columns: repeat(4, 1fr) !important; }
+    #gameArea.fs-mode .card { height: 84px; border-radius: 10px; }
+    #gameArea.fs-mode .emoji { font-size: 1.6rem; }
+    #gameArea.fs-mode .word { font-size: 0.9rem; }
         .emoji { font-size: 2.8rem; line-height: 1; margin-bottom: 5px; }
         .word { font-size: 1.1rem; font-weight: 900; }
 
@@ -304,7 +311,85 @@
         }
 
         function toggleMasterView() { document.getElementById('gameBoard').classList.toggle('master-view'); }
-        function toggleFS() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+        function toggleFS() {
+            const ga = document.getElementById('gameArea');
+            // If fullscreen API exists, use it (requires user gesture)
+            if (ga.requestFullscreen || ga.webkitRequestFullscreen || ga.msRequestFullscreen) {
+                if (!document.fullscreenElement) {
+                    if (ga.requestFullscreen) ga.requestFullscreen();
+                    else if (ga.webkitRequestFullscreen) ga.webkitRequestFullscreen();
+                    else if (ga.msRequestFullscreen) ga.msRequestFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                    else if (document.msExitFullscreen) document.msExitFullscreen();
+                }
+            } else {
+                // fallback: toggle the fs-mode class even if browser doesn't support Fullscreen API (useful for some mobile browsers)
+                if (!ga.classList.contains('fs-mode')) {
+                    ga.classList.add('fs-mode');
+                    setTimeout(() => computeAndApplyScale(), 60);
+                } else {
+                    ga.classList.remove('fs-mode');
+                    const board = document.getElementById('gameBoard'); if (board) board.style.transform = '';
+                }
+            }
+        }
+
+        // When entering/exiting fullscreen or resizing, compute a scale to fit the board into the viewport
+        function computeAndApplyScale() {
+            const board = document.getElementById('gameBoard');
+            const ga = document.getElementById('gameArea');
+            if (!board) return;
+            // If we're using fs-mode layout (4 columns + smaller cards), don't apply transform scaling
+            if (ga && ga.classList.contains('fs-mode')) {
+                // ensure no transform remains
+                board.style.transform = '';
+                board.style.webkitTransform = '';
+                return;
+            }
+
+            // reset first so measurements are natural
+            board.style.transform = '';
+
+            // measure required size
+            const rect = board.getBoundingClientRect();
+            const gapVert = 20; // small buffer for headers/controls
+            const availW = window.innerWidth - 20;
+            const availH = window.innerHeight - gapVert - 20;
+
+            // If board height is 0 (not rendered yet), skip
+            if (rect.width === 0 || rect.height === 0) return;
+
+            const scaleW = availW / rect.width;
+            const scaleH = availH / rect.height;
+            const scale = Math.min(1, scaleW, scaleH);
+
+            board.style.transform = `scale(${scale})`;
+            board.style.webkitTransform = `scale(${scale})`;
+        }
+
+        function applyFullscreenLayout() {
+            const ga = document.getElementById('gameArea');
+            const board = document.getElementById('gameBoard');
+            if (document.fullscreenElement) {
+                // mark gameArea to apply smaller sizing rules
+                ga.classList.add('fs-mode');
+                // small timeout to allow browser to enter fullscreen and recalc layout
+                setTimeout(() => computeAndApplyScale(), 80);
+            } else {
+                ga.classList.remove('fs-mode');
+                if (board) board.style.transform = '';
+            }
+        }
+
+        // respond to fullscreen change and window resize
+        document.addEventListener('fullscreenchange', applyFullscreenLayout);
+        // vendor-specific events
+        document.addEventListener('webkitfullscreenchange', applyFullscreenLayout);
+        document.addEventListener('msfullscreenchange', applyFullscreenLayout);
+
+        window.addEventListener('resize', () => { if (document.fullscreenElement) computeAndApplyScale(); });
         function controlTimer(action) {
             if(action === 'start') { clearInterval(timerInt); timerInt = setInterval(() => { if(timeLeft > 0) { timeLeft--; updateTimerUI(); } }, 1000); }
             else if(action === 'stop') { clearInterval(timerInt); }

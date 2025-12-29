@@ -11,7 +11,7 @@
     <style>
         :root { 
             --bg-color: #0f172a; 
-            --glass-bg: rgba(30, 41, 59, 0.9);
+            --glass-bg: rgba(30, 41, 59, 0.95);
             --domino-white: #f1f2f6;
             --domino-black: #1e272e;
             --accent-color: #3b82f6; 
@@ -27,13 +27,15 @@
             background-size: 60px 60px;
             color: #e2e8f0; margin: 0; overflow: hidden; height: 100vh;
             display: flex; flex-direction: column; user-select: none;
-            touch-action: manipulation; /* تحسين اللمس */
+            touch-action: none; /* منع التكبير والتصغير */
         }
 
+        /* العنوان يظهر في القائمة ويختفي في اللعب */
         h1.game-title {
             font-family: 'Righteous', cursive; font-size: 1.8rem; color: var(--gold);
-            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin: 5px 0; text-align: center; pointer-events: none;
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin: 10px 0; text-align: center; pointer-events: none;
         }
+        #screen-game h1.game-title { display: none; } 
 
         .container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; position: relative; }
         .hidden { display: none !important; }
@@ -45,13 +47,17 @@
             border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; z-index: 100;
         }
 
-        /* عناصر التحكم */
         input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 10px; color: white; border-radius: 8px; text-align: center; outline: none; }
         button { background: var(--accent-color); color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin: 5px; font-family: 'Cairo'; }
         button:active { transform: scale(0.95); }
 
         /* الدومينو */
-        .domino { background-color: var(--domino-white); border-radius: 4px; box-shadow: 2px 2px 0px #555; display: flex; cursor: pointer; position: relative; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .domino { 
+            background-color: var(--domino-white); border-radius: 4px; box-shadow: 2px 2px 0px #555; 
+            display: flex; cursor: pointer; position: absolute; /* Absolute للطاولة */
+            transition: all 0.3s ease;
+            transform-origin: center center;
+        }
         .pip-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 2px; width: 100%; height: 100%; box-sizing: border-box; }
         .pip { background-color: var(--domino-black); border-radius: 50%; width: 100%; height: 100%; box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
         .line { background-color: #ccc; }
@@ -62,79 +68,91 @@
         .p5-1 { grid-area: 1 / 1; } .p5-2 { grid-area: 1 / 3; } .p5-3 { grid-area: 2 / 2; } .p5-4 { grid-area: 3 / 1; } .p5-5 { grid-area: 3 / 3; }
         .p6-1 { grid-area: 1 / 1; } .p6-2 { grid-area: 1 / 3; } .p6-3 { grid-area: 2 / 1; } .p6-4 { grid-area: 2 / 3; } .p6-5 { grid-area: 3 / 1; } .p6-6 { grid-area: 3 / 3; }
 
-        /* اليد */
-        .hand-tile { width: 38px; height: 76px; flex-direction: column; margin: 0 4px; z-index: 10; }
+        /* اليد (Hand) - تعديل لرفع الكروت */
+        .hand-tile { 
+            position: relative; /* نسبي داخل اليد */
+            width: 36px; height: 72px; flex-direction: column; margin: 0 2px; z-index: 10; flex-shrink: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
         .hand-tile .line { height: 2px; width: 90%; margin: 2px auto; }
-        .hand-tile .pip-container { width: 38px; height: 37px; } .hand-tile .pip { width: 7px; height: 7px; margin: auto; }
+        .hand-tile .pip-container { width: 36px; height: 35px; } .hand-tile .pip { width: 6px; height: 6px; margin: auto; }
         
-        /* تأثير ارتفاع الورقة عند التحديد */
-        .hand-tile.selected { transform: translateY(-25px) scale(1.1); box-shadow: 0 10px 20px rgba(0,0,0,0.5); border: 2px solid var(--gold); z-index: 50; }
+        .hand-tile.selected { transform: translateY(-30px) scale(1.1); box-shadow: 0 0 15px var(--gold); border: 2px solid var(--gold); z-index: 50; }
 
-        /* الطاولة */
-        .board-tile { width: 64px; height: 32px; flex-direction: row; margin: 0 1px; }
+        /* الطاولة - التنسيق الجديد */
+        .board-tile { width: 60px; height: 30px; flex-direction: row; }
         .board-tile .line { width: 2px; height: 90%; margin: auto 2px; }
-        .board-tile .pip-container { width: 31px; height: 32px; } .board-tile .pip { width: 6px; height: 6px; margin: auto; }
-        .board-tile.double { width: 32px; height: 64px; flex-direction: column; margin: 0 2px; transform: translateY(-16px); }
-        .board-tile.double .line { height: 2px; width: 90%; margin: 2px auto; }
-        .board-tile.double .pip-container { width: 32px; height: 31px; }
+        .board-tile .pip-container { width: 29px; height: 30px; } .board-tile .pip { width: 5px; height: 5px; margin: auto; }
+        
+        .board-tile.double { /* الدش دائماً يعالج بالدوران في JS */ }
 
-        /* مناطق الإسقاط (المربع الأصفر) */
+        /* مناطق الإسقاط العائمة */
         .drop-zone {
-            border: 2px dashed var(--gold);
-            background-color: var(--drop-zone);
-            border-radius: 5px;
-            margin: 0 5px;
-            animation: pulse 1s infinite;
-            cursor: pointer;
-            display: flex; justify-content: center; align-items: center;
-            color: white; font-size: 20px; font-weight: bold;
+            position: absolute;
+            border: 2px dashed var(--gold); background-color: var(--drop-zone);
+            border-radius: 5px; animation: pulse 1s infinite; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;
+            width: 60px; height: 30px; z-index: 15;
         }
         .drop-zone:hover { background-color: var(--gold); color: black; }
-        /* أبعاد منطقة الإسقاط (نفس حجم الورقة) */
-        .dz-h { width: 64px; height: 32px; } 
-        .dz-v { width: 32px; height: 64px; transform: translateY(-16px); }
+        .dz-v { width: 30px; height: 60px; } 
 
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
         /* واجهة اللعب */
-        #game-interface { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        #game-interface { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+        
         #table-surface {
-            flex: 1; margin: 10px; border-radius: 20px; border: 4px solid #334155;
-            background: rgba(15, 23, 42, 0.5); display: flex; justify-content: center; align-items: center;
-            position: relative; box-shadow: inset 0 0 50px black; overflow: auto;
+            flex: 1; margin: 5px; border-radius: 15px; border: 2px solid #334155;
+            background: rgba(15, 23, 42, 0.5); 
+            position: relative; overflow: hidden; /* إخفاء الزائد */
+            box-shadow: inset 0 0 50px black;
         }
-        #game-board { display: flex; align-items: center; padding: 60px; min-width: min-content; }
+        
+        /* نقطة مركز الطاولة */
+        #game-board { 
+            position: absolute; top: 50%; left: 50%; 
+            width: 0; height: 0; 
+            transition: transform 0.3s ease-out;
+        }
+
+        /* منطقة اللاعب */
+        #my-area { 
+            height: 110px; /* تقليل الارتفاع */
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; 
+            position: relative; border-top: 1px solid #444; padding-bottom: 5px; z-index: 200;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+        }
+        #my-hand { 
+            display: flex; overflow-x: auto; padding: 25px 10px 5px 10px; 
+            width: 100%; align-items: flex-end; justify-content: center; height: 90px; 
+        }
+        #draw-btn { position: absolute; top: -50px; background: var(--gold); color: black; z-index: 50; box-shadow: 0 0 10px var(--gold); }
 
         /* اللاعبين */
         .player-pos {
-            position: absolute; background: rgba(30, 41, 59, 0.95); padding: 5px 10px;
-            border-radius: 10px; display: flex; flex-direction: column; align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5); min-width: 80px; z-index: 20;
+            position: absolute; background: rgba(30, 41, 59, 0.95); padding: 4px 8px;
+            border-radius: 8px; display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); min-width: 70px; z-index: 20; font-size: 0.8rem;
         }
-        .player-pos.active-turn { border: 2px solid var(--gold); box-shadow: 0 0 15px var(--gold); }
+        .player-pos.active-turn { border: 1px solid var(--gold); box-shadow: 0 0 10px var(--gold); }
         .pos-top { top: 10px; left: 50%; transform: translateX(-50%); }
         .pos-left { top: 50%; left: 10px; transform: translateY(-50%); }
         .pos-right { top: 50%; right: 10px; transform: translateY(-50%); }
-        .timer-bar { height: 3px; background: var(--danger); width: 100%; margin-top: 5px; transition: width 0.5s linear; }
+        .timer-bar { height: 2px; background: var(--danger); width: 100%; margin-top: 3px; transition: width 0.5s linear; }
 
-        /* منطقتي */
-        #my-area { height: 140px; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-top: 1px solid #444; }
-        #my-hand { display: flex; overflow-x: auto; padding: 20px 10px 10px 10px; max-width: 100%; align-items: center; height: 90px; }
-        #draw-btn { position: absolute; top: -50px; background: var(--gold); color: black; z-index: 50; box-shadow: 0 0 10px var(--gold); }
-
-        /* رسالة منبثقة (Toast) */
+        /* رسالة منبثقة والشات */
+        #toast, #screen-winner, #chat-box, #chat-icon { z-index: 999; }
         #toast {
             position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px;
-            border: 1px solid var(--gold); z-index: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+            border: 1px solid var(--gold); opacity: 0; transition: opacity 0.3s; pointer-events: none;
         }
-
-        /* الشات */
-        #chat-icon { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: var(--accent-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 200; }
-        #chat-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; display: flex; justify-content: center; align-items: center; }
-        #chat-box { position: fixed; bottom: 80px; left: 20px; width: 280px; height: 300px; background: var(--glass-bg); border-radius: 10px; display: flex; flex-direction: column; z-index: 200; }
+        #chat-icon { position: fixed; bottom: 20px; left: 20px; width: 40px; height: 40px; background: var(--accent-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        #chat-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; width: 15px; height: 15px; border-radius: 50%; font-size: 10px; display: flex; justify-content: center; align-items: center; }
+        #chat-box { position: fixed; bottom: 70px; left: 20px; width: 250px; height: 250px; background: var(--glass-bg); border-radius: 10px; display: flex; flex-direction: column; }
         #chat-msgs { flex: 1; overflow-y: auto; padding: 10px; }
-        .msg { background: rgba(255,255,255,0.1); padding: 5px; margin: 3px 0; border-radius: 5px; font-size: 13px; text-align: right; }
+        .msg { background: rgba(255,255,255,0.1); padding: 5px; margin: 3px 0; border-radius: 5px; font-size: 12px; text-align: right; }
         .msg.mine { background: rgba(59, 130, 246, 0.4); align-self: flex-end; }
     </style>
 </head>
@@ -168,25 +186,27 @@
 
         <div id="screen-game" class="hidden" style="width:100%; height:100%">
             <div id="game-interface">
-                <div style="padding:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="padding:10px; display:flex; justify-content:space-between; align-items:center; z-index:30;">
                     <button onclick="leavegame()" style="background:var(--danger); font-size:12px; padding:5px 10px">انسحاب</button>
-                    <span style="color:#aaa; font-size:12px">game: <span id="game-code"></span></span>
+                    <span style="color:#aaa; font-size:12px">Room: <span id="game-code"></span></span>
                 </div>
 
                 <div id="table-surface" onclick="cancelSelection(event)">
-                    <div id="opponents"></div> <div id="game-board"></div> </div>
+                    <div id="opponents"></div> 
+                    <div id="game-board"></div> 
+                </div>
 
                 <div id="my-area">
                     <button id="draw-btn" class="hidden">سحب</button>
-                    <div id="my-score-display" style="position:absolute; top:-25px; left:10px; color:var(--gold); font-weight:bold;">نقاتك: 0</div>
+                    <div id="my-score-display" style="position:absolute; top:-20px; left:10px; color:var(--gold); font-weight:bold; font-size:0.9rem;">نقاطك: 0</div>
                     <div id="my-hand"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="screen-winner" class="screen hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:400; border:2px solid var(--gold);">
-        <h1 style="color:var(--gold); font-size:3rem;">🏆 CHAMPION 🏆</h1>
+    <div id="screen-winner" class="screen hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); border:2px solid var(--gold);">
+        <h1 style="color:var(--gold); font-size:2rem;">🏆 CHAMPION 🏆</h1>
         <h2 id="winner-name"></h2>
         <button onclick="leavegame()">القائمة الرئيسية</button>
     </div>
@@ -209,7 +229,7 @@
     // --- Variables ---
     let myName="", myId="", currentgame="", isHost=false;
     let gameData={}, chatOpen=false, timerInt=null;
-    let selectedIdx = -1; // الورقة المحددة حالياً
+    let selectedIdx = -1;
 
     // --- Init ---
     window.onload = () => {
@@ -238,7 +258,7 @@
         setTimeout(()=>t.style.opacity=0, 2000);
     }
 
-    // --- game Logic ---
+    // --- Game Logic ---
     function creategame() {
         const code = Math.floor(1000+Math.random()*9000).toString();
         myId = Date.now().toString();
@@ -287,7 +307,7 @@
                 checkTimer(d);
             } 
             else if (d.status === 'finished') {
-                alert(`الفائز: ${d.roundWinnerName}`);
+                showToast(`الفائز: ${d.roundWinnerName}`);
                 if(isHost) setTimeout(startGame, 3000);
             }
             else if (d.status === 'match_over') {
@@ -302,7 +322,7 @@
         Object.values(players||{}).forEach(p => list.innerHTML += `<li>${p.name} ${p.isBot?'🤖':''} - 🏆${p.score}</li>`);
     }
 
-    // --- Game Logic ---
+    // --- Game Play ---
     function startGame() {
         const pIds = Object.keys(gameData.players);
         if(pIds.length < 2) return alert("2 لاعبين ع الأقل");
@@ -344,8 +364,8 @@
             if(count===4) cls = (i===1) ? "pos-right" : (i===2 ? "pos-top" : "pos-left");
             const isTurn = (turnId === tId);
             oppDiv.innerHTML += `<div class="player-pos ${cls} ${isTurn?'active-turn':''}">
-                <div style="font-size:20px">👤</div><div>${p.name} ${p.isBot?'🤖':''}</div>
-                <div style="color:#aaa">${p.count} 🀄</div><div class="p-score">${p.score} pts</div>
+                <div style="font-size:16px">👤</div><div>${p.name} ${p.isBot?'🤖':''}</div>
+                <div style="color:#aaa">${p.count} 🀄</div><div class="p-score">${p.score}</div>
                 ${isTurn ? '<div class="timer-bar" id="tbar-'+tId+'"></div>' : ''}</div>`;
         }
 
@@ -355,99 +375,188 @@
         if(turnId === myId) {
             myArea.style.borderTop = "3px solid var(--gold)";
             if(!document.getElementById('my-timer')) myArea.insertAdjacentHTML('afterbegin', `<div id="my-timer" class="timer-bar" style="position:absolute; top:0; width:100%"></div>`);
-            // Auto Pass Check
             checkAutoPass(data);
         } else {
             myArea.style.borderTop = "1px solid #444";
             if(document.getElementById('my-timer')) document.getElementById('my-timer').remove();
-            selectedIdx = -1; // Reset selection if not my turn
+            selectedIdx = -1;
         }
 
         renderBoard(data.board||[]);
-        if(selectedIdx === -1) renderHand(data.players[myId].hand||[]); // Only re-render hand if not selecting
+        if(selectedIdx === -1) renderHand(data.players[myId].hand||[]);
         
-        // Draw Button
         const btn = document.getElementById('draw-btn'); btn.classList.add('hidden');
         if(turnId === myId && count === 2 && !hasMove(data.players[myId].hand, data.board)) {
             if(data.stock && data.stock.length > 0) { btn.classList.remove('hidden'); btn.onclick = drawTile; }
         }
     }
 
-    // --- Interactive Play System (Click -> Select -> Drop) ---
+    // --- Snake Layout Logic (NEW) ---
+    const TILE_W = 60;
+    const TILE_H = 30;
+    const GAP = 3;
+    const ROW_LIMIT = 5;
+
+    function calculateSnakePositions(board) {
+        if(!board || board.length === 0) return [];
+        
+        const positions = Array(board.length).fill(null);
+        let cx = 0, cy = 0;
+        let direction = 1; // 1 = Right, -1 = Left
+        let currentRowCount = 0;
+        
+        for(let i=0; i<board.length; i++) {
+            const tile = board[i];
+            const isDouble = tile.a === tile.b;
+            const rot = isDouble ? 90 : (direction === 1 ? 0 : 180);
+
+            positions[i] = { x: cx, y: cy, angle: rot };
+            
+            currentRowCount++;
+            
+            // Logic for next position
+            if (currentRowCount >= ROW_LIMIT) {
+                // Drop down
+                cy += (TILE_W/2 + TILE_H/2 + GAP * 3); // Downwards step
+                direction *= -1; // Flip direction
+                currentRowCount = 0;
+            } else {
+                // Horizontal step
+                let currentLen = isDouble ? TILE_H : TILE_W;
+                let nextLen = TILE_W; 
+                if (i < board.length - 1) {
+                    const nextTile = board[i+1];
+                    nextLen = (nextTile.a === nextTile.b) ? TILE_H : TILE_W;
+                }
+                let step = (currentLen/2 + nextLen/2 + GAP);
+                cx += step * direction;
+            }
+        }
+        
+        // Centering Logic
+        if(positions.length > 0) {
+            let minX = Math.min(...positions.map(p=>p.x)), maxX = Math.max(...positions.map(p=>p.x));
+            let minY = Math.min(...positions.map(p=>p.y)), maxY = Math.max(...positions.map(p=>p.y));
+            let midX = (minX + maxX) / 2;
+            let midY = (minY + maxY) / 2;
+            
+            positions.forEach(p => { p.x -= midX; p.y -= midY; });
+            
+            // Auto Zoom
+            const boardDiv = document.getElementById('game-board');
+            let scale = 1;
+            if(positions.length > 10) scale = 0.85;
+            if(positions.length > 18) scale = 0.7;
+            if(positions.length > 25) scale = 0.55;
+            boardDiv.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+        return positions;
+    }
+
+    function renderBoard(board) {
+        const d = document.getElementById('game-board');
+        d.innerHTML = "";
+        const coords = calculateSnakePositions(board);
+        
+        board.forEach((t, i) => {
+            const pos = coords[i];
+            const isDouble = t.a === t.b;
+            const cls = isDouble ? 'board-tile double' : 'board-tile';
+            const tileHtml = `
+                <div class="domino ${cls}" 
+                     style="left: ${pos.x}px; top: ${pos.y}px; transform: translate(-50%, -50%) rotate(${pos.angle}deg);">
+                    <div class="pip-container">${getPips(t.a)}</div>
+                    <div class="line"></div>
+                    <div class="pip-container">${getPips(t.b)}</div>
+                </div>`;
+            d.innerHTML += tileHtml;
+        });
+        return coords;
+    }
+
+    function renderBoardWithGhosts(board, tile) {
+        const coords = renderBoard(board);
+        const div = document.getElementById('game-board');
+
+        if(board.length === 0) {
+             div.innerHTML = `<div class="drop-zone dz-v" style="left:0; top:0; transform: translate(-50%, -50%)" onclick="commitMove('any')">+</div>`;
+             return;
+        }
+
+        const l = board[0].a, r = board[board.length-1].b;
+        const canLeft = (tile.a === l || tile.b === l);
+        const canRight = (tile.a === r || tile.b === r);
+
+        // Ghost Start (Simplification: Just put it left of start for now, precise snake reverse is complex)
+        if(canLeft) {
+            const first = coords[0];
+            // Roughly guess position: left of the first tile
+            // If it's a new row, this might be slightly off visually but functional
+            let gx = first.x - (TILE_W + GAP);
+            let gy = first.y; 
+            div.insertAdjacentHTML('beforeend', `<div class="drop-zone" style="left:${gx}px; top:${gy}px; transform: translate(-50%, -50%)" onclick="commitMove('left')">+</div>`);
+        }
+
+        // Ghost End
+        if(canRight) {
+            const last = coords[coords.length-1];
+            const count = board.length;
+            const currentRow = Math.floor((count) / ROW_LIMIT);
+            
+            let gx = last.x, gy = last.y;
+            let rot = 0;
+            
+            // Check if we need to drop
+            if (count % ROW_LIMIT === 0) {
+                gy += (TILE_W/2 + TILE_H/2 + GAP * 3);
+            } else {
+                // Determine direction based on row parity
+                // Row 0: right (1), Row 1: left (-1)...
+                // Note: The loop logic uses directions, here we approximate
+                // We know where the LAST tile was, we need to continue that trend
+                
+                // Hack: Re-run logic for one hypothetical tile
+                let prevCnt = (count - 1) % ROW_LIMIT;
+                // If previous was end of row, direction flipped.
+                // It's safer to just calculate based on the coordinate delta from len-2 to len-1
+                // But simplified:
+                let dir = (Math.floor((count-1)/ROW_LIMIT) % 2 === 0) ? 1 : -1;
+                
+                let lastIsDouble = board[board.length-1].a === board[board.length-1].b;
+                let nextIsDouble = tile.a === tile.b;
+                let step = (lastIsDouble?TILE_H/2:TILE_W/2) + (nextIsDouble?TILE_H/2:TILE_W/2) + GAP;
+                gx += step * dir;
+                if(nextIsDouble) rot = 90;
+            }
+            
+            const cls = (tile.a === tile.b) ? 'dz-v' : 'drop-zone';
+            div.insertAdjacentHTML('beforeend', `<div class="drop-zone ${cls}" style="left:${gx}px; top:${gy}px; transform: translate(-50%, -50%) rotate(${rot}deg)" onclick="commitMove('right')">+</div>`);
+        }
+    }
+
+    // --- Interaction ---
     function selectTile(idx) {
         const pIds = gameData.playerOrder;
-        if(pIds[gameData.turnIndex] !== myId) return; // Not my turn
-
+        if(pIds[gameData.turnIndex] !== myId) return;
         const hand = gameData.players[myId].hand;
         const board = gameData.board || [];
         const tile = hand[idx];
 
-        // Toggle Selection
-        if(selectedIdx === idx) {
-            cancelSelection();
-            return;
+        if(selectedIdx === idx) { cancelSelection(); return; }
+        if(board.length === 0 && gameData.roundCount === 1) {
+            const has66 = hand.findIndex(t => t.a===6 && t.b===6);
+            if(has66 !== -1 && (tile.a!==6 || tile.b!==6)) { showToast("لازم 6-6!"); return; }
         }
-
-        // Logic check
-        if(board.length === 0) {
-            if(gameData.roundCount === 1) {
-                const has66 = hand.findIndex(t => t.a===6 && t.b===6);
-                if(has66 !== -1 && (tile.a!==6 || tile.b!==6)) {
-                    showToast("لازم تلعب 6-6 الأول!"); return;
-                }
-            }
-        }
-
-        // Visual Select
         selectedIdx = idx;
-        renderHand(hand); // Re-render to show raised card
+        renderHand(hand);
         renderBoardWithGhosts(board, tile);
     }
-
     function cancelSelection(e) {
-        // لو ضغطنا على الطاولة نفسها مش الورق
         if(e && e.target.closest('.domino')) return;
         selectedIdx = -1;
         renderHand(gameData.players[myId].hand);
         renderBoard(gameData.board || []);
     }
-
-    function renderBoardWithGhosts(board, tile) {
-        const div = document.getElementById('game-board');
-        // Render normal board first
-        renderBoard(board);
-        
-        if(board.length === 0) {
-            // Empty board, add center ghost
-            const ghost = `<div class="drop-zone dz-h" onclick="commitMove('any')">+</div>`;
-            div.innerHTML = ghost;
-            return;
-        }
-
-        const l = board[0].a;
-        const r = board[board.length-1].b;
-        
-        // Check moves
-        const canLeft = (tile.a === l || tile.b === l);
-        const canRight = (tile.a === r || tile.b === r);
-
-        // Prepend Left Ghost
-        if(canLeft) {
-            const isDouble = (tile.a === tile.b); // Approximate shape
-            const cls = isDouble ? 'dz-v' : 'dz-h';
-            const ghost = `<div class="drop-zone ${cls}" onclick="commitMove('left')">+</div>`;
-            div.insertAdjacentHTML('afterbegin', ghost);
-        }
-
-        // Append Right Ghost
-        if(canRight) {
-             const isDouble = (tile.a === tile.b);
-             const cls = isDouble ? 'dz-v' : 'dz-h';
-             const ghost = `<div class="drop-zone ${cls}" onclick="commitMove('right')">+</div>`;
-             div.insertAdjacentHTML('beforeend', ghost);
-        }
-    }
-
     function commitMove(side) {
         if(selectedIdx === -1) return;
         const hand = gameData.players[myId].hand;
@@ -460,73 +569,46 @@
         } else if (side === 'left') {
             if(newTile.a === board[0].a) newTile = {a:tile.b, b:tile.a};
             board.unshift(newTile);
-        } else { // right
+        } else {
             if(newTile.b === board[board.length-1].b) newTile = {a:tile.b, b:tile.a};
             board.push(newTile);
         }
-
         hand.splice(selectedIdx, 1);
         selectedIdx = -1;
-
         if(hand.length === 0) handleRoundWin(myId, board);
         else nextTurn(board, hand);
     }
 
-    // --- Auto Pass & Instant Bot ---
+    // --- Core Logic ---
     function checkAutoPass(data) {
         const hand = data.players[myId].hand || [];
         const board = data.board || [];
         const stock = data.stock || [];
-        
-        // لو مفيش حركة، ومفيش سحب (أو السحب ممنوع زي في الثلاثي/الرباعي)
-        // ملاحظة: في الثنائي السحب مسموح لو الستوك فيه ورق
         const canDraw = (Object.keys(data.players).length === 2 && stock.length > 0);
-        
         if(!hasMove(hand, board) && !canDraw) {
             showToast("🚫 لا يوجد لعب - Pass");
             setTimeout(() => {
-                const pIds = data.playerOrder;
-                const next = (data.turnIndex + 1) % pIds.length;
-                db.ref('games/'+currentgame).update({
-                    turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP
-                });
+                const next = (data.turnIndex + 1) % data.playerOrder.length;
+                db.ref('games/'+currentgame).update({ turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP });
             }, 1500);
         }
     }
-
     function checkTimer(data) {
         if(timerInt) clearInterval(timerInt);
         const startTime = data.turnStartTime || Date.now();
         const turnId = data.playerOrder[data.turnIndex];
         const playerObj = data.players[turnId];
-
-        // **Instant Bot Logic**
-        if(playerObj.isBot) {
-            // لو أنا الهوست، ألعب مكانه فوراً
-            if(isHost) {
-                setTimeout(() => autoBot(turnId), 1000); // 1 sec delay for realism
-            }
-            return; // No timer needed for bot
-        }
-        
+        if(playerObj.isBot) { if(isHost) setTimeout(() => autoBot(turnId), 1000); return; }
         timerInt = setInterval(() => {
             const elapsed = (Date.now() - startTime) / 1000;
-            const remaining = 40 - elapsed;
+            const remaining = 30 - elapsed;
             const bar = document.getElementById(turnId===myId ? 'my-timer' : 'tbar-'+turnId);
-            if(bar) bar.style.width = Math.max(0, (remaining/40)*100) + "%";
-
-            if(remaining <= 0) {
-                clearInterval(timerInt);
-                if(turnId === myId) autoBot(myId);
-                else if(isHost && playerObj.isBot) autoBot(turnId);
-            }
+            if(bar) bar.style.width = Math.max(0, (remaining/30)*100) + "%";
+            if(remaining <= 0) { clearInterval(timerInt); if(turnId === myId) autoBot(myId); else if(isHost && playerObj.isBot) autoBot(turnId); }
         }, 1000);
     }
-
-    // --- Helpers ---
     function nextTurn(board, hand) {
-        const pIds = gameData.playerOrder;
-        const next = (gameData.turnIndex + 1) % pIds.length;
+        const next = (gameData.turnIndex + 1) % gameData.playerOrder.length;
         db.ref('games/'+currentgame).update({
             board: board, turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP,
             [`players/${myId}/hand`]: hand, [`players/${myId}/count`]: hand.length
@@ -534,14 +616,9 @@
     }
     function handleRoundWin(winnerId, board) {
         let total = 0;
-        Object.keys(gameData.players).forEach(id => {
-            if(id !== winnerId) (gameData.players[id].hand||[]).forEach(t => total += (t.a + t.b));
-        });
+        Object.keys(gameData.players).forEach(id => { if(id !== winnerId) (gameData.players[id].hand||[]).forEach(t => total += (t.a + t.b)); });
         const newScore = (gameData.players[winnerId].score || 0) + total;
-        const up = {
-            [`players/${winnerId}/score`]: newScore, status: 'finished', lastWinnerId: winnerId,
-            roundWinnerName: gameData.players[winnerId].name, board: board, [`players/${winnerId}/hand`]: []
-        };
+        const up = { [`players/${winnerId}/score`]: newScore, status: 'finished', lastWinnerId: winnerId, roundWinnerName: gameData.players[winnerId].name, board: board, [`players/${winnerId}/hand`]: [] };
         if(newScore >= 101) { up.status = 'match_over'; up.matchWinnerName = gameData.players[winnerId].name; }
         db.ref('games/'+currentgame).update(up);
     }
@@ -551,7 +628,6 @@
         const t = stock.pop();
         const hand = gameData.players[myId].hand; hand.push(t);
         db.ref('games/'+currentgame).update({ stock: stock, [`players/${myId}/hand`]: hand, [`players/${myId}/count`]: hand.length });
-        // Hand re-rendered automatically via listener
     }
     function hasMove(hand, board) {
         if(!board || board.length===0) return true;
@@ -559,35 +635,25 @@
         return hand.some(t => t.a===l || t.b===l || t.a===r || t.b===r);
     }
 
-    // --- Rendering ---
+    // --- Rendering Helpers ---
     function renderHand(hand) {
         const d = document.getElementById('my-hand'); d.innerHTML = "";
         hand.forEach((t, i) => {
             const isSel = (i === selectedIdx) ? 'selected' : '';
-            d.innerHTML += createDomino(t, `hand-tile ${isSel}`, `onclick="selectTile(${i})"`);
+            d.innerHTML += `<div class="domino hand-tile ${isSel}" onclick="selectTile(${i})"><div class="pip-container">${getPips(t.a)}</div><div class="line"></div><div class="pip-container">${getPips(t.b)}</div></div>`;
         });
-    }
-    function renderBoard(board) {
-        const d = document.getElementById('game-board'); d.innerHTML = "";
-        board.forEach(t => d.innerHTML += createDomino(t, (t.a===t.b ? 'board-tile double' : 'board-tile'), ''));
-    }
-    function createDomino(t, cls, attr) {
-        return `<div class="domino ${cls}" ${attr}><div class="pip-container">${getPips(t.a)}</div><div class="line"></div><div class="pip-container">${getPips(t.b)}</div></div>`;
     }
     function getPips(n) {
         const m={1:['p1'],2:['p2-1','p2-2'],3:['p3-1','p3-2','p3-3'],4:['p4-1','p4-2','p4-3','p4-4'],5:['p5-1','p5-2','p5-3','p5-4','p5-5'],6:['p6-1','p6-2','p6-3','p6-4','p6-5','p6-6']};
         return (m[n]||[]).map(c=>`<div class="pip ${c}"></div>`).join('');
     }
 
-    // --- Bot Logic (Same as before, simplified calls) ---
+    // --- Bot Logic ---
     function autoBot(pId) {
-        // ... (نفس منطق البوت السابق لكن بدون تغييرات جذرية، يتم تنفيذه فوراً)
-        // لتوفير المساحة، سنفترض وجود دالة autoBot بنفس المنطق السابق
-        // ولكن للتأكيد سأكتب الجزء المهم للتنفيذ الفوري
         const p = gameData.players[pId];
         const hand = p.hand || [];
         const board = gameData.board || [];
-        let played=false, playIdx=-1, side='right';
+        let playIdx=-1, side='right';
 
         if(board.length===0) { playIdx=0; side='any'; }
         else {
@@ -597,24 +663,20 @@
                 if(hand[i].a===l || hand[i].b===l) { playIdx=i; side='left'; break; }
             }
         }
-
         if(playIdx !== -1) {
-            // Bot plays
             const tile = hand[playIdx]; let newTile = {...tile}; let newBoard = [...board];
             if(side === 'left') { if(newTile.a===board[0].a) newTile={a:tile.b,b:tile.a}; newBoard.unshift(newTile); }
             else { const end=board.length?board[board.length-1].b:-1; if(board.length && newTile.b===end) newTile={a:tile.b,b:tile.a}; newBoard.push(newTile); }
             hand.splice(playIdx, 1);
-            
             const next = (gameData.turnIndex + 1) % gameData.playerOrder.length;
             const up = { board: newBoard, turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP, [`players/${pId}/hand`]: hand, [`players/${pId}/count`]: hand.length };
             if(hand.length===0) {
-                 up.status='finished'; up.roundWinnerName=p.name; up.lastWinnerId=pId;
-                 let total=0; Object.keys(gameData.players).forEach(oid=>{ if(oid!==pId) (gameData.players[oid].hand||[]).forEach(t=>total+=t.a+t.b) });
-                 up[`players/${pId}/score`] = (p.score||0)+total;
+                up.status='finished'; up.roundWinnerName=p.name; up.lastWinnerId=pId;
+                let total=0; Object.keys(gameData.players).forEach(oid=>{ if(oid!==pId) (gameData.players[oid].hand||[]).forEach(t=>total+=t.a+t.b) });
+                up[`players/${pId}/score`] = (p.score||0)+total;
             }
             db.ref('games/'+currentgame).update(up);
         } else {
-            // Bot Pass or Draw
             if(Object.keys(gameData.players).length===2 && (gameData.stock||[]).length>0) {
                 const stock = gameData.stock; const t = stock.pop(); hand.push(t);
                 db.ref('games/'+currentgame).update({ stock:stock, [`players/${pId}/hand`]:hand, [`players/${pId}/count`]:hand.length });
@@ -624,7 +686,6 @@
             }
         }
     }
-
     // Chat
     function toggleChat(){ chatOpen=!chatOpen; document.getElementById('chat-box').classList.toggle('hidden'); document.getElementById('chat-badge').classList.add('hidden'); }
     function sendMsg(){ const i=document.getElementById('chat-in'); if(i.value) db.ref(`games/${currentgame}/chat`).push({n:myName, t:i.value}); i.value=""; }

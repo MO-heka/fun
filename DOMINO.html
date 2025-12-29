@@ -1,659 +1,300 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOMINO HEKA ULTRA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
-    <style>
-        :root { 
-            --bg-color: #0f172a; 
-            --glass-bg: rgba(30, 41, 59, 0.95);
-            --domino-white: #f1f2f6;
-            --domino-black: #1e272e;
-            --accent-color: #3b82f6; 
-            --gold: #fbbf24;
-            --danger: #ef4444;
-            --drop-zone: rgba(251, 191, 36, 0.5);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOMINO HEKA ULTRA</title>
 
-        body { 
-            font-family: 'Cairo', sans-serif; 
-            background-color: var(--bg-color);
-            background-image: radial-gradient(#1e293b 15%, transparent 16%), radial-gradient(#1e293b 15%, transparent 16%);
-            background-size: 60px 60px;
-            color: #e2e8f0; margin: 0; overflow: hidden; height: 100vh;
-            display: flex; flex-direction: column; user-select: none;
-            touch-action: none;
-        }
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-        /* واجهة اللعب */
-        #game-interface { width: 100%; height: 100%; position: relative; }
-        
-        /* سطح الطاولة */
-        #table-surface {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 130px; /* مساحة لليد في الأسفل */
-            overflow: hidden; 
-            background: rgba(15, 23, 42, 0.3);
-            display: flex; justify-content: center; align-items: center;
-        }
+<style>
+:root{
+--bg:#0f172a;
+--glass:rgba(30,41,59,.95);
+--gold:#fbbf24;
+--blue:#3b82f6;
+}
 
-        /* حاوية الكروت في الطاولة - تتحرك لتكون دائماً في المنتصف */
-        #game-board { 
-            position: absolute; 
-            top: 50%; left: 50%; 
-            transform: translate(-50%, -50%);
-            transition: all 0.5s ease;
-            width: 0; height: 0; /* نقطة وهمية */
-        }
+body{
+margin:0;
+height:100vh;
+font-family:'Cairo';
+background:var(--bg);
+color:#e5e7eb;
+overflow:hidden;
+display:flex;
+flex-direction:column;
+}
 
-        /* منطقة اللاعب (اليد) - مثبتة في الأسفل تماماً */
-        #my-area { 
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 120px;
-            background: rgba(15, 23, 42, 0.95); 
-            border-top: 2px solid var(--gold);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 200; box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
-            padding-bottom: 10px; /* لرفع الكروت عن الحافة السفلية */
-        }
+.hidden{display:none!important}
 
-        #my-hand { 
-            display: flex; overflow-x: auto; padding: 10px; width: 100%; 
-            align-items: center; justify-content: center; height: 100%; 
-        }
+h1{
+font-family:'Righteous';
+text-align:center;
+color:var(--gold);
+margin:10px 0;
+}
 
-        /* الدومينو */
-        .domino { 
-            background-color: var(--domino-white); border-radius: 4px; box-shadow: 3px 3px 0px #333; 
-            display: flex; cursor: pointer; position: absolute; 
-            transition: all 0.3s ease; transform-origin: center center;
-            border: 1px solid #999;
-            box-sizing: border-box;
-        }
-        .pip-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 2px; width: 100%; height: 100%; }
-        .pip { background-color: var(--domino-black); border-radius: 50%; width: 100%; height: 100%; box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
-        .line { background-color: #999; }
+.screen{
+background:var(--glass);
+border-radius:20px;
+padding:20px;
+width:90%;
+max-width:400px;
+margin:auto;
+text-align:center;
+}
 
-        /* تنسيق النقاط */
-        .p1 { grid-area: 2 / 2; } .p2-1 { grid-area: 1 / 3; } .p2-2 { grid-area: 3 / 1; }
-        .p3-1 { grid-area: 1 / 3; } .p3-2 { grid-area: 2 / 2; } .p3-3 { grid-area: 3 / 1; }
-        .p4-1 { grid-area: 1 / 1; } .p4-2 { grid-area: 1 / 3; } .p4-3 { grid-area: 3 / 1; } .p4-4 { grid-area: 3 / 3; }
-        .p5-1 { grid-area: 1 / 1; } .p5-2 { grid-area: 1 / 3; } .p5-3 { grid-area: 2 / 2; } .p5-4 { grid-area: 3 / 1; } .p5-5 { grid-area: 3 / 3; }
-        .p6-1 { grid-area: 1 / 1; } .p6-2 { grid-area: 1 / 3; } .p6-3 { grid-area: 2 / 1; } .p6-4 { grid-area: 2 / 3; } .p6-5 { grid-area: 3 / 1; } .p6-6 { grid-area: 3 / 3; }
+button{
+background:var(--blue);
+border:none;
+padding:10px 20px;
+color:white;
+border-radius:10px;
+cursor:pointer;
+font-family:'Cairo';
+}
 
-        /* كروت اليد */
-        .hand-tile { 
-            position: relative; width: 40px; height: 80px; flex-direction: column; margin: 0 5px; z-index: 10; flex-shrink: 0; 
-        }
-        .hand-tile .line { height: 2px; width: 90%; margin: 2px auto; }
-        .hand-tile .pip-container { width: 40px; height: 39px; } .hand-tile .pip { width: 7px; height: 7px; margin: auto; }
-        .hand-tile.selected { transform: translateY(-40px) scale(1.1); box-shadow: 0 0 20px var(--gold); border: 2px solid var(--gold); z-index: 50; }
+input{
+padding:10px;
+border-radius:8px;
+border:1px solid #555;
+background:#111;
+color:white;
+width:80%;
+text-align:center;
+}
 
-        /* كروت الطاولة */
-        .board-tile { width: 60px; height: 30px; flex-direction: row; } /* الوضع الأفقي الافتراضي */
-        .board-tile .line { width: 2px; height: 90%; margin: auto 2px; }
-        .board-tile .pip-container { width: 29px; height: 30px; } .board-tile .pip { width: 5px; height: 5px; margin: auto; }
+/* ===== GAME ===== */
+#screen-game{width:100%;height:100%}
 
-        /* مناطق الإسقاط (الأشباح) */
-        .drop-zone {
-            position: absolute; border: 3px dashed var(--gold); background-color: var(--drop-zone);
-            border-radius: 5px; animation: pulse 1s infinite; cursor: pointer;
-            display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;
-            width: 60px; height: 30px; z-index: 100; font-size: 20px;
-        }
-        .drop-zone:hover { background-color: var(--gold); color: black; }
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+#table{
+flex:1;
+margin:10px;
+border-radius:20px;
+background:#020617;
+position:relative;
+overflow:hidden;
+}
 
-        /* عناصر التحكم */
-        #draw-btn { position: absolute; top: -50px; left: 50%; transform: translateX(-50%); background: var(--gold); color: black; padding: 8px 20px; border-radius: 20px; font-weight: bold; box-shadow: 0 0 15px var(--gold); cursor: pointer; border: none; }
-        .hidden { display: none !important; }
+#board{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+}
 
-        /* الشاشات والقوائم */
-        .screen {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(30, 41, 59, 0.95); padding: 30px; border-radius: 20px; text-align: center;
-            border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 350px; z-index: 500;
-        }
-        input { background: rgba(255,255,255,0.1); border: 1px solid #555; padding: 10px; color: white; border-radius: 8px; text-align: center; margin: 10px 0; width: 80%; }
-        button { background: var(--accent-color); color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; }
+.domino{
+width:60px;
+height:30px;
+background:#f1f2f6;
+border-radius:4px;
+display:flex;
+border:1px solid #999;
+position:absolute;
+}
 
-        /* اللاعبين */
-        .player-pos {
-            position: absolute; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 10px; 
-            color: white; font-size: 12px; border: 1px solid #555; z-index: 20;
-        }
-        .player-pos.active-turn { border-color: var(--gold); box-shadow: 0 0 10px var(--gold); }
-        .pos-top { top: 10px; left: 50%; transform: translateX(-50%); }
-        .pos-left { top: 40%; left: 10px; }
-        .pos-right { top: 40%; right: 10px; }
-        
-        #toast { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; border: 1px solid var(--gold); }
-    </style>
+.domino.double{
+transform:rotate(90deg);
+}
+
+.pip-box{
+width:30px;
+display:grid;
+grid-template-columns:repeat(3,1fr);
+grid-template-rows:repeat(3,1fr);
+padding:3px;
+}
+
+.pip{
+width:6px;
+height:6px;
+background:#111;
+border-radius:50%;
+margin:auto;
+}
+
+.line{
+width:2px;
+background:#ccc;
+}
+
+/* ===== HAND ===== */
+#my-area{
+height:140px;
+background:black;
+display:flex;
+align-items:flex-end;
+justify-content:center;
+padding-bottom:20px;
+border-top:2px solid #333;
+z-index:999;
+}
+
+#my-hand{
+display:flex;
+overflow-x:auto;
+padding:10px;
+}
+
+.hand{
+width:36px;
+height:72px;
+margin:0 5px;
+flex-direction:column;
+cursor:pointer;
+}
+
+.hand.selected{
+transform:translateY(-25px) scale(1.1);
+box-shadow:0 0 15px var(--gold);
+}
+
+/* ===== PIPS ===== */
+.p1{grid-area:2/2}
+.p2-1{grid-area:1/3}.p2-2{grid-area:3/1}
+.p3-1{grid-area:1/3}.p3-2{grid-area:2/2}.p3-3{grid-area:3/1}
+.p4-1{grid-area:1/1}.p4-2{grid-area:1/3}.p4-3{grid-area:3/1}.p4-4{grid-area:3/3}
+.p5-1{grid-area:1/1}.p5-2{grid-area:1/3}.p5-3{grid-area:2/2}.p5-4{grid-area:3/1}.p5-5{grid-area:3/3}
+.p6-1{grid-area:1/1}.p6-2{grid-area:1/3}.p6-3{grid-area:2/1}.p6-4{grid-area:2/3}.p6-5{grid-area:3/1}.p6-6{grid-area:3/3}
+</style>
 </head>
+
 <body>
 
-    <div id="toast"></div>
+<h1>HEKA ULTRA</h1>
 
-    <div id="screen-login" class="screen">
-        <h2 style="color:var(--gold)">HEKA ULTRA</h2>
-        <input type="text" id="username" placeholder="اسمك">
-        <button onclick="saveName()">دخول</button>
-    </div>
+<div id="screen-login" class="screen">
+<h3>اسمك</h3>
+<input id="name">
+<br><br>
+<button onclick="login()">دخول</button>
+</div>
 
-    <div id="screen-menu" class="screen hidden">
-        <h3 id="welcome-msg" style="color:white"></h3>
-        <button onclick="creategame()" style="background:#10b981; width:100%">إنشاء غرفة</button>
-        <div style="margin:10px 0; color:#aaa">- أو -</div>
-        <input type="text" id="code-input" placeholder="كود الغرفة">
-        <button onclick="joingame()" style="width:100%">انضمام</button>
-    </div>
+<div id="screen-game" class="hidden">
+<div id="table">
+<div id="board"></div>
+</div>
 
-    <div id="screen-lobby" class="screen hidden">
-        <h2 style="color:var(--gold)">غرفة: <span id="lobby-code"></span></h2>
-        <div id="lobby-list" style="text-align:right; margin:15px 0; min-height:50px;"></div>
-        <button id="start-btn" class="hidden" onclick="startGame()">ابدأ اللعب</button>
-        <button onclick="leavegame()" style="background:var(--danger)">خروج</button>
-    </div>
-
-    <div id="screen-game" class="hidden" style="width:100%; height:100%">
-        <div id="game-interface">
-            <div style="position:absolute; top:10px; left:10px; z-index:50;">
-                <button onclick="leavegame()" style="background:var(--danger); font-size:10px; padding:5px 10px">انسحاب</button>
-            </div>
-            
-            <div id="opponents"></div>
-
-            <div id="table-surface" onclick="cancelSelection(event)">
-                <div id="game-board"></div>
-            </div>
-
-            <div id="my-area">
-                <button id="draw-btn" class="hidden" onclick="drawTile()">سحب كرت</button>
-                <div style="color:var(--gold); font-size:12px; margin-bottom:5px;">نقاطك: <span id="my-score">0</span></div>
-                <div id="my-hand"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="screen-winner" class="screen hidden">
-        <h1 style="color:var(--gold)">🏆 الفائز 🏆</h1>
-        <h2 id="winner-name"></h2>
-        <button onclick="leavegame()">القائمة الرئيسية</button>
-    </div>
+<div id="my-area">
+<div id="my-hand"></div>
+</div>
+</div>
 
 <script>
-    // --- Firebase Setup ---
-    const firebaseConfig = { apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4", authDomain: "heka-codenames.firebaseapp.com", projectId: "heka-codenames", storageBucket: "heka-domino.firebasestorage.app", messagingSenderId: "901713932504", appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad" };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+const firebaseConfig={
+apiKey:"AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
+authDomain:"heka-codenames.firebaseapp.com",
+databaseURL:"https://heka-codenames-default-rtdb.firebaseio.com",
+projectId:"heka-codenames"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
 
-    // --- State ---
-    let myName="", myId="", currentgame="", isHost=false;
-    let gameData={}, selectedIdx = -1;
-    
-    // --- Constants ---
-    const TILE_W = 60, TILE_H = 30, GAP = 2, TILES_PER_ROW = 5;
+let myName="",myId="",game=null,selected=-1;
 
-    // --- Init ---
-    window.onload = () => {
-        if(localStorage.getItem('heka_user')) {
-            document.getElementById('username').value = localStorage.getItem('heka_user');
-            saveName();
-        }
-    };
+function login(){
+myName=document.getElementById("name").value.trim();
+if(!myName)return;
+myId=Date.now().toString();
+startGame();
+document.getElementById("screen-login").classList.add("hidden");
+document.getElementById("screen-game").classList.remove("hidden");
+}
 
-    function saveName() {
-        myName = document.getElementById('username').value.trim();
-        if(!myName) return;
-        localStorage.setItem('heka_user', myName);
-        document.getElementById('welcome-msg').innerText = `أهلاً ${myName}`;
-        show('screen-menu');
-    }
+/* ===== START WITH BIGGEST DOUBLE ===== */
+function startGame(){
+let tiles=[];
+for(let i=0;i<=6;i++)for(let j=i;j<=6;j++)tiles.push({a:i,b:j});
+tiles.sort(()=>Math.random()-0.5);
 
-    function show(id) {
-        document.querySelectorAll('.screen, #screen-game').forEach(e => e.classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-    }
+let hand=tiles.splice(0,7);
+game={board:[],hand};
 
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.innerText = msg; t.style.opacity=1;
-        setTimeout(()=>t.style.opacity=0, 2000);
-    }
+renderHand();
+}
 
-    // --- Lobby Logic ---
-    function creategame() {
-        const code = Math.floor(1000+Math.random()*9000).toString();
-        myId = Date.now().toString();
-        db.ref('games/'+code).set({
-            status: 'waiting', host: myId, 
-            players: { [myId]: { name: myName, score: 0, hand:[], count:0 } }
-        }).then(()=>entergame(code, true));
-    }
+/* ===== REAL SNAKE LAYOUT ===== */
+const W=60,H=30,G=8,LIMIT=7;
 
-    function joingame() {
-        const code = document.getElementById('code-input').value.trim();
-        if(!code) return;
-        myId = Date.now().toString();
-        db.ref('games/'+code).once('value', s => {
-            if(s.exists() && s.val().status === 'waiting') {
-                db.ref(`games/${code}/players/${myId}`).set({ name: myName, score: 0, hand:[], count:0 })
-                .then(()=>entergame(code, false));
-            } else alert("الغرفة غير متاحة");
-        });
-    }
+function positions(board){
+let arr=[],x=0,y=0,dir=1,count=0;
+board.forEach(t=>{
+arr.push({x,y,dir});
+count++;
+if(count>=LIMIT){
+y+=H+20;
+dir*=-1;
+count=0;
+}else x+=(W+G)*dir;
+});
+let minX=Math.min(...arr.map(p=>p.x));
+let maxX=Math.max(...arr.map(p=>p.x));
+let minY=Math.min(...arr.map(p=>p.y));
+let maxY=Math.max(...arr.map(p=>p.y));
+arr.forEach(p=>{
+p.x-=(minX+maxX)/2;
+p.y-=(minY+maxY)/2;
+});
+return arr;
+}
 
-    function entergame(code, host) {
-        currentgame = code; isHost = host;
-        document.getElementById('lobby-code').innerText = code;
-        show('screen-lobby');
-        if(isHost) document.getElementById('start-btn').classList.remove('hidden');
-        listen();
-    }
+function renderBoard(){
+const b=document.getElementById("board");
+b.innerHTML="";
+const pos=positions(game.board);
+let connect=null;
 
-    function leavegame() {
-        if(currentgame) db.ref(`games/${currentgame}/players/${myId}`).remove();
-        location.reload();
-    }
+game.board.forEach((t,i)=>{
+let a=t.a,bv=t.b;
+if(i>0){
+if(a!==connect)[a,bv]=[bv,a];
+}
+connect=bv;
+b.innerHTML+=`
+<div class="domino ${a===bv?'double':''}"
+style="left:${pos[i].x}px;top:${pos[i].y}px">
+<div class="pip-box">${pips(a)}</div>
+<div class="line"></div>
+<div class="pip-box">${pips(bv)}</div>
+</div>`;
+});
+}
 
-    function listen() {
-        db.ref(`games/${currentgame}`).on('value', s => {
-            const d = s.val();
-            if(!d) return location.reload();
-            gameData = d;
-            
-            if(d.status === 'waiting') {
-                const list = document.getElementById('lobby-list'); list.innerHTML = "";
-                Object.values(d.players||{}).forEach(p => list.innerHTML += `<div>👤 ${p.name}</div>`);
-            } else if(d.status === 'playing') {
-                show('screen-game');
-                renderGame(d);
-            } else if(d.status === 'finished') {
-                document.getElementById('winner-name').innerText = d.winnerName;
-                show('screen-winner');
-            }
-        });
-    }
+function renderHand(){
+const h=document.getElementById("my-hand");
+h.innerHTML="";
+game.hand.forEach((t,i)=>{
+h.innerHTML+=`
+<div class="domino hand ${selected===i?'selected':''}" onclick="play(${i})">
+<div class="pip-box">${pips(t.a)}</div>
+<div class="line"></div>
+<div class="pip-box">${pips(t.b)}</div>
+</div>`;
+});
+}
 
-    // --- Game Logic ---
-    function startGame() {
-        const pIds = Object.keys(gameData.players);
-        if(pIds.length < 2) return alert("انتظر لاعبين");
-        
-        let tiles = [];
-        for(let i=0; i<=6; i++) for(let j=i; j<=6; j++) tiles.push({a:i, b:j});
-        tiles.sort(()=>Math.random()-0.5);
+function play(i){
+const t=game.hand[i];
+game.board.push(t);
+game.hand.splice(i,1);
+selected=-1;
+renderBoard();
+renderHand();
+}
 
-        const updates = { status: 'playing', board: [], stock: tiles, playerOrder: pIds, turnIndex: 0 };
-        pIds.forEach(id => {
-            updates[`players/${id}/hand`] = tiles.splice(0, 7);
-            updates[`players/${id}/count`] = 7;
-        });
-        db.ref('games/'+currentgame).update(updates);
-    }
-
-    function renderGame(data) {
-        // 1. Render Opponents
-        const pIds = data.playerOrder;
-        const myIdx = pIds.indexOf(myId);
-        const oppDiv = document.getElementById('opponents'); oppDiv.innerHTML = "";
-        
-        for(let i=1; i<pIds.length; i++) {
-            const tId = pIds[(myIdx + i) % pIds.length];
-            const p = data.players[tId];
-            const isTurn = (pIds[data.turnIndex] === tId);
-            let cls = pIds.length === 2 ? 'pos-top' : (i===1 ? 'pos-right' : 'pos-left');
-            
-            oppDiv.innerHTML += `<div class="player-pos ${cls} ${isTurn?'active-turn':''}">
-                ${p.name} <br> 🀄 ${p.count}
-            </div>`;
-        }
-
-        // 2. Render My Hand
-        const myHand = data.players[myId].hand || [];
-        document.getElementById('my-score').innerText = data.players[myId].score;
-        const handDiv = document.getElementById('my-hand'); handDiv.innerHTML = "";
-        
-        myHand.forEach((t, i) => {
-            const isSel = (i === selectedIdx) ? 'selected' : '';
-            handDiv.innerHTML += `<div class="domino hand-tile ${isSel}" onclick="selectHand(${i})">
-                <div class="pip-container">${getPips(t.a)}</div><div class="line"></div>
-                <div class="pip-container">${getPips(t.b)}</div>
-            </div>`;
-        });
-
-        // 3. Draw Button Logic
-        const isMyTurn = pIds[data.turnIndex] === myId;
-        const board = data.board || [];
-        const btn = document.getElementById('draw-btn');
-        
-        if(isMyTurn && !hasMove(myHand, board) && data.stock && data.stock.length > 0) {
-            btn.classList.remove('hidden');
-        } else {
-            btn.classList.add('hidden');
-            // Auto Pass
-            if(isMyTurn && !hasMove(myHand, board) && (!data.stock || data.stock.length === 0)) {
-                setTimeout(passTurn, 1500);
-            }
-        }
-
-        // 4. Render Board (The Snake)
-        renderBoardSnake(board);
-    }
-
-    // --- CORE FIX: Strict Matching & Snake Layout ---
-    function renderBoardSnake(board) {
-        const div = document.getElementById('game-board');
-        div.innerHTML = "";
-
-        if(board.length === 0) {
-            // Empty board, show center drop zone
-            div.innerHTML = `<div class="drop-zone dz-v" onclick="playTile('first')">+</div>`;
-            return;
-        }
-
-        // --- Step A: Normalize the Chain (Logic Only) ---
-        // We create a "Visual Chain" where every tile is oriented correctly [LeftVal, RightVal]
-        // so that RightVal of tile i matches LeftVal of tile i+1.
-        let chain = [];
-        let currentLink = -1; // The value we need to match
-
-        // Process first tile
-        let t0 = board[0];
-        if(board.length > 1) {
-            // Look ahead to define orientation
-            let t1 = board[1];
-            if(t0.a === t1.a || t0.a === t1.b) {
-                // t0.a connects to t1, so t0.b is the loose Start
-                chain.push({ L: t0.b, R: t0.a, isDouble: t0.a===t0.b });
-                currentLink = t0.a;
-            } else {
-                // t0.b connects to t1
-                chain.push({ L: t0.a, R: t0.b, isDouble: t0.a===t0.b });
-                currentLink = t0.b;
-            }
-        } else {
-            // Only 1 tile, default orientation
-            chain.push({ L: t0.a, R: t0.b, isDouble: t0.a===t0.b });
-            currentLink = t0.b;
-        }
-
-        // Process rest of tiles
-        for(let i=1; i<board.length; i++) {
-            let t = board[i];
-            if(t.a === currentLink) {
-                chain.push({ L: t.a, R: t.b, isDouble: t.a===t.b });
-                currentLink = t.b;
-            } else {
-                chain.push({ L: t.b, R: t.a, isDouble: t.a===t.b });
-                currentLink = t.a;
-            }
-        }
-
-        // --- Step B: Calculate Snake Positions (Visual) ---
-        // We map the linear chain index (0..N) to Snake Coordinates
-        // Row 0: Right -> Left (Start at center)
-        // Row 1: Left -> Right
-        // etc.
-        
-        let positions = [];
-        let x = 0, y = 0;
-        let direction = 1; // 1 = Right, -1 = Left
-        let tilesInRow = 0;
-
-        for(let i=0; i<chain.length; i++) {
-            const tile = chain[i];
-            
-            // Should we turn? (If we hit limit AND it's not the very first tile)
-            if(tilesInRow >= TILES_PER_ROW) {
-                y += (TILE_W/2 + TILE_H/2 + GAP*4); // Move down
-                // Don't move X, place directly under
-                tilesInRow = 0;
-                direction *= -1; // Flip direction for NEXT tiles
-                tile.isVerticalConnector = true; // Mark as the turning tile
-            } else {
-                if(i > 0) {
-                    // Calculate step based on previous tile
-                    let prev = chain[i-1];
-                    let prevW = prev.isDouble ? TILE_H : TILE_W; 
-                    if(prev.isVerticalConnector) prevW = TILE_H; // Vertical tile width is small (30)
-
-                    let currW = tile.isDouble ? TILE_H : TILE_W;
-                    
-                    let step = (prevW/2 + currW/2 + GAP);
-                    if(prev.isVerticalConnector) step = 0; // Already handled by Y drop
-                    
-                    x += step * direction;
-                }
-                tile.isVerticalConnector = false;
-                tilesInRow++;
-            }
-            
-            // Calculate Rotation
-            // Default: 90deg (Horizontal in CSS). 
-            // If Double: 0deg (Vertical in CSS).
-            // If Connector: 0deg if Normal, 90deg if Double.
-            
-            let rot = tile.isDouble ? 0 : 90; // Standard Horizontal layout
-            if(tile.isVerticalConnector) {
-                rot = tile.isDouble ? 90 : 0; // Vertical layout
-            } else if (direction === -1 && !tile.isDouble) {
-                rot = -90; // Flip text if going backwards
-            }
-
-            positions.push({ x, y, rot });
-        }
-
-        // --- Step C: Center the board & Render ---
-        if(positions.length > 0) {
-            let minX = Math.min(...positions.map(p=>p.x)), maxX = Math.max(...positions.map(p=>p.x));
-            let minY = Math.min(...positions.map(p=>p.y)), maxY = Math.max(...positions.map(p=>p.y));
-            let midX = (minX + maxX)/2;
-            let midY = (minY + maxY)/2;
-
-            // Render Tiles
-            chain.forEach((t, i) => {
-                const pos = positions[i];
-                const finalX = pos.x - midX;
-                const finalY = pos.y - midY;
-                
-                // Determine Visual Order based on direction
-                // If moving Right (dir=1): [LeftVal | RightVal]
-                // If moving Left (dir=-1): [RightVal | LeftVal] to keep flow
-                // But we used rotation to handle visual flip, so we stick to Logical Order (L then R)
-                // However, CSS flex row puts 1st element on left.
-                
-                let v1 = t.L, v2 = t.R;
-                
-                // If tile is rotated -90 (moving left), the top element is visually Right.
-                // It gets complex. Simplest method:
-                // Always render v1 then v2. Let rotation handle orientation.
-                // 90deg = v1 Top, v2 Bottom (which looks like Left/Right rotated)
-                // Let's stick to strict:
-                
-                // Correction for direction:
-                // If dir is -1 (Left), we want flow <-[R|L]--[R|L]
-                // If we rotate -90, top is v1, bottom is v2.
-                
-                // Let's keep it simple: Standard CSS Horizontal is [v1 v2]
-                // Rot 0 (Vertical): [v1 over v2]
-                // Rot 90 (Horizontal): [v1 left of v2]
-                
-                // We want: [Prev] -> [Match|New]
-                // If moving Right: Match is Left (v1). So v1=L, v2=R.
-                // If moving Left: Match is Right (v2). So v1=R, v2=L.
-                
-                // Check if this specific tile is in a Left-moving row (checking direction at calculation time is hard now)
-                // Re-check logic:
-                // chain[i].L connects to chain[i-1].
-                
-                // If Rot is 90 (Right): v1 is Left. We want v1=L. Correct.
-                // If Rot is -90 (Left): v1 is still "Top/Left" in local coords. 
-                // We want Match (L) to be on the Right side of the tile relative to screen.
-                // In -90 rot, Top is Left, Bottom is Right.
-                // So v1 (Top) should be New, v2 (Bottom) should be Match(L).
-                
-                if (pos.rot === -90) { v1 = t.R; v2 = t.L; } 
-                else if (t.isVerticalConnector && !t.isDouble) {
-                    // Vertical Down: Top connects to Prev.
-                    // v1 is Top. v1 = L (Match). Correct.
-                }
-
-                if(t.isDouble) { v1 = t.L; v2 = t.R; } // Doubles are symmetric
-
-                div.innerHTML += `
-                <div class="domino board-tile ${t.isDouble?'double':''}" 
-                     style="left:${finalX}px; top:${finalY}px; transform: translate(-50%, -50%) rotate(${pos.rot}deg);">
-                    <div class="pip-container">${getPips(v1)}</div>
-                    <div class="line"></div>
-                    <div class="pip-container">${getPips(v2)}</div>
-                </div>`;
-            });
-
-            // --- Step D: Render Ghosts (Drop Zones) ---
-            if(selectedIdx !== -1) {
-                const handTile = gameData.players[myId].hand[selectedIdx];
-                const head = chain[0].L;
-                const tail = chain[chain.length-1].R;
-                
-                const canHead = (handTile.a === head || handTile.b === head);
-                const canTail = (handTile.a === tail || handTile.b === tail);
-
-                // Ghost Tail (End of snake)
-                if(canTail) {
-                    const lastPos = positions[positions.length-1];
-                    let lx = lastPos.x, ly = lastPos.y;
-                    
-                    // Predict Next Position logic simplified
-                    let nextTilesInRow = (chain.length) % TILES_PER_ROW;
-                    let lastDir = (Math.floor((chain.length-1)/TILES_PER_ROW) % 2 === 0) ? 1 : -1;
-                    
-                    let gx = lx, gy = ly;
-                    let grot = 0;
-                    
-                    if(nextTilesInRow === 0) {
-                         // Next is drop down
-                         gy += (TILE_W/2 + TILE_H/2 + GAP*4);
-                         grot = 0; // Vertical
-                    } else {
-                         // Horizontal step
-                         let step = TILE_W + GAP;
-                         gx += step * lastDir;
-                         grot = (lastDir === 1) ? 90 : -90;
-                    }
-
-                    // Apply offset
-                    div.innerHTML += `<div class="drop-zone" 
-                        style="left:${gx - midX}px; top:${gy - midY}px; transform: translate(-50%, -50%) rotate(${grot}deg);"
-                        onclick="playTile('tail')">+</div>`;
-                }
-
-                // Ghost Head (Start of snake) - Simplified: Put it left of index 0
-                if(canHead) {
-                    const firstPos = positions[0];
-                    // Just put it to the Left (assuming start is always L->R)
-                    let gx = firstPos.x - (TILE_W + GAP);
-                    let gy = firstPos.y;
-                    
-                    div.innerHTML += `<div class="drop-zone" 
-                        style="left:${gx - midX}px; top:${gy - midY}px; transform: translate(-50%, -50%) rotate(90deg);"
-                        onclick="playTile('head')">+</div>`;
-                }
-            }
-        }
-    }
-
-    // --- Actions ---
-    function selectHand(i) {
-        if(gameData.playerOrder[gameData.turnIndex] !== myId) return;
-        selectedIdx = (selectedIdx === i) ? -1 : i;
-        renderGame(gameData);
-    }
-    
-    function cancelSelection(e) {
-        if(!e.target.closest('.domino') && !e.target.closest('.drop-zone')) {
-            selectedIdx = -1;
-            renderGame(gameData);
-        }
-    }
-
-    function playTile(side) {
-        if(selectedIdx === -1) return;
-        
-        const hand = gameData.players[myId].hand;
-        const tile = hand[selectedIdx];
-        let board = [...gameData.board];
-        let finalTile = {...tile};
-
-        // Logic to push/unshift strictly
-        if(board.length === 0) {
-            board.push(finalTile);
-        } else if (side === 'head') {
-            // Needs to match board[0].a
-            if(finalTile.a === board[0].a) { finalTile = {a:tile.b, b:tile.a}; } // Flip to match
-            board.unshift(finalTile);
-        } else {
-            // Needs to match board[end].b
-            if(finalTile.b === board[board.length-1].b) { finalTile = {a:tile.b, b:tile.a}; }
-            board.push(finalTile);
-        }
-
-        hand.splice(selectedIdx, 1);
-        selectedIdx = -1;
-
-        if(hand.length === 0) {
-            // Win
-            db.ref('games/'+currentgame).update({
-                status: 'finished',
-                winnerName: myName,
-                board: board,
-                [`players/${myId}/hand`]: hand,
-                [`players/${myId}/count`]: 0
-            });
-        } else {
-            // Next turn
-            const nextIdx = (gameData.turnIndex + 1) % gameData.playerOrder.length;
-            db.ref('games/'+currentgame).update({
-                board: board,
-                turnIndex: nextIdx,
-                [`players/${myId}/hand`]: hand,
-                [`players/${myId}/count`]: hand.length
-            });
-        }
-    }
-
-    function drawTile() {
-        let stock = gameData.stock;
-        let hand = gameData.players[myId].hand;
-        hand.push(stock.pop());
-        db.ref('games/'+currentgame).update({
-            stock: stock,
-            [`players/${myId}/hand`]: hand,
-            [`players/${myId}/count`]: hand.length
-        });
-    }
-
-    function passTurn() {
-        const nextIdx = (gameData.turnIndex + 1) % gameData.playerOrder.length;
-        db.ref('games/'+currentgame).update({ turnIndex: nextIdx });
-        showToast("لا يوجد لعب - تم التمرير");
-    }
-
-    function hasMove(hand, board) {
-        if(board.length === 0) return true;
-        const head = board[0].a;
-        const tail = board[board.length-1].b;
-        return hand.some(t => t.a === head || t.b === head || t.a === tail || t.b === tail);
-    }
-
-    // --- Helpers ---
-    function getPips(n) {
-        const m={0:[], 1:['p1'],2:['p2-1','p2-2'],3:['p3-1','p3-2','p3-3'],4:['p4-1','p4-2','p4-3','p4-4'],5:['p5-1','p5-2','p5-3','p5-4','p5-5'],6:['p6-1','p6-2','p6-3','p6-4','p6-5','p6-6']};
-        return (m[n]||[]).map(c=>`<div class="pip ${c}"></div>`).join('');
-    }
+function pips(n){
+const m={
+0:[],1:['p1'],2:['p2-1','p2-2'],3:['p3-1','p3-2','p3-3'],
+4:['p4-1','p4-2','p4-3','p4-4'],
+5:['p5-1','p5-2','p5-3','p5-4','p5-5'],
+6:['p6-1','p6-2','p6-3','p6-4','p6-5','p6-6']
+};
+return m[n].map(c=>`<div class="pip ${c}"></div>`).join("");
+}
 </script>
+
 </body>
 </html>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DOMINO HEKA ULTRA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -30,20 +30,16 @@
             touch-action: manipulation;
         }
 
-        h1.game-title {
-            font-family: 'Righteous', cursive; font-size: 1.5rem; color: var(--gold);
-            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin: 5px 0; text-align: center; pointer-events: none;
-            z-index: 10;
-        }
+        /* تم إزالة عنوان اللعبة H1 */
 
-        .container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; position: relative; }
+        .container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; position: relative; padding-top: 10px; /* رفع الشاشة للأعلى */ }
         .hidden { display: none !important; }
 
         /* الشاشات */
         .screen {
             background: var(--glass-bg); backdrop-filter: blur(12px); padding: 30px;
             border-radius: 20px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; z-index: 100;
+            border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; z-index: 100; margin-top: 20px;
         }
 
         /* عناصر التحكم */
@@ -52,7 +48,7 @@
         button:active { transform: scale(0.95); }
 
         /* الدومينو */
-        .domino { background-color: var(--domino-white); border-radius: 4px; box-shadow: 2px 2px 0px #555; display: flex; cursor: pointer; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .domino { background-color: var(--domino-white); border-radius: 4px; box-shadow: 2px 2px 0px #555; display: flex; cursor: pointer; }
         .pip-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 2px; width: 100%; height: 100%; box-sizing: border-box; }
         .pip { background-color: var(--domino-black); border-radius: 50%; width: 100%; height: 100%; box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
         .line { background-color: #ccc; }
@@ -63,8 +59,8 @@
         .p5-1 { grid-area: 1 / 1; } .p5-2 { grid-area: 1 / 3; } .p5-3 { grid-area: 2 / 2; } .p5-4 { grid-area: 3 / 1; } .p5-5 { grid-area: 3 / 3; }
         .p6-1 { grid-area: 1 / 1; } .p6-2 { grid-area: 1 / 3; } .p6-3 { grid-area: 2 / 1; } .p6-4 { grid-area: 2 / 3; } .p6-5 { grid-area: 3 / 1; } .p6-6 { grid-area: 3 / 3; }
 
-        /* تعديلات اليد (تم الإصلاح) */
-        .hand-tile { width: 38px; height: 76px; flex-direction: column; margin: 0 5px; z-index: 10; flex-shrink: 0; }
+        /* تعديلات اليد */
+        .hand-tile { width: 38px; height: 76px; flex-direction: column; margin: 0 5px; z-index: 10; flex-shrink: 0; transition: transform 0.2s; }
         .hand-tile .line { height: 2px; width: 90%; margin: 2px auto; }
         .hand-tile .pip-container { width: 38px; height: 37px; } .hand-tile .pip { width: 7px; height: 7px; margin: auto; }
         
@@ -72,21 +68,18 @@
 
         /* الطاولة - تعديلات الـ Absolute Positioning */
         .board-tile { 
-            position: absolute; /* للتمركز الحر */
+            position: absolute; 
             width: 64px; height: 32px; flex-direction: row; 
             transform-origin: center center;
-            transition: all 0.5s ease;
+            /* إزالة transition لمنع الحركة الغريبة عند إعادة الرسم */
         }
         .board-tile .line { width: 2px; height: 90%; margin: auto 2px; }
         .board-tile .pip-container { width: 31px; height: 32px; } .board-tile .pip { width: 6px; height: 6px; margin: auto; }
         
-        /* الدويش (Double) */
+        /* الدويش (Double) - يتم تدويره بدلاً من تغيير أبعاده للحفاظ على النسق */
         .board-tile.double { 
-            /* الدويش يبقى بنفس الأبعاد لتسهيل الحسابات، لكن يتم تدويره داخلياً أو تغيير اتجاهه */
-            width: 32px; height: 64px; flex-direction: column; 
+            transform: rotate(90deg);
         }
-        .board-tile.double .line { height: 2px; width: 90%; margin: 2px auto; }
-        .board-tile.double .pip-container { width: 32px; height: 31px; }
 
         /* مناطق الإسقاط (المربع الأصفر) */
         .drop-zone {
@@ -101,8 +94,9 @@
             z-index: 5;
         }
         .drop-zone:hover { background-color: var(--gold); color: black; }
+        /* تعديل أبعاد منطقة الإسقاط للدويش لتتناسب مع التدوير */
         .dz-h { width: 64px; height: 32px; } 
-        .dz-v { width: 32px; height: 64px; }
+        .dz-v { width: 64px; height: 32px; transform: rotate(90deg); } 
 
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
@@ -110,17 +104,16 @@
         #game-interface { width: 100%; height: 100%; display: flex; flex-direction: column; }
         
         #table-surface {
-            flex: 1; margin: 10px; border-radius: 20px; border: 4px solid #334155;
+            flex: 1; margin: 5px; border-radius: 15px; border: 2px solid #334155;
             background: rgba(15, 23, 42, 0.5); 
-            position: relative; box-shadow: inset 0 0 50px black; overflow: auto; /* Scrollable */
+            position: relative; box-shadow: inset 0 0 30px black; overflow: auto; 
             display: flex; justify-content: center; align-items: center;
         }
         
         /* حاوية اللعب (تتحرك بالداخل) */
         #game-board-container {
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
+            /* سيتم تحديد الموقع والتحويل ديناميكياً في JS */
             transition: all 0.5s ease;
         }
 
@@ -131,27 +124,28 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.5); min-width: 80px; z-index: 20;
         }
         .player-pos.active-turn { border: 2px solid var(--gold); box-shadow: 0 0 15px var(--gold); }
-        .pos-top { top: 10px; left: 50%; transform: translateX(-50%); }
-        .pos-left { top: 50%; left: 10px; transform: translateY(-50%); }
-        .pos-right { top: 50%; right: 10px; transform: translateY(-50%); }
+        .pos-top { top: 5px; left: 50%; transform: translateX(-50%); } /* رفع مكان الخصم */
+        .pos-left { top: 50%; left: 5px; transform: translateY(-50%); }
+        .pos-right { top: 50%; right: 5px; transform: translateY(-50%); }
         .timer-bar { height: 3px; background: var(--danger); width: 100%; margin-top: 5px; transition: width 0.5s linear; }
 
-        /* منطقتي (تم التعديل لظهور اليد بالكامل) */
+        /* منطقتي */
         #my-area { 
-            height: 180px; /* زيادة الارتفاع */
-            padding-bottom: env(safe-area-inset-bottom, 20px); /* حماية من حواف الآيفون */
-            background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-top: 1px solid #444; 
+            height: 160px; /* ارتفاع مناسب للهاتف */
+            padding-bottom: env(safe-area-inset-bottom, 10px);
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-top: 1px solid #444; 
         }
         #my-hand { 
             display: flex; overflow-x: auto; 
-            padding: 40px 20px 20px 20px; /* زيادة الـ padding العلوي لاستيعاب حركة الارتفاع */
-            width: 95%; align-items: center; 
+            padding: 30px 10px 10px 10px; 
+            width: 98%; align-items: center; 
             height: 100px;
-            scrollbar-width: none; /* إخفاء شريط التمرير */
+            scrollbar-width: none; 
         }
         #my-hand::-webkit-scrollbar { display: none; }
         
-        #draw-btn { position: absolute; top: -50px; background: var(--gold); color: black; z-index: 50; box-shadow: 0 0 10px var(--gold); }
+        #draw-btn { position: absolute; top: -40px; background: var(--gold); color: black; z-index: 50; box-shadow: 0 0 10px var(--gold); padding: 5px 15px; }
+        #my-score-display { position:absolute; top:-20px; left:10px; color:var(--gold); font-weight:bold; font-size: 14px; }
 
         /* رسالة منبثقة */
         #toast {
@@ -170,8 +164,6 @@
     </style>
 </head>
 <body>
-
-    <h1 class="game-title">HEKA ULTRA</h1>
 
     <div id="toast"></div>
 
@@ -199,7 +191,7 @@
 
         <div id="screen-game" class="hidden" style="width:100%; height:100%">
             <div id="game-interface">
-                <div style="padding:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="padding:5px 10px; display:flex; justify-content:space-between; align-items:center;">
                     <button onclick="leavegame()" style="background:var(--danger); font-size:12px; padding:5px 10px">انسحاب</button>
                     <span style="color:#aaa; font-size:12px">game: <span id="game-code"></span></span>
                 </div>
@@ -211,7 +203,7 @@
 
                 <div id="my-area">
                     <button id="draw-btn" class="hidden">سحب</button>
-                    <div id="my-score-display" style="position:absolute; top:-25px; left:10px; color:var(--gold); font-weight:bold;">نقاتك: 0</div>
+                    <div id="my-score-display">نقاتك: 0</div>
                     <div id="my-hand"></div>
                 </div>
             </div>
@@ -245,8 +237,8 @@
     let selectedIdx = -1; 
     
     // ثوابت الرسم للطاولة (Snake Layout)
-    const TILE_W = 68; // العرض مع الهامش
-    const TILE_H = 34;
+    const TILE_W = 66; // العرض
+    const TILE_H = 34; // الارتفاع
     const ROW_LIMIT = 6; // أقصى عدد كروت في الصف الواحد
 
     // --- Init ---
@@ -443,8 +435,25 @@
         renderBoard(gameData.board || []);
     }
 
+    // --- Snake Logic Coordinates Helper ---
+    function getSnakeCoords(index) {
+        const row = Math.floor(index / ROW_LIMIT);
+        const col = index % ROW_LIMIT;
+        
+        let x = 0;
+        let y = row * (TILE_H + 15); // مسافة رأسية بين الصفوف
+
+        if (row % 2 === 0) { // صف زوجي: من اليسار لليمين
+            x = col * TILE_W;
+        } else { // صف فردي: من اليمين لليسار
+            x = (ROW_LIMIT - 1 - col) * TILE_W;
+        }
+        
+        return { x, y, row, col };
+    }
+
     function renderBoardWithGhosts(board, tile) {
-        renderBoard(board); // Render base board first to get coordinates
+        renderBoard(board); 
         const container = document.getElementById('game-board-container');
 
         if(board.length === 0) {
@@ -452,7 +461,6 @@
             ghost.className = "drop-zone dz-h";
             ghost.innerHTML = "+";
             ghost.onclick = () => commitMove('any');
-            // Center ghost
             ghost.style.left = "0px"; ghost.style.top = "0px";
             container.appendChild(ghost);
             return;
@@ -463,8 +471,21 @@
         const canLeft = (tile.a === l || tile.b === l);
         const canRight = (tile.a === r || tile.b === r);
 
-        // Get coordinates from the render logic helpers
-        const leftCoords = getSnakeCoords(-1); 
+        // حساب إحداثيات الشبح الأيسر (قبل العنصر الأول)
+        // نحتاج لمنطق خاص لأن الفهرس -1 غير مدعوم مباشرة في getSnakeCoords
+        let leftX, leftY;
+        const firstCoords = getSnakeCoords(0);
+        if (firstCoords.row % 2 === 0) {
+            // الصف الأول زوجي، نتحرك لليسار
+             leftX = firstCoords.x - TILE_W;
+             leftY = firstCoords.y;
+        } else {
+             // الصف الأول فردي، نتحرك لليمين (نظرياً لا يحدث إذا بدأنا من 0،0)
+             leftX = firstCoords.x + TILE_W;
+             leftY = firstCoords.y;
+        }
+
+        // حساب إحداثيات الشبح الأيمن (بعد العنصر الأخير)
         const rightCoords = getSnakeCoords(board.length);
 
         if(canLeft) {
@@ -472,8 +493,8 @@
             const ghost = document.createElement('div');
             ghost.className = `drop-zone ${isDouble?'dz-v':'dz-h'}`;
             ghost.innerHTML = "+";
-            ghost.style.left = leftCoords.x + "px";
-            ghost.style.top = leftCoords.y + (isDouble?-16:0) + "px"; // Adjust for double height
+            ghost.style.left = leftX + "px";
+            ghost.style.top = leftY + "px";
             ghost.onclick = () => commitMove('left');
             container.appendChild(ghost);
         }
@@ -484,119 +505,42 @@
             ghost.className = `drop-zone ${isDouble?'dz-v':'dz-h'}`;
             ghost.innerHTML = "+";
             ghost.style.left = rightCoords.x + "px";
-            ghost.style.top = rightCoords.y + (isDouble?-16:0) + "px";
+            ghost.style.top = rightCoords.y + "px";
             ghost.onclick = () => commitMove('right');
             container.appendChild(ghost);
         }
-    }
-
-    // --- Snake Logic Coordinates Helper ---
-    function getSnakeCoords(index) {
-        // Adjust index to start from 0 for the first tile placed
-        // But logic is relative. Let's assume index 0 is at (0,0)
-        // This function returns visual X,Y for any logical index in the snake
-        // Index can be negative (prepending) or large (appending)
-        
-        // Normalize: We map the board array to 0..length-1. 
-        // Index -1 means "Before 0", Index Length means "After last".
-        
-        // Simplified approach: Treat the board as a sequence starting from 0 visual index.
-        // We need to shift everything visually based on where the "Start" of the array is relative to the visual grid.
-        // Actually, easiest is: Board[0] is always Visual Index 0? No, that shifts the whole snake.
-        // Let's stick to: The board is linear. We just map i => (x,y).
-        
-        // Logic:
-        // Row = floor(i / 6)
-        // If Row is Even: x = (i % 6) * W
-        // If Row is Odd:  x = (5 - (i % 6)) * W (Reverse direction)
-        // y = Row * H * 1.5
-        
-        // Wait, for negative index (Left side ghost)?
-        // We can't handle negative index easily in this modulo logic.
-        // Hack: We render Board[0] at a calculated offset so that negative indices don't happen, OR
-        // simpler: The "Left" ghost is simply the visual coordinate of "Index -1" if we supported it.
-        // But "Index -1" in snake logic is complex (it might be up, or left, or right depending on row).
-        
-        // Since we re-render fully on every move, let's treat the Current Board as indices 0 to N.
-        // Left Ghost = Visual position of a theoretical tile inserted at start -> effectively shifts everyone?
-        // No, in "renderBoardWithGhosts", we just want to know where to put the clicker.
-        // If we insert Left, the whole snake shifts. That's fine for the game logic.
-        // VISUALLY: The Left Ghost should appear at the logical position of index "-1".
-        // But since we can't do index -1, let's say:
-        // Left Ghost is at (Relative to Tile 0). 
-        // Tile 0 is at Row 0, Col 0.
-        // Tile -1 would be at Row 0, Col -1? -> Invalid.
-        
-        // Better Solution for UI:
-        // Always render board starting from index X.
-        // Actually, since the user wants "Snake", and the array grows at both ends, 
-        // it's best to assume the board starts at visual index 0 for Board[0].
-        // The Left Ghost is handled by shifting the whole container or just placing it "Before" 0.
-        // "Before 0" is ( -TILE_W, 0 ).
-        
-        const row = Math.floor(index / ROW_LIMIT);
-        const col = index % ROW_LIMIT;
-        
-        let x = 0;
-        let y = row * 50; // Vertical spacing
-
-        if (row % 2 === 0) { // Even row: Left to Right
-            x = col * TILE_W;
-            // Transition to next row check
-            if (col < 0) { // Handle the "Left Ghost" case for row 0
-                 x = col * TILE_W; 
-            }
-        } else { // Odd row: Right to Left
-            x = (ROW_LIMIT - 1 - col) * TILE_W;
-        }
-
-        // Adjust for index being negative (Left Ghost specific case simplified)
-        if (index === -1) return { x: -TILE_W, y: 0 }; 
-
-        return { x, y };
     }
 
     function renderBoard(board) {
         const container = document.getElementById('game-board-container');
         container.innerHTML = "";
         
-        // Calculate center to pan the view
-        let maxX = 0, maxY = 0;
+        let minX = 0, maxX = 0, maxY = 0;
         
         board.forEach((t, i) => {
             const coords = getSnakeCoords(i);
             const isDouble = (t.a === t.b);
             
-            // Adjust double position to center it in the slot
-            let finalX = coords.x + (isDouble ? 16 : 0);
-            let finalY = coords.y - (isDouble ? 16 : 0);
-            
-            // Generate HTML
             const el = document.createElement('div');
             el.className = `domino board-tile ${isDouble ? 'double' : ''}`;
-            el.style.left = `${finalX}px`;
-            el.style.top = `${finalY}px`;
-            
-            // Rotation based on connection? 
-            // For snake view, we just lay them out flat in slots usually.
-            // But to look good, we can rotate doubles. CSS .double handles the vertical look.
-            // Horizontal tiles are default.
+            el.style.left = `${coords.x}px`;
+            el.style.top = `${coords.y}px`;
             
             el.innerHTML = `<div class="pip-container">${getPips(t.a)}</div><div class="line"></div><div class="pip-container">${getPips(t.b)}</div>`;
             container.appendChild(el);
             
-            if(coords.x > maxX) maxX = coords.x;
-            if(coords.y > maxY) maxY = coords.y;
+            minX = Math.min(minX, coords.x);
+            maxX = Math.max(maxX, coords.x + TILE_W);
+            maxY = Math.max(maxY, coords.y + TILE_H);
         });
         
-        // Auto-center logic?
-        // Since absolute positions start at 0,0 and go positive X/Y.
-        // We can just rely on the container centering.
-        // But if we have negative ghost (Left), it might clip.
-        // We will just let the user scroll #table-surface which has overflow:auto.
-        // To ensure scrollability, set container width/height
-        container.style.width = (Math.min(board.length, ROW_LIMIT) * TILE_W) + "px";
-        container.style.height = (maxY + 60) + "px";
+        // توسيط الحاوية بناءً على المحتوى
+        const totalWidth = maxX - minX;
+        const totalHeight = maxY;
+        container.style.width = totalWidth + "px";
+        container.style.height = totalHeight + "px";
+        // تحريك الحاوية لتبدأ من الحافة اليسرى إذا كان هناك تمدد لليسار (minX < 0)
+        container.style.transform = `translate(${-minX}px, 0px)`;
     }
 
     function commitMove(side) {

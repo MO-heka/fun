@@ -391,11 +391,11 @@
         }
     }
 
-    // --- New Layout Logic (3 Tiles per row & Correct Orientation) ---
+    // --- CORRECTED Snake Layout Logic ---
     const TILE_W = 60;
     const TILE_H = 30;
-    const GAP = 3;
-    const ROW_LIMIT = 3; // تعديل: النزول بعد 3 كروت
+    const GAP = 2; // تقليل المسافات
+    const ROW_LIMIT = 4; // عدد الكروت في الصف
 
     function calculateSnakePositions(board) {
         if(!board || board.length === 0) return [];
@@ -403,40 +403,41 @@
         const positions = Array(board.length).fill(null);
         let cx = 0, cy = 0;
         let direction = 1; // 1 = Right, -1 = Left
-        let currentRowCount = 0;
+        let tilesInRow = 0;
         
         for(let i=0; i<board.length; i++) {
             const tile = board[i];
             const isDouble = tile.a === tile.b;
-            
-            // تحديد زاوية الرسم
-            let rot = isDouble ? 90 : (direction === 1 ? 0 : 180);
+            const rot = isDouble ? 90 : (direction === 1 ? 0 : 180);
 
-            // حفظ الموقع والاتجاه
             positions[i] = { x: cx, y: cy, angle: rot, dir: direction };
             
-            currentRowCount++;
+            tilesInRow++;
             
+            // حساب المسافة للكرت التالي
+            let currentLen = isDouble ? TILE_H : TILE_W;
+            let nextLen = TILE_W;
+            if (i < board.length - 1) {
+                const nextTile = board[i+1];
+                nextLen = (nextTile.a === nextTile.b) ? TILE_H : TILE_W;
+            }
+
             // هل وصلنا لنهاية الصف؟
-            if (currentRowCount >= ROW_LIMIT) {
-                // نتحرك لأسفل
+            if (tilesInRow >= ROW_LIMIT) {
+                // الكرت التالي سينزل للأسفل
                 cy += (TILE_W/2 + TILE_H/2 + GAP * 3); 
-                direction *= -1; // نعكس الاتجاه
-                currentRowCount = 0;
+                // لا نغير الـ X هنا، الكرت الجديد سيكون أسفل الكرت الحالي
+                // لكن نحتاج عكس الاتجاه للخطوة التي تليها
+                direction *= -1; 
+                tilesInRow = 0;
             } else {
-                // نتحرك أفقي
-                let currentLen = isDouble ? TILE_H : TILE_W;
-                let nextLen = TILE_W; 
-                if (i < board.length - 1) {
-                    const nextTile = board[i+1];
-                    nextLen = (nextTile.a === nextTile.b) ? TILE_H : TILE_W;
-                }
+                // حركة أفقية
                 let step = (currentLen/2 + nextLen/2 + GAP);
                 cx += step * direction;
             }
         }
         
-        // توسيط الطاولة
+        // Centering
         if(positions.length > 0) {
             let minX = Math.min(...positions.map(p=>p.x)), maxX = Math.max(...positions.map(p=>p.x));
             let minY = Math.min(...positions.map(p=>p.y)), maxY = Math.max(...positions.map(p=>p.y));
@@ -445,7 +446,7 @@
             
             positions.forEach(p => { p.x -= midX; p.y -= midY; });
             
-            // Auto Zoom (تكبير وتصغير تلقائي)
+            // Auto Zoom
             const boardDiv = document.getElementById('game-board');
             let scale = 1;
             if(positions.length > 10) scale = 0.85;
@@ -456,62 +457,94 @@
         return positions;
     }
 
+    // --- FIX: Logic to Orient Tiles Correctly ---
     function renderBoard(board) {
         const d = document.getElementById('game-board');
         d.innerHTML = "";
         const coords = calculateSnakePositions(board);
         
-        // متغير لمتابعة الرقم "المفتوح" الذي يجب التوصيل به
-        let expectedMatch = -1;
+        // هذا المتغير سيحفظ "الرقم الحر" من الكرت السابق
+        // لكي نعرف أي رقم يجب أن يتصل به الكرت الحالي
+        let lastExposedVal = -1;
+
+        // تحديد بداية السلسلة
+        if (board.length > 0) {
+            // الكرت الأول (البداية)
+            // إذا كان هناك كرت ثاني، نحدد الاتجاه بناء عليه
+            if (board.length > 1) {
+                const first = board[0];
+                const second = board[1];
+                // إذا كان الكرت الثاني يحتوي على رقم يطابق a من الكرت الأول
+                // إذن a هو "الداخل" و b هو "الحر للخلف"
+                // لكن نحن نرسم من 0 إلى النهاية، لذا a هو المتصل بالثاني، و b هو البداية الحرة
+                // انتظر.. الكرت 0 هو أقصى اليسار منطقياً في مصفوفة board (لأنه unshift)
+                // واللعب يتجه نحو board[length-1]
+                
+                // في الكود الحالي: unshift يضيف لـ 0. و push يضيف لـ length.
+                // هذا يعني أن المصفوفة مرتبة من [الطرف الأيسر] إلى [الطرف الأيمن].
+                
+                // لذا، العلاقة بين board[0] و board[1]:
+                // يجب أن يتصلا ببعضهما.
+                if (first.a === second.a || first.a === second.b) {
+                    // a هو المتصل بـ board[1]
+                    // إذن b هو الطرف الحر الأيسر
+                    lastExposedVal = first.a; 
+                } else {
+                    // b هو المتصل
+                    lastExposedVal = first.b;
+                }
+            } else {
+                // كرت واحد فقط
+                lastExposedVal = board[0].b; // افتراضي
+            }
+        }
 
         board.forEach((t, i) => {
             const pos = coords[i];
             const isDouble = t.a === t.b;
             const cls = isDouble ? 'board-tile double' : 'board-tile';
             
-            // تحديد أي الأرقام هو "الرابط" وأيها "المفتوح الجديد"
-            let matchVal, outVal;
+            let htmlLeft, htmlRight; // ما سيتم رسمه في HTML (يسار | يمين)
 
+            // بالنسبة للكرت الأول (i=0)، نحتاج معالجته لضبط البداية الصحيحة بصرياً
             if (i === 0) {
-                // الكرت الأول: نحدد اتجاهه بناءً على الكرت الثاني
+                // نحن حددنا lastExposedVal ليكون "نقطة الاتصال" مع الكرت التالي
+                // لذا الطرف الآخر هو الطرف الحر
                 if (board.length > 1) {
-                    const next = board[1];
-                    // إذا كان الكرت التالي يتصل بـ a، إذن a هو المفتوح جهة اليمين
-                    if (next.a === t.a || next.b === t.a) {
-                        outVal = t.a; matchVal = t.b; 
-                    } else {
-                        outVal = t.b; matchVal = t.a;
-                    }
+                   // إذا كان lastExposedVal هو t.a، إذن t.a يجب أن يكون جهة اليمين (باتجاه الكرت التالي 1)
+                   // وتكون t.b هي جهة اليسار
+                   if (lastExposedVal === t.a) { htmlLeft = t.b; htmlRight = t.a; }
+                   else { htmlLeft = t.a; htmlRight = t.b; }
                 } else {
-                    outVal = t.b; matchVal = t.a; // افتراضي
+                   htmlLeft = t.a; htmlRight = t.b;
+                   lastExposedVal = t.b; // تجهيز للقادم
                 }
             } else {
-                // الكروت التالية: نفحص التطابق مع السابق
-                if (t.a === expectedMatch) {
-                    matchVal = t.a; outVal = t.b;
+                // للكروت اللاحقة: يجب أن يتصل أحد طرفي الكرت الحالي بـ lastExposedVal
+                // lastExposedVal هنا هو الرقم الحر من الكرت *السابق*
+                
+                let matchVal, newExposed;
+                if (t.a === lastExposedVal) { matchVal = t.a; newExposed = t.b; }
+                else { matchVal = t.b; newExposed = t.a; }
+                
+                lastExposedVal = newExposed; // تحديث للدورة القادمة
+
+                // الآن التوجيه البصري بناءً على اتجاه الثعبان
+                if (pos.dir === 1) { 
+                    // نتحرك لليمين: [السابق] -> [المتصل|الجديد]
+                    // في HTML (Flex row): العنصر الأول يسار، الثاني يمين
+                    // يجب أن يكون "المتصل" على اليسار ليلمس السابق
+                    htmlLeft = matchVal; htmlRight = newExposed;
                 } else {
-                    matchVal = t.b; outVal = t.a;
+                    // نتحرك لليسار: [المتصل|الجديد] <- [السابق]
+                    // الكرت الحالي يقع يسار السابق.
+                    // لكي يلمسه، يجب أن يكون "المتصل" على اليمين (العنصر الثاني)
+                    htmlLeft = newExposed; htmlRight = matchVal;
                 }
             }
-            
-            // تحديث الرقم المتوقع للكرت القادم
-            expectedMatch = outVal;
 
-            // تحديد الترتيب البصري في HTML (يسار -> يمين)
-            // إذا كان الاتجاه لليمين (1): نريد [المتصل | الجديد]
-            // إذا كان الاتجاه لليسار (-1): نريد [الجديد | المتصل]
-            let htmlLeft, htmlRight;
-            
-            if (pos.dir === 1) {
-                 // استثناء للكرت الأول عند التحرك لليمين لضبط البداية
-                if (i===0) { htmlLeft = matchVal; htmlRight = outVal; }
-                else { htmlLeft = matchVal; htmlRight = outVal; }
-            } else {
-                htmlLeft = outVal; htmlRight = matchVal;
-            }
-
-            // للدش (Doubles) لا يهم الترتيب لأن الرقمين متماثلين
-            if(isDouble) { htmlLeft = t.a; htmlRight = t.b; }
+            // للدش، لا يهم الترتيب
+            if (isDouble) { htmlLeft = t.a; htmlRight = t.b; }
 
             const tileHtml = `
                 <div class="domino ${cls}" 
@@ -534,45 +567,43 @@
              return;
         }
 
-        const l = board[0].a, r = board[board.length-1].b; // (ملاحظة: هذا الفحص بسيط، المنطق الدقيق يعتمد على التتبع في renderBoard)
-        // لتسهيل الأمر في الأشباح، نعتمد على المنطق البسيط للحواف
-        // لكن نحتاج معرفة أي الأطراف هي الحرة فعلاً. 
-        // سنستخدم دالة hasMove البسيطة للتحقق من الصلاحية
-        
         const canLeft = hasMatch(tile, board[0]); 
         const canRight = hasMatch(tile, board[board.length-1]);
 
-        // رسم الشبح في النهاية (Right End)
+        // Ghost Right (End)
         if(canRight) {
             const last = coords[coords.length-1];
-            const count = board.length;
-            
+            // حساب تقريبي للمكان التالي
             let gx = last.x, gy = last.y;
-            let rot = 0;
-            let dir = last.dir; // الاتجاه الحالي للثعبان
+            let dir = last.dir;
             
-            // هل حان وقت النزول؟
-            if (count % ROW_LIMIT === 0) {
-                gy += (TILE_W/2 + TILE_H/2 + GAP * 3);
+            // هل الكرت الأخير كان نهاية صف؟
+            // (بناء على عدد الكروت الحالية)
+            if (board.length % ROW_LIMIT === 0) {
+                 gy += (TILE_W/2 + TILE_H/2 + GAP * 3);
+                 // الاتجاه سينقلب للكروت التالية، لكن الشبح يمثل أول كرت في الصف الجديد
+                 // لذا موقعه X نفس موقع الأخير تقريباً (أو تحته)
             } else {
-                // حساب المكان التالي بناء على الاتجاه
-                let lastIsDouble = board[board.length-1].a === board[board.length-1].b;
-                let nextIsDouble = tile.a === tile.b;
-                let step = (lastIsDouble?TILE_H/2:TILE_W/2) + (nextIsDouble?TILE_H/2:TILE_W/2) + GAP;
-                gx += step * dir;
-                if(nextIsDouble) rot = 90;
-                else if(dir === -1) rot = 180;
+                 let lastIsDouble = board[board.length-1].a === board[board.length-1].b;
+                 let nextIsDouble = tile.a === tile.b;
+                 let step = (lastIsDouble?TILE_H/2:TILE_W/2) + (nextIsDouble?TILE_H/2:TILE_W/2) + GAP;
+                 gx += step * dir;
             }
             
+            // زاوية الشبح
+            let rot = 0;
+            if (tile.a === tile.b) rot = 90;
+            else if (dir === -1) rot = 180;
+
             const cls = (tile.a === tile.b) ? 'dz-v' : 'drop-zone';
-            // التحقق من صلاحية النقلة هنا بسيط، التنفيذ الفعلي في commitMove
             div.insertAdjacentHTML('beforeend', `<div class="drop-zone ${cls}" style="left:${gx}px; top:${gy}px; transform: translate(-50%, -50%) rotate(${rot}deg)" onclick="commitMove('right')">+</div>`);
         }
         
-        // رسم الشبح في البداية (Left End) - سنضعه تقريبياً بجوار الكرت الأول
+        // Ghost Left (Start)
         if(canLeft) {
             const first = coords[0];
-            // افتراض بسيط: يسار الكرت الأول
+            // تبسيط: نضعه يسار الكرت الأول دائماً بغض النظر عن اتجاه الثعبان المعقد في البداية
+            // (لأن الكرت 0 هو البداية الثابتة)
             let gx = first.x - (TILE_W + GAP);
             let gy = first.y; 
             div.insertAdjacentHTML('beforeend', `<div class="drop-zone" style="left:${gx}px; top:${gy}px; transform: translate(-50%, -50%)" onclick="commitMove('left')">+</div>`);
@@ -616,11 +647,14 @@
         if(side === 'any' || board.length === 0) {
             board.push(newTile);
         } else if (side === 'left') {
-            // منطق التوصيل البسيط، العرض سيعالجه
-            if(newTile.a === board[0].a) newTile = {a:tile.b, b:tile.a};
+            // هنا لا نحتاج لقلب الكرت في البيانات، العرض (renderBoard) سيعالج المظهر
+            // لكن للتناسق المنطقي:
+            if(board.length > 0 && (newTile.a === board[0].a || newTile.a === board[0].b)) {
+                 // نحاول جعل الطرف البعيد هو الحر. لكن unshift يضع في 0.
+                 // لن نعدل البيانات هنا، سنترك renderBoard يعالج الربط
+            }
             board.unshift(newTile);
         } else {
-            if(newTile.b === board[board.length-1].b) newTile = {a:tile.b, b:tile.a};
             board.push(newTile);
         }
         hand.splice(selectedIdx, 1);
@@ -743,4 +777,5 @@
 </script>
 </body>
 </html>
+
 

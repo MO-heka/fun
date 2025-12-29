@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-   
+    <title>DOMINO HEKA ULTRA</title>
     <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -27,10 +27,9 @@
             background-size: 60px 60px;
             color: #e2e8f0; margin: 0; overflow: hidden; height: 100vh;
             display: flex; flex-direction: column; user-select: none;
-            touch-action: none; /* منع التكبير والتصغير */
+            touch-action: none;
         }
 
-        /* العنوان يظهر في القائمة ويختفي في اللعب */
         h1.game-title {
             font-family: 'Righteous', cursive; font-size: 1.8rem; color: var(--gold);
             text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin: 10px 0; text-align: center; pointer-events: none;
@@ -40,7 +39,6 @@
         .container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; position: relative; }
         .hidden { display: none !important; }
 
-        /* الشاشات */
         .screen {
             background: var(--glass-bg); backdrop-filter: blur(12px); padding: 30px;
             border-radius: 20px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
@@ -54,9 +52,9 @@
         /* الدومينو */
         .domino { 
             background-color: var(--domino-white); border-radius: 4px; box-shadow: 2px 2px 0px #555; 
-            display: flex; cursor: pointer; position: absolute; /* Absolute للطاولة */
-            transition: all 0.3s ease;
-            transform-origin: center center;
+            display: flex; cursor: pointer; position: absolute; 
+            transition: all 0.3s ease; transform-origin: center center;
+            border: 1px solid #999;
         }
         .pip-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 2px; width: 100%; height: 100%; box-sizing: border-box; }
         .pip { background-color: var(--domino-black); border-radius: 50%; width: 100%; height: 100%; box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
@@ -68,28 +66,23 @@
         .p5-1 { grid-area: 1 / 1; } .p5-2 { grid-area: 1 / 3; } .p5-3 { grid-area: 2 / 2; } .p5-4 { grid-area: 3 / 1; } .p5-5 { grid-area: 3 / 3; }
         .p6-1 { grid-area: 1 / 1; } .p6-2 { grid-area: 1 / 3; } .p6-3 { grid-area: 2 / 1; } .p6-4 { grid-area: 2 / 3; } .p6-5 { grid-area: 3 / 1; } .p6-6 { grid-area: 3 / 3; }
 
-        /* اليد (Hand) - تعديل لرفع الكروت */
+        /* تعديل اليد: رفع الكروت لأعلى */
         .hand-tile { 
-            position: relative; /* نسبي داخل اليد */
-            width: 36px; height: 72px; flex-direction: column; margin: 0 2px; z-index: 10; flex-shrink: 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative; width: 36px; height: 72px; flex-direction: column; margin: 0 4px; z-index: 10; flex-shrink: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
         }
         .hand-tile .line { height: 2px; width: 90%; margin: 2px auto; }
         .hand-tile .pip-container { width: 36px; height: 35px; } .hand-tile .pip { width: 6px; height: 6px; margin: auto; }
-        
-        .hand-tile.selected { transform: translateY(-30px) scale(1.1); box-shadow: 0 0 15px var(--gold); border: 2px solid var(--gold); z-index: 50; }
+        .hand-tile.selected { transform: translateY(-35px) scale(1.15); box-shadow: 0 0 20px var(--gold); border: 2px solid var(--gold); z-index: 50; }
 
-        /* الطاولة - التنسيق الجديد */
+        /* الطاولة */
         .board-tile { width: 60px; height: 30px; flex-direction: row; }
         .board-tile .line { width: 2px; height: 90%; margin: auto 2px; }
         .board-tile .pip-container { width: 29px; height: 30px; } .board-tile .pip { width: 5px; height: 5px; margin: auto; }
-        
-        .board-tile.double { /* الدش دائماً يعالج بالدوران في JS */ }
 
-        /* مناطق الإسقاط العائمة */
+        /* مناطق الإسقاط */
         .drop-zone {
-            position: absolute;
-            border: 2px dashed var(--gold); background-color: var(--drop-zone);
+            position: absolute; border: 2px dashed var(--gold); background-color: var(--drop-zone);
             border-radius: 5px; animation: pulse 1s infinite; cursor: pointer;
             display: flex; justify-content: center; align-items: center; color: white; font-weight: bold;
             width: 60px; height: 30px; z-index: 15;
@@ -99,37 +92,33 @@
 
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
-        /* واجهة اللعب */
         #game-interface { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
         
         #table-surface {
             flex: 1; margin: 5px; border-radius: 15px; border: 2px solid #334155;
             background: rgba(15, 23, 42, 0.5); 
-            position: relative; overflow: hidden; /* إخفاء الزائد */
+            position: relative; overflow: hidden;
             box-shadow: inset 0 0 50px black;
         }
         
-        /* نقطة مركز الطاولة */
         #game-board { 
             position: absolute; top: 50%; left: 50%; 
-            width: 0; height: 0; 
-            transition: transform 0.3s ease-out;
+            width: 0; height: 0; transition: transform 0.3s ease-out;
         }
 
-        /* منطقة اللاعب */
+        /* تعديل منطقة اللاعب: زيادة الحشو السفلي */
         #my-area { 
-            height: 110px; /* تقليل الارتفاع */
+            height: 130px; /* زيادة الارتفاع */
             background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; 
-            position: relative; border-top: 1px solid #444; padding-bottom: 5px; z-index: 200;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+            position: relative; border-top: 1px solid #444; padding-bottom: 25px; z-index: 200;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
         }
         #my-hand { 
-            display: flex; overflow-x: auto; padding: 25px 10px 5px 10px; 
-            width: 100%; align-items: flex-end; justify-content: center; height: 90px; 
+            display: flex; overflow-x: auto; padding: 10px; 
+            width: 100%; align-items: flex-end; justify-content: center; height: 85px; 
         }
         #draw-btn { position: absolute; top: -50px; background: var(--gold); color: black; z-index: 50; box-shadow: 0 0 10px var(--gold); }
 
-        /* اللاعبين */
         .player-pos {
             position: absolute; background: rgba(30, 41, 59, 0.95); padding: 4px 8px;
             border-radius: 8px; display: flex; flex-direction: column; align-items: center;
@@ -141,16 +130,15 @@
         .pos-right { top: 50%; right: 10px; transform: translateY(-50%); }
         .timer-bar { height: 2px; background: var(--danger); width: 100%; margin-top: 3px; transition: width 0.5s linear; }
 
-        /* رسالة منبثقة والشات */
         #toast, #screen-winner, #chat-box, #chat-icon { z-index: 999; }
         #toast {
             position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px;
             border: 1px solid var(--gold); opacity: 0; transition: opacity 0.3s; pointer-events: none;
         }
-        #chat-icon { position: fixed; bottom: 20px; left: 20px; width: 40px; height: 40px; background: var(--accent-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        #chat-icon { position: fixed; bottom: 150px; left: 20px; width: 40px; height: 40px; background: var(--accent-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         #chat-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; width: 15px; height: 15px; border-radius: 50%; font-size: 10px; display: flex; justify-content: center; align-items: center; }
-        #chat-box { position: fixed; bottom: 70px; left: 20px; width: 250px; height: 250px; background: var(--glass-bg); border-radius: 10px; display: flex; flex-direction: column; }
+        #chat-box { position: fixed; bottom: 200px; left: 20px; width: 250px; height: 250px; background: var(--glass-bg); border-radius: 10px; display: flex; flex-direction: column; }
         #chat-msgs { flex: 1; overflow-y: auto; padding: 10px; }
         .msg { background: rgba(255,255,255,0.1); padding: 5px; margin: 3px 0; border-radius: 5px; font-size: 12px; text-align: right; }
         .msg.mine { background: rgba(59, 130, 246, 0.4); align-self: flex-end; }
@@ -158,8 +146,7 @@
 </head>
 <body>
 
-  
-
+    <h1 class="game-title">HEKA ULTRA</h1>
     <div id="toast"></div>
 
     <div class="container">
@@ -198,7 +185,7 @@
 
                 <div id="my-area">
                     <button id="draw-btn" class="hidden">سحب</button>
-                    <div id="my-score-display" style="position:absolute; top:-20px; left:10px; color:var(--gold); font-weight:bold; font-size:0.9rem;">نقاطك: 0</div>
+                    <div id="my-score-display" style="position:absolute; top:-25px; left:10px; color:var(--gold); font-weight:bold; font-size:0.9rem;">نقاطك: 0</div>
                     <div id="my-hand"></div>
                 </div>
             </div>
@@ -211,9 +198,7 @@
         <button onclick="leavegame()">القائمة الرئيسية</button>
     </div>
 
-    <div id="chat-icon" class="hidden" onclick="toggleChat()">
-        <div id="chat-badge" class="hidden">0</div>💬
-    </div>
+    <div id="chat-icon" class="hidden" onclick="toggleChat()"><div id="chat-badge" class="hidden">0</div>💬</div>
     <div id="chat-box" class="hidden">
         <div style="padding:5px; background:rgba(0,0,0,0.3); color:white; display:flex; justify-content:space-between;"><span>Chat</span><span onclick="toggleChat()" style="cursor:pointer">x</span></div>
         <div id="chat-msgs"></div>
@@ -221,17 +206,14 @@
     </div>
 
 <script>
-    // --- Config ---
     const firebaseConfig = { apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4", authDomain: "heka-codenames.firebaseapp.com", projectId: "heka-codenames", storageBucket: "heka-domino.firebasestorage.app", messagingSenderId: "901713932504", appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- Variables ---
     let myName="", myId="", currentgame="", isHost=false;
     let gameData={}, chatOpen=false, timerInt=null;
     let selectedIdx = -1;
 
-    // --- Init ---
     window.onload = () => {
         if(localStorage.getItem('heka_ultra_name')) {
             document.getElementById('username').value = localStorage.getItem('heka_ultra_name');
@@ -250,15 +232,11 @@
         document.getElementById('welcome-msg').innerText = `يا هلا بـ ${myName}`;
         show('screen-menu');
     }
-
-    // --- Toast Msg ---
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.innerText = msg; t.style.opacity=1;
         setTimeout(()=>t.style.opacity=0, 2000);
     }
-
-    // --- Game Logic ---
     function creategame() {
         const code = Math.floor(1000+Math.random()*9000).toString();
         myId = Date.now().toString();
@@ -293,8 +271,6 @@
         if(currentgame && myId) db.ref(`games/${currentgame}/players/${myId}`).update({ isBot: true });
         location.reload();
     }
-
-    // --- Listen ---
     function listen() {
         db.ref(`games/${currentgame}`).on('value', s => {
             const d = s.val();
@@ -322,7 +298,6 @@
         Object.values(players||{}).forEach(p => list.innerHTML += `<li>${p.name} ${p.isBot?'🤖':''} - 🏆${p.score}</li>`);
     }
 
-    // --- Game Play ---
     function startGame() {
         const pIds = Object.keys(gameData.players);
         if(pIds.length < 2) return alert("2 لاعبين ع الأقل");
@@ -354,7 +329,6 @@
         const myIdx = pIds.indexOf(myId);
         const turnId = pIds[data.turnIndex];
         
-        // Opponents
         const oppDiv = document.getElementById('opponents'); oppDiv.innerHTML = "";
         const count = pIds.length;
         for(let i=1; i<count; i++) {
@@ -369,7 +343,6 @@
                 ${isTurn ? '<div class="timer-bar" id="tbar-'+tId+'"></div>' : ''}</div>`;
         }
 
-        // Me
         document.getElementById('my-score-display').innerText = `نقاطك: ${data.players[myId].score}`;
         const myArea = document.getElementById('my-area');
         if(turnId === myId) {
@@ -391,11 +364,11 @@
         }
     }
 
-    // --- CORRECTED Snake Layout Logic ---
+    // --- REVISED SNAKE LAYOUT SYSTEM ---
     const TILE_W = 60;
     const TILE_H = 30;
-    const GAP = 2; // تقليل المسافات
-    const ROW_LIMIT = 4; // عدد الكروت في الصف
+    const GAP = 2; 
+    const ROW_LIMIT = 4; // Max tiles per horizontal row
 
     function calculateSnakePositions(board) {
         if(!board || board.length === 0) return [];
@@ -405,39 +378,72 @@
         let direction = 1; // 1 = Right, -1 = Left
         let tilesInRow = 0;
         
+        // Loop through board
         for(let i=0; i<board.length; i++) {
-            const tile = board[i];
-            const isDouble = tile.a === tile.b;
-            const rot = isDouble ? 90 : (direction === 1 ? 0 : 180);
-
-            positions[i] = { x: cx, y: cy, angle: rot, dir: direction };
+            const t = board[i];
+            const isDouble = (t.a === t.b);
             
-            tilesInRow++;
-            
-            // حساب المسافة للكرت التالي
-            let currentLen = isDouble ? TILE_H : TILE_W;
-            let nextLen = TILE_W;
-            if (i < board.length - 1) {
-                const nextTile = board[i+1];
-                nextLen = (nextTile.a === nextTile.b) ? TILE_H : TILE_W;
-            }
+            // Logic: Check if we need to turn *BEFORE* placing this tile
+            // A turn happens if we hit the limit
+            let isCorner = false;
 
-            // هل وصلنا لنهاية الصف؟
             if (tilesInRow >= ROW_LIMIT) {
-                // الكرت التالي سينزل للأسفل
-                cy += (TILE_W/2 + TILE_H/2 + GAP * 3); 
-                // لا نغير الـ X هنا، الكرت الجديد سيكون أسفل الكرت الحالي
-                // لكن نحتاج عكس الاتجاه للخطوة التي تليها
-                direction *= -1; 
+                isCorner = true;
+                // Place this tile vertically UNDER the previous one
+                cy += (TILE_W/2 + TILE_H/2 + GAP); // Move down
+                // X remains the same as previous tile to form the elbow
+                
+                // Reset row counter
                 tilesInRow = 0;
+                // Flip direction for NEXT tiles
+                direction *= -1;
             } else {
-                // حركة أفقية
-                let step = (currentLen/2 + nextLen/2 + GAP);
-                cx += step * direction;
+                // Horizontal Placement
+                if(i > 0) {
+                   // Add width of previous + width of current
+                   let prevT = board[i-1];
+                   let prevIsDouble = (prevT.a === prevT.b);
+                   let prevIsCorner = (positions[i-1].isCorner);
+                   
+                   let prevLen = prevIsDouble ? TILE_H : TILE_W;
+                   let currLen = isDouble ? TILE_H : TILE_W;
+                   
+                   // If previous was a corner, we are moving sideways from it
+                   if (prevIsCorner) {
+                       // The corner tile was vertical. We move sideways from it.
+                       // Distance is half height of corner + gap + half width of current
+                       // Actually corner tile is usually rendered vertically (height=60)
+                       // So we move sideways:
+                       let dist = (TILE_H/2 + currLen/2 + GAP); 
+                       // Wait, if corner is Double, it's Horizontal width (30).. Logic gets complex.
+                       // Simplified:
+                       // Previous tile X is anchor.
+                       // We just step X.
+                       let step = (prevLen/2 + currLen/2 + GAP);
+                       if(positions[i-1].isCorner) step = (TILE_W/2 + currLen/2 + GAP); // Corner is always vertical roughly
+                       cx += step * direction;
+                   } else {
+                       let step = (prevLen/2 + currLen/2 + GAP);
+                       cx += step * direction;
+                   }
+                }
             }
+
+            // Determine rotation
+            let rot = 0;
+            if(isCorner) {
+                // Corner tiles are vertical
+                rot = isDouble ? 0 : 90; // Double 0 (horiz look vertical), Normal 90
+            } else {
+                // Normal row tiles
+                rot = isDouble ? 90 : (direction === 1 ? 0 : 180);
+            }
+
+            positions[i] = { x: cx, y: cy, angle: rot, dir: direction, isCorner: isCorner };
+            if(!isCorner) tilesInRow++;
         }
         
-        // Centering
+        // Center the board
         if(positions.length > 0) {
             let minX = Math.min(...positions.map(p=>p.x)), maxX = Math.max(...positions.map(p=>p.x));
             let minY = Math.min(...positions.map(p=>p.y)), maxY = Math.max(...positions.map(p=>p.y));
@@ -446,56 +452,41 @@
             
             positions.forEach(p => { p.x -= midX; p.y -= midY; });
             
-            // Auto Zoom
             const boardDiv = document.getElementById('game-board');
             let scale = 1;
-            if(positions.length > 10) scale = 0.85;
-            if(positions.length > 18) scale = 0.7;
-            if(positions.length > 25) scale = 0.55;
+            if(positions.length > 8) scale = 0.8;
+            if(positions.length > 15) scale = 0.65;
+            if(positions.length > 22) scale = 0.5;
             boardDiv.style.transform = `translate(-50%, -50%) scale(${scale})`;
         }
         return positions;
     }
 
-    // --- FIX: Logic to Orient Tiles Correctly ---
     function renderBoard(board) {
         const d = document.getElementById('game-board');
         d.innerHTML = "";
         const coords = calculateSnakePositions(board);
         
-        // هذا المتغير سيحفظ "الرقم الحر" من الكرت السابق
-        // لكي نعرف أي رقم يجب أن يتصل به الكرت الحالي
-        let lastExposedVal = -1;
-
-        // تحديد بداية السلسلة
-        if (board.length > 0) {
-            // الكرت الأول (البداية)
-            // إذا كان هناك كرت ثاني، نحدد الاتجاه بناء عليه
-            if (board.length > 1) {
-                const first = board[0];
-                const second = board[1];
-                // إذا كان الكرت الثاني يحتوي على رقم يطابق a من الكرت الأول
-                // إذن a هو "الداخل" و b هو "الحر للخلف"
-                // لكن نحن نرسم من 0 إلى النهاية، لذا a هو المتصل بالثاني، و b هو البداية الحرة
-                // انتظر.. الكرت 0 هو أقصى اليسار منطقياً في مصفوفة board (لأنه unshift)
-                // واللعب يتجه نحو board[length-1]
-                
-                // في الكود الحالي: unshift يضيف لـ 0. و push يضيف لـ length.
-                // هذا يعني أن المصفوفة مرتبة من [الطرف الأيسر] إلى [الطرف الأيمن].
-                
-                // لذا، العلاقة بين board[0] و board[1]:
-                // يجب أن يتصلا ببعضهما.
-                if (first.a === second.a || first.a === second.b) {
-                    // a هو المتصل بـ board[1]
-                    // إذن b هو الطرف الحر الأيسر
-                    lastExposedVal = first.a; 
+        // We need to track connectivity to orient faces
+        // Board is [0]..[N]. 0 is start. N is end.
+        // We assume 0 is the "Left/Start" anchor.
+        
+        let connector = -1; // The value that the current tile must match
+        
+        // Setup first tile
+        if(board.length > 0) {
+            // First tile orientation depends on second tile
+            if(board.length > 1) {
+                // Check connectivity between 0 and 1
+                const t0 = board[0];
+                const t1 = board[1];
+                if(t0.a === t1.a || t0.a === t1.b) {
+                    connector = t0.a; // t0.a connects to t1. So t0.b is the loose start end.
                 } else {
-                    // b هو المتصل
-                    lastExposedVal = first.b;
+                    connector = t0.b; // t0.b connects.
                 }
             } else {
-                // كرت واحد فقط
-                lastExposedVal = board[0].b; // افتراضي
+                connector = board[0].b; // Default
             }
         }
 
@@ -504,60 +495,60 @@
             const isDouble = t.a === t.b;
             const cls = isDouble ? 'board-tile double' : 'board-tile';
             
-            let htmlLeft, htmlRight; // ما سيتم رسمه في HTML (يسار | يمين)
-
-            // بالنسبة للكرت الأول (i=0)، نحتاج معالجته لضبط البداية الصحيحة بصرياً
-            if (i === 0) {
-                // نحن حددنا lastExposedVal ليكون "نقطة الاتصال" مع الكرت التالي
-                // لذا الطرف الآخر هو الطرف الحر
-                if (board.length > 1) {
-                   // إذا كان lastExposedVal هو t.a، إذن t.a يجب أن يكون جهة اليمين (باتجاه الكرت التالي 1)
-                   // وتكون t.b هي جهة اليسار
-                   if (lastExposedVal === t.a) { htmlLeft = t.b; htmlRight = t.a; }
-                   else { htmlLeft = t.a; htmlRight = t.b; }
-                } else {
-                   htmlLeft = t.a; htmlRight = t.b;
-                   lastExposedVal = t.b; // تجهيز للقادم
+            let v1 = t.a, v2 = t.b; // v1 is "Left/Top", v2 is "Right/Bottom" visually in DOM order
+            
+            // Logic to swap v1/v2 based on connector and direction
+            // We want the 'matching' side to be closer to previous tile
+            
+            if(i === 0) {
+                // First tile: The connector is the side facing NEXT tile
+                // If moving Right: [Start|Conn] -> v2 should be connector
+                // If moving Left:  [Conn|Start] -> v1 should be connector
+                // But wait, connector is defined above as the connecting val.
+                let looseEnd = (t.a === connector) ? t.b : t.a;
+                
+                if (pos.dir === 1) { // Right
+                     v1 = looseEnd; v2 = connector;
+                } else { // Left
+                     v1 = connector; v2 = looseEnd;
                 }
             } else {
-                // للكروت اللاحقة: يجب أن يتصل أحد طرفي الكرت الحالي بـ lastExposedVal
-                // lastExposedVal هنا هو الرقم الحر من الكرت *السابق*
+                // Subsequent tiles: One side MUST match 'connector' (from prev tile)
+                // New connector for next tile becomes the other side
+                let matchVal = (t.a === connector) ? t.a : t.b;
+                let nextConn = (t.a === connector) ? t.b : t.a;
                 
-                let matchVal, newExposed;
-                if (t.a === lastExposedVal) { matchVal = t.a; newExposed = t.b; }
-                else { matchVal = t.b; newExposed = t.a; }
-                
-                lastExposedVal = newExposed; // تحديث للدورة القادمة
-
-                // الآن التوجيه البصري بناءً على اتجاه الثعبان
-                if (pos.dir === 1) { 
-                    // نتحرك لليمين: [السابق] -> [المتصل|الجديد]
-                    // في HTML (Flex row): العنصر الأول يسار، الثاني يمين
-                    // يجب أن يكون "المتصل" على اليسار ليلمس السابق
-                    htmlLeft = matchVal; htmlRight = newExposed;
-                } else {
-                    // نتحرك لليسار: [المتصل|الجديد] <- [السابق]
-                    // الكرت الحالي يقع يسار السابق.
-                    // لكي يلمسه، يجب أن يكون "المتصل" على اليمين (العنصر الثاني)
-                    htmlLeft = newExposed; htmlRight = matchVal;
+                // Render orientation
+                if(pos.isCorner) {
+                     // Vertical down. Top should be matchVal
+                     // DOM order [Top, Bottom]
+                     v1 = matchVal; v2 = nextConn;
+                } else if (pos.dir === 1) { 
+                     // Moving Right: [Match|Next]
+                     v1 = matchVal; v2 = nextConn;
+                } else { 
+                     // Moving Left: [Next|Match]
+                     v1 = nextConn; v2 = matchVal;
                 }
+                
+                connector = nextConn; // Update for next iteration
             }
 
-            // للدش، لا يهم الترتيب
-            if (isDouble) { htmlLeft = t.a; htmlRight = t.b; }
+            if(isDouble) { v1 = t.a; v2 = t.b; }
 
             const tileHtml = `
                 <div class="domino ${cls}" 
                      style="left: ${pos.x}px; top: ${pos.y}px; transform: translate(-50%, -50%) rotate(${pos.angle}deg);">
-                    <div class="pip-container">${getPips(htmlLeft)}</div>
+                    <div class="pip-container">${getPips(v1)}</div>
                     <div class="line"></div>
-                    <div class="pip-container">${getPips(htmlRight)}</div>
+                    <div class="pip-container">${getPips(v2)}</div>
                 </div>`;
             d.innerHTML += tileHtml;
         });
         return coords;
     }
 
+    // Ghost Rendering
     function renderBoardWithGhosts(board, tile) {
         const coords = renderBoard(board);
         const div = document.getElementById('game-board');
@@ -570,58 +561,52 @@
         const canLeft = hasMatch(tile, board[0]); 
         const canRight = hasMatch(tile, board[board.length-1]);
 
-        // Ghost Right (End)
+        // Right Ghost
         if(canRight) {
             const last = coords[coords.length-1];
-            // حساب تقريبي للمكان التالي
             let gx = last.x, gy = last.y;
-            let dir = last.dir;
-            
-            // هل الكرت الأخير كان نهاية صف؟
-            // (بناء على عدد الكروت الحالية)
-            if (board.length % ROW_LIMIT === 0) {
-                 gy += (TILE_W/2 + TILE_H/2 + GAP * 3);
-                 // الاتجاه سينقلب للكروت التالية، لكن الشبح يمثل أول كرت في الصف الجديد
-                 // لذا موقعه X نفس موقع الأخير تقريباً (أو تحته)
+            let rot = 0;
+            // Guess next position
+            let isCornerNext = ((board.length) % ROW_LIMIT === 0); // Modulo logic approx
+            // Better: use last pos info
+            if(board.length % ROW_LIMIT === 0) {
+                 gy += (TILE_W/2 + TILE_H/2 + GAP);
+                 rot = 90;
             } else {
-                 let lastIsDouble = board[board.length-1].a === board[board.length-1].b;
-                 let nextIsDouble = tile.a === tile.b;
-                 let step = (lastIsDouble?TILE_H/2:TILE_W/2) + (nextIsDouble?TILE_H/2:TILE_W/2) + GAP;
-                 gx += step * dir;
+                 let dir = last.dir;
+                 let lastIsDouble = (board[board.length-1].a === board[board.length-1].b);
+                 let nextIsDouble = (tile.a === tile.b);
+                 if(last.isCorner) { // If last was corner, we move sideways
+                     gx += (TILE_W/2 + TILE_W/2 + GAP) * dir;
+                 } else {
+                     let step = (TILE_W + GAP); // Approx
+                     gx += step * dir;
+                 }
+                 if(nextIsDouble) rot = 90;
+                 else if(dir === -1) rot = 180;
             }
             
-            // زاوية الشبح
-            let rot = 0;
-            if (tile.a === tile.b) rot = 90;
-            else if (dir === -1) rot = 180;
-
             const cls = (tile.a === tile.b) ? 'dz-v' : 'drop-zone';
             div.insertAdjacentHTML('beforeend', `<div class="drop-zone ${cls}" style="left:${gx}px; top:${gy}px; transform: translate(-50%, -50%) rotate(${rot}deg)" onclick="commitMove('right')">+</div>`);
         }
         
-        // Ghost Left (Start)
+        // Left Ghost
         if(canLeft) {
             const first = coords[0];
-            // تبسيط: نضعه يسار الكرت الأول دائماً بغض النظر عن اتجاه الثعبان المعقد في البداية
-            // (لأن الكرت 0 هو البداية الثابتة)
+            // Just place left of first
             let gx = first.x - (TILE_W + GAP);
             let gy = first.y; 
             div.insertAdjacentHTML('beforeend', `<div class="drop-zone" style="left:${gx}px; top:${gy}px; transform: translate(-50%, -50%)" onclick="commitMove('left')">+</div>`);
         }
     }
     
-    function hasMatch(tile, target) {
-         return (tile.a === target.a || tile.b === target.a || tile.a === target.b || tile.b === target.b);
-    }
-
-    // --- Interaction ---
+    function hasMatch(tile, target) { return (tile.a === target.a || tile.b === target.a || tile.a === target.b || tile.b === target.b); }
     function selectTile(idx) {
         const pIds = gameData.playerOrder;
         if(pIds[gameData.turnIndex] !== myId) return;
         const hand = gameData.players[myId].hand;
         const board = gameData.board || [];
         const tile = hand[idx];
-
         if(selectedIdx === idx) { cancelSelection(); return; }
         if(board.length === 0 && gameData.roundCount === 1) {
             const has66 = hand.findIndex(t => t.a===6 && t.b===6);
@@ -643,27 +628,14 @@
         const tile = hand[selectedIdx];
         let board = [...(gameData.board || [])];
         let newTile = {...tile};
-
-        if(side === 'any' || board.length === 0) {
-            board.push(newTile);
-        } else if (side === 'left') {
-            // هنا لا نحتاج لقلب الكرت في البيانات، العرض (renderBoard) سيعالج المظهر
-            // لكن للتناسق المنطقي:
-            if(board.length > 0 && (newTile.a === board[0].a || newTile.a === board[0].b)) {
-                 // نحاول جعل الطرف البعيد هو الحر. لكن unshift يضع في 0.
-                 // لن نعدل البيانات هنا، سنترك renderBoard يعالج الربط
-            }
-            board.unshift(newTile);
-        } else {
-            board.push(newTile);
-        }
+        if(side === 'any' || board.length === 0) { board.push(newTile); } 
+        else if (side === 'left') { board.unshift(newTile); } 
+        else { board.push(newTile); }
         hand.splice(selectedIdx, 1);
         selectedIdx = -1;
         if(hand.length === 0) handleRoundWin(myId, board);
         else nextTurn(board, hand);
     }
-
-    // --- Core Logic ---
     function checkAutoPass(data) {
         const hand = data.players[myId].hand || [];
         const board = data.board || [];
@@ -718,8 +690,6 @@
         const l = board[0].a, r = board[board.length-1].b;
         return hand.some(t => t.a===l || t.b===l || t.a===r || t.b===r);
     }
-
-    // --- Rendering Helpers ---
     function renderHand(hand) {
         const d = document.getElementById('my-hand'); d.innerHTML = "";
         hand.forEach((t, i) => {
@@ -731,14 +701,11 @@
         const m={0:[], 1:['p1'],2:['p2-1','p2-2'],3:['p3-1','p3-2','p3-3'],4:['p4-1','p4-2','p4-3','p4-4'],5:['p5-1','p5-2','p5-3','p5-4','p5-5'],6:['p6-1','p6-2','p6-3','p6-4','p6-5','p6-6']};
         return (m[n]||[]).map(c=>`<div class="pip ${c}"></div>`).join('');
     }
-
-    // --- Bot Logic ---
     function autoBot(pId) {
         const p = gameData.players[pId];
         const hand = p.hand || [];
         const board = gameData.board || [];
         let playIdx=-1, side='right';
-
         if(board.length===0) { playIdx=0; side='any'; }
         else {
             const l=board[0].a, r=board[board.length-1].b;
@@ -770,13 +737,9 @@
             }
         }
     }
-    // Chat
     function toggleChat(){ chatOpen=!chatOpen; document.getElementById('chat-box').classList.toggle('hidden'); document.getElementById('chat-badge').classList.add('hidden'); }
     function sendMsg(){ const i=document.getElementById('chat-in'); if(i.value) db.ref(`games/${currentgame}/chat`).push({n:myName, t:i.value}); i.value=""; }
     function updateChat(c){ const b=document.getElementById('chat-msgs'); b.innerHTML=Object.values(c||{}).map(m=>`<div class="msg ${m.n===myName?'mine':''}"><b>${m.n}:</b> ${m.t}</div>`).join(''); if(!chatOpen && c) document.getElementById('chat-badge').classList.remove('hidden'); }
 </script>
 </body>
 </html>
-
-
-

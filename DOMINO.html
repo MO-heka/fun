@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DOMINO HEKA ULTRA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <style>
+        :root { 
+            --bg-color: #0f172a; 
+            --glass-bg: rgba(30, 41, 59, 0.9);
+            --domino-white: #f1f2f6;
+            --domino-black: #1e272e;
+            --accent-color: #3b82f6; 
+            --gold: #fbbf24;
+            --danger: #ef4444;
+            --drop-zone: rgba(251, 191, 36, 0.4);
+        }
+
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#1e293b 15%, transparent 16%), radial-gradient(#1e293b 15%, transparent 16%);
+            background-size: 60px 60px;
+            color: #e2e8f0; margin: 0; overflow: hidden; height: 100vh;
+            display: flex; flex-direction: column; user-select: none;
+            touch-action: manipulation; /* تحسين اللمس */
+        }
+
+        h1.game-title {
+            font-family: 'Righteous', cursive; font-size: 1.8rem; color: var(--gold);
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin: 5px 0; text-align: center; pointer-events: none;
+        }
+
+        .container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; position: relative; }
+        .hidden { display: none !important; }
+
+        /* الشاشات */
+        .screen {
+            background: var(--glass-bg); backdrop-filter: blur(12px); padding: 30px;
+            border-radius: 20px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; z-index: 100;
+        }
+
+        /* عناصر التحكم */
+        input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 10px; color: white; border-radius: 8px; text-align: center; outline: none; }
+        button { background: var(--accent-color); color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin: 5px; font-family: 'Cairo'; }
+        button:active { transform: scale(0.95); }
+
+        /* الدومينو */
+        .domino { background-color: var(--domino-white); border-radius: 4px; box-shadow: 2px 2px 0px #555; display: flex; cursor: pointer; position: relative; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .pip-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 2px; width: 100%; height: 100%; box-sizing: border-box; }
+        .pip { background-color: var(--domino-black); border-radius: 50%; width: 100%; height: 100%; box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
+        .line { background-color: #ccc; }
+
+        .p1 { grid-area: 2 / 2; } .p2-1 { grid-area: 1 / 3; } .p2-2 { grid-area: 3 / 1; }
+        .p3-1 { grid-area: 1 / 3; } .p3-2 { grid-area: 2 / 2; } .p3-3 { grid-area: 3 / 1; }
+        .p4-1 { grid-area: 1 / 1; } .p4-2 { grid-area: 1 / 3; } .p4-3 { grid-area: 3 / 1; } .p4-4 { grid-area: 3 / 3; }
+        .p5-1 { grid-area: 1 / 1; } .p5-2 { grid-area: 1 / 3; } .p5-3 { grid-area: 2 / 2; } .p5-4 { grid-area: 3 / 1; } .p5-5 { grid-area: 3 / 3; }
+        .p6-1 { grid-area: 1 / 1; } .p6-2 { grid-area: 1 / 3; } .p6-3 { grid-area: 2 / 1; } .p6-4 { grid-area: 2 / 3; } .p6-5 { grid-area: 3 / 1; } .p6-6 { grid-area: 3 / 3; }
+
+        /* اليد */
+        .hand-tile { width: 38px; height: 76px; flex-direction: column; margin: 0 4px; z-index: 10; }
+        .hand-tile .line { height: 2px; width: 90%; margin: 2px auto; }
+        .hand-tile .pip-container { width: 38px; height: 37px; } .hand-tile .pip { width: 7px; height: 7px; margin: auto; }
+        
+        /* تأثير ارتفاع الورقة عند التحديد */
+        .hand-tile.selected { transform: translateY(-25px) scale(1.1); box-shadow: 0 10px 20px rgba(0,0,0,0.5); border: 2px solid var(--gold); z-index: 50; }
+
+        /* الطاولة */
+        .board-tile { width: 64px; height: 32px; flex-direction: row; margin: 0 1px; }
+        .board-tile .line { width: 2px; height: 90%; margin: auto 2px; }
+        .board-tile .pip-container { width: 31px; height: 32px; } .board-tile .pip { width: 6px; height: 6px; margin: auto; }
+        .board-tile.double { width: 32px; height: 64px; flex-direction: column; margin: 0 2px; transform: translateY(-16px); }
+        .board-tile.double .line { height: 2px; width: 90%; margin: 2px auto; }
+        .board-tile.double .pip-container { width: 32px; height: 31px; }
+
+        /* مناطق الإسقاط (المربع الأصفر) */
+        .drop-zone {
+            border: 2px dashed var(--gold);
+            background-color: var(--drop-zone);
+            border-radius: 5px;
+            margin: 0 5px;
+            animation: pulse 1s infinite;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 20px; font-weight: bold;
+        }
+        .drop-zone:hover { background-color: var(--gold); color: black; }
+        /* أبعاد منطقة الإسقاط (نفس حجم الورقة) */
+        .dz-h { width: 64px; height: 32px; } 
+        .dz-v { width: 32px; height: 64px; transform: translateY(-16px); }
+
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+        /* واجهة اللعب */
+        #game-interface { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        #table-surface {
+            flex: 1; margin: 10px; border-radius: 20px; border: 4px solid #334155;
+            background: rgba(15, 23, 42, 0.5); display: flex; justify-content: center; align-items: center;
+            position: relative; box-shadow: inset 0 0 50px black; overflow: auto;
+        }
+        #game-board { display: flex; align-items: center; padding: 60px; min-width: min-content; }
+
+        /* اللاعبين */
+        .player-pos {
+            position: absolute; background: rgba(30, 41, 59, 0.95); padding: 5px 10px;
+            border-radius: 10px; display: flex; flex-direction: column; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); min-width: 80px; z-index: 20;
+        }
+        .player-pos.active-turn { border: 2px solid var(--gold); box-shadow: 0 0 15px var(--gold); }
+        .pos-top { top: 10px; left: 50%; transform: translateX(-50%); }
+        .pos-left { top: 50%; left: 10px; transform: translateY(-50%); }
+        .pos-right { top: 50%; right: 10px; transform: translateY(-50%); }
+        .timer-bar { height: 3px; background: var(--danger); width: 100%; margin-top: 5px; transition: width 0.5s linear; }
+
+        /* منطقتي */
+        #my-area { height: 140px; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-top: 1px solid #444; }
+        #my-hand { display: flex; overflow-x: auto; padding: 20px 10px 10px 10px; max-width: 100%; align-items: center; height: 90px; }
+        #draw-btn { position: absolute; top: -50px; background: var(--gold); color: black; z-index: 50; box-shadow: 0 0 10px var(--gold); }
+
+        /* رسالة منبثقة (Toast) */
+        #toast {
+            position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px;
+            border: 1px solid var(--gold); z-index: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        }
+
+        /* الشات */
+        #chat-icon { position: fixed; bottom: 20px; left: 20px; width: 50px; height: 50px; background: var(--accent-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 200; }
+        #chat-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; display: flex; justify-content: center; align-items: center; }
+        #chat-box { position: fixed; bottom: 80px; left: 20px; width: 280px; height: 300px; background: var(--glass-bg); border-radius: 10px; display: flex; flex-direction: column; z-index: 200; }
+        #chat-msgs { flex: 1; overflow-y: auto; padding: 10px; }
+        .msg { background: rgba(255,255,255,0.1); padding: 5px; margin: 3px 0; border-radius: 5px; font-size: 13px; text-align: right; }
+        .msg.mine { background: rgba(59, 130, 246, 0.4); align-self: flex-end; }
+    </style>
+</head>
+<body>
+
+    <h1 class="game-title">HEKA ULTRA</h1>
+
+    <div id="toast"></div>
+
+    <div class="container">
+        <div id="screen-login" class="screen">
+            <h2>تسجيل الدخول</h2>
+            <input type="text" id="username" placeholder="اسمك">
+            <button onclick="saveName()">دخول</button>
+        </div>
+
+        <div id="screen-menu" class="screen hidden">
+            <h3 id="welcome-msg"></h3>
+            <button onclick="creategame()" style="background:#10b981; width:80%">إنشاء غرفة</button>
+            <br>
+            <input type="text" id="code-input" placeholder="كود الغرفة" style="width:100px">
+            <button onclick="joingame()">دخول</button>
+        </div>
+
+        <div id="screen-lobby" class="screen hidden">
+            <h2>غرفة: <span id="lobby-code" style="color:var(--gold)"></span></h2>
+            <ul id="lobby-list" style="list-style:none; padding:0; text-align:right"></ul>
+            <button id="start-btn" class="hidden" onclick="startGame()">ابدأ الجولة</button>
+            <button onclick="leavegame()" style="background:var(--danger)">خروج</button>
+        </div>
+
+        <div id="screen-game" class="hidden" style="width:100%; height:100%">
+            <div id="game-interface">
+                <div style="padding:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <button onclick="leavegame()" style="background:var(--danger); font-size:12px; padding:5px 10px">انسحاب</button>
+                    <span style="color:#aaa; font-size:12px">game: <span id="game-code"></span></span>
+                </div>
+
+                <div id="table-surface" onclick="cancelSelection(event)">
+                    <div id="opponents"></div> <div id="game-board"></div> </div>
+
+                <div id="my-area">
+                    <button id="draw-btn" class="hidden">سحب</button>
+                    <div id="my-score-display" style="position:absolute; top:-25px; left:10px; color:var(--gold); font-weight:bold;">نقاتك: 0</div>
+                    <div id="my-hand"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-winner" class="screen hidden" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:400; border:2px solid var(--gold);">
+        <h1 style="color:var(--gold); font-size:3rem;">🏆 CHAMPION 🏆</h1>
+        <h2 id="winner-name"></h2>
+        <button onclick="leavegame()">القائمة الرئيسية</button>
+    </div>
+
+    <div id="chat-icon" class="hidden" onclick="toggleChat()">
+        <div id="chat-badge" class="hidden">0</div>💬
+    </div>
+    <div id="chat-box" class="hidden">
+        <div style="padding:5px; background:rgba(0,0,0,0.3); color:white; display:flex; justify-content:space-between;"><span>Chat</span><span onclick="toggleChat()" style="cursor:pointer">x</span></div>
+        <div id="chat-msgs"></div>
+        <div style="display:flex; padding:5px;"><input id="chat-in" style="flex:1; margin:0"><button onclick="sendMsg()" style="margin:0 5px">></button></div>
+    </div>
+
+<script>
+    // --- Config ---
+    const firebaseConfig = { apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4", authDomain: "heka-codenames.firebaseapp.com", projectId: "heka-codenames", storageBucket: "heka-domino.firebasestorage.app", messagingSenderId: "901713932504", appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad" };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- Variables ---
+    let myName="", myId="", currentgame="", isHost=false;
+    let gameData={}, chatOpen=false, timerInt=null;
+    let selectedIdx = -1; // الورقة المحددة حالياً
+
+    // --- Init ---
+    window.onload = () => {
+        if(localStorage.getItem('heka_ultra_name')) {
+            document.getElementById('username').value = localStorage.getItem('heka_ultra_name');
+            saveName();
+        }
+    };
+
+    function show(id) {
+        document.querySelectorAll('.screen, #screen-game').forEach(e => e.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+    function saveName() {
+        myName = document.getElementById('username').value.trim();
+        if(!myName) return;
+        localStorage.setItem('heka_ultra_name', myName);
+        document.getElementById('welcome-msg').innerText = `يا هلا بـ ${myName}`;
+        show('screen-menu');
+    }
+
+    // --- Toast Msg ---
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.style.opacity=1;
+        setTimeout(()=>t.style.opacity=0, 2000);
+    }
+
+    // --- game Logic ---
+    function creategame() {
+        const code = Math.floor(1000+Math.random()*9000).toString();
+        myId = Date.now().toString();
+        db.ref('games/'+code).set({
+            status: 'waiting', host: myId, roundCount: 0,
+            players: { [myId]: { name: myName, score: 0, hand:[], count:0, isBot:false } }
+        }).then(()=>entergame(code, true));
+    }
+    function joingame() {
+        const code = document.getElementById('code-input').value.trim();
+        if(!code) return;
+        myId = Date.now().toString();
+        db.ref('games/'+code).once('value', s => {
+            if(!s.exists()) return alert("غير موجودة");
+            if(s.val().status !== 'waiting') return alert("بدأت بالفعل");
+            if(Object.keys(s.val().players||{}).length >=4) return alert("ممتلئة");
+            db.ref(`games/${code}/players/${myId}`).set({ name: myName, score: 0, hand:[], count:0, isBot:false })
+            .then(()=>entergame(code, false));
+        });
+    }
+    function entergame(code, host) {
+        currentgame = code; isHost = host;
+        document.getElementById('lobby-code').innerText = code;
+        document.getElementById('game-code').innerText = code;
+        show('screen-lobby');
+        if(isHost) document.getElementById('start-btn').classList.remove('hidden');
+        document.getElementById('chat-icon').classList.remove('hidden');
+        db.ref(`games/${code}/players/${myId}`).onDisconnect().update({ isBot: true });
+        listen();
+    }
+    function leavegame() {
+        if(currentgame && myId) db.ref(`games/${currentgame}/players/${myId}`).update({ isBot: true });
+        location.reload();
+    }
+
+    // --- Listen ---
+    function listen() {
+        db.ref(`games/${currentgame}`).on('value', s => {
+            const d = s.val();
+            if(!d) return location.reload();
+            gameData = d;
+            if(d.status === 'waiting') updateLobby(d.players);
+            else if(d.status === 'playing') {
+                if(document.getElementById('screen-game').classList.contains('hidden')) show('screen-game');
+                updateGame(d);
+                checkTimer(d);
+            } 
+            else if (d.status === 'finished') {
+                alert(`الفائز: ${d.roundWinnerName}`);
+                if(isHost) setTimeout(startGame, 3000);
+            }
+            else if (d.status === 'match_over') {
+                document.getElementById('winner-name').innerText = d.matchWinnerName;
+                document.getElementById('screen-winner').classList.remove('hidden');
+            }
+            updateChat(d.chat);
+        });
+    }
+    function updateLobby(players) {
+        const list = document.getElementById('lobby-list'); list.innerHTML = "";
+        Object.values(players||{}).forEach(p => list.innerHTML += `<li>${p.name} ${p.isBot?'🤖':''} - 🏆${p.score}</li>`);
+    }
+
+    // --- Game Logic ---
+    function startGame() {
+        const pIds = Object.keys(gameData.players);
+        if(pIds.length < 2) return alert("2 لاعبين ع الأقل");
+        pIds.sort();
+        let tiles = [];
+        for(let i=0; i<=6; i++) for(let j=i; j<=6; j++) tiles.push({a:i, b:j});
+        let handSize = 7;
+        if(pIds.length === 3) { tiles = tiles.filter(t => !(t.a===0 && t.b===0)); handSize = 9; }
+        tiles.sort(()=>Math.random()-0.5);
+        const updates = { status: 'playing', board: [], stock: tiles, playerOrder: pIds };
+        let startTurnIndex = 0, hasSixSix = -1;
+        pIds.forEach((id, idx) => {
+            const hand = tiles.splice(0, handSize);
+            updates[`players/${id}/hand`] = hand;
+            updates[`players/${id}/count`] = handSize;
+            if(gameData.roundCount === 0 && hand.some(t => t.a===6 && t.b===6)) hasSixSix = idx;
+        });
+        if(gameData.roundCount === 0) startTurnIndex = (hasSixSix !== -1) ? hasSixSix : 0;
+        else if(gameData.lastWinnerId) { const idx = pIds.indexOf(gameData.lastWinnerId); startTurnIndex = (idx !== -1) ? idx : 0; }
+        
+        updates['turnIndex'] = startTurnIndex;
+        updates['turnStartTime'] = firebase.database.ServerValue.TIMESTAMP;
+        updates['roundCount'] = (gameData.roundCount || 0) + 1;
+        db.ref('games/'+currentgame).update(updates);
+    }
+
+    function updateGame(data) {
+        const pIds = data.playerOrder;
+        const myIdx = pIds.indexOf(myId);
+        const turnId = pIds[data.turnIndex];
+        
+        // Opponents
+        const oppDiv = document.getElementById('opponents'); oppDiv.innerHTML = "";
+        const count = pIds.length;
+        for(let i=1; i<count; i++) {
+            const tIdx = (myIdx + i) % count; const tId = pIds[tIdx]; const p = data.players[tId];
+            let cls = "pos-top";
+            if(count===3) cls = (i===1) ? "pos-right" : "pos-left";
+            if(count===4) cls = (i===1) ? "pos-right" : (i===2 ? "pos-top" : "pos-left");
+            const isTurn = (turnId === tId);
+            oppDiv.innerHTML += `<div class="player-pos ${cls} ${isTurn?'active-turn':''}">
+                <div style="font-size:20px">👤</div><div>${p.name} ${p.isBot?'🤖':''}</div>
+                <div style="color:#aaa">${p.count} 🀄</div><div class="p-score">${p.score} pts</div>
+                ${isTurn ? '<div class="timer-bar" id="tbar-'+tId+'"></div>' : ''}</div>`;
+        }
+
+        // Me
+        document.getElementById('my-score-display').innerText = `نقاطك: ${data.players[myId].score}`;
+        const myArea = document.getElementById('my-area');
+        if(turnId === myId) {
+            myArea.style.borderTop = "3px solid var(--gold)";
+            if(!document.getElementById('my-timer')) myArea.insertAdjacentHTML('afterbegin', `<div id="my-timer" class="timer-bar" style="position:absolute; top:0; width:100%"></div>`);
+            // Auto Pass Check
+            checkAutoPass(data);
+        } else {
+            myArea.style.borderTop = "1px solid #444";
+            if(document.getElementById('my-timer')) document.getElementById('my-timer').remove();
+            selectedIdx = -1; // Reset selection if not my turn
+        }
+
+        renderBoard(data.board||[]);
+        if(selectedIdx === -1) renderHand(data.players[myId].hand||[]); // Only re-render hand if not selecting
+        
+        // Draw Button
+        const btn = document.getElementById('draw-btn'); btn.classList.add('hidden');
+        if(turnId === myId && count === 2 && !hasMove(data.players[myId].hand, data.board)) {
+            if(data.stock && data.stock.length > 0) { btn.classList.remove('hidden'); btn.onclick = drawTile; }
+        }
+    }
+
+    // --- Interactive Play System (Click -> Select -> Drop) ---
+    function selectTile(idx) {
+        const pIds = gameData.playerOrder;
+        if(pIds[gameData.turnIndex] !== myId) return; // Not my turn
+
+        const hand = gameData.players[myId].hand;
+        const board = gameData.board || [];
+        const tile = hand[idx];
+
+        // Toggle Selection
+        if(selectedIdx === idx) {
+            cancelSelection();
+            return;
+        }
+
+        // Logic check
+        if(board.length === 0) {
+            if(gameData.roundCount === 1) {
+                const has66 = hand.findIndex(t => t.a===6 && t.b===6);
+                if(has66 !== -1 && (tile.a!==6 || tile.b!==6)) {
+                    showToast("لازم تلعب 6-6 الأول!"); return;
+                }
+            }
+        }
+
+        // Visual Select
+        selectedIdx = idx;
+        renderHand(hand); // Re-render to show raised card
+        renderBoardWithGhosts(board, tile);
+    }
+
+    function cancelSelection(e) {
+        // لو ضغطنا على الطاولة نفسها مش الورق
+        if(e && e.target.closest('.domino')) return;
+        selectedIdx = -1;
+        renderHand(gameData.players[myId].hand);
+        renderBoard(gameData.board || []);
+    }
+
+    function renderBoardWithGhosts(board, tile) {
+        const div = document.getElementById('game-board');
+        // Render normal board first
+        renderBoard(board);
+        
+        if(board.length === 0) {
+            // Empty board, add center ghost
+            const ghost = `<div class="drop-zone dz-h" onclick="commitMove('any')">+</div>`;
+            div.innerHTML = ghost;
+            return;
+        }
+
+        const l = board[0].a;
+        const r = board[board.length-1].b;
+        
+        // Check moves
+        const canLeft = (tile.a === l || tile.b === l);
+        const canRight = (tile.a === r || tile.b === r);
+
+        // Prepend Left Ghost
+        if(canLeft) {
+            const isDouble = (tile.a === tile.b); // Approximate shape
+            const cls = isDouble ? 'dz-v' : 'dz-h';
+            const ghost = `<div class="drop-zone ${cls}" onclick="commitMove('left')">+</div>`;
+            div.insertAdjacentHTML('afterbegin', ghost);
+        }
+
+        // Append Right Ghost
+        if(canRight) {
+             const isDouble = (tile.a === tile.b);
+             const cls = isDouble ? 'dz-v' : 'dz-h';
+             const ghost = `<div class="drop-zone ${cls}" onclick="commitMove('right')">+</div>`;
+             div.insertAdjacentHTML('beforeend', ghost);
+        }
+    }
+
+    function commitMove(side) {
+        if(selectedIdx === -1) return;
+        const hand = gameData.players[myId].hand;
+        const tile = hand[selectedIdx];
+        let board = [...(gameData.board || [])];
+        let newTile = {...tile};
+
+        if(side === 'any' || board.length === 0) {
+            board.push(newTile);
+        } else if (side === 'left') {
+            if(newTile.a === board[0].a) newTile = {a:tile.b, b:tile.a};
+            board.unshift(newTile);
+        } else { // right
+            if(newTile.b === board[board.length-1].b) newTile = {a:tile.b, b:tile.a};
+            board.push(newTile);
+        }
+
+        hand.splice(selectedIdx, 1);
+        selectedIdx = -1;
+
+        if(hand.length === 0) handleRoundWin(myId, board);
+        else nextTurn(board, hand);
+    }
+
+    // --- Auto Pass & Instant Bot ---
+    function checkAutoPass(data) {
+        const hand = data.players[myId].hand || [];
+        const board = data.board || [];
+        const stock = data.stock || [];
+        
+        // لو مفيش حركة، ومفيش سحب (أو السحب ممنوع زي في الثلاثي/الرباعي)
+        // ملاحظة: في الثنائي السحب مسموح لو الستوك فيه ورق
+        const canDraw = (Object.keys(data.players).length === 2 && stock.length > 0);
+        
+        if(!hasMove(hand, board) && !canDraw) {
+            showToast("🚫 لا يوجد لعب - Pass");
+            setTimeout(() => {
+                const pIds = data.playerOrder;
+                const next = (data.turnIndex + 1) % pIds.length;
+                db.ref('games/'+currentgame).update({
+                    turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP
+                });
+            }, 1500);
+        }
+    }
+
+    function checkTimer(data) {
+        if(timerInt) clearInterval(timerInt);
+        const startTime = data.turnStartTime || Date.now();
+        const turnId = data.playerOrder[data.turnIndex];
+        const playerObj = data.players[turnId];
+
+        // **Instant Bot Logic**
+        if(playerObj.isBot) {
+            // لو أنا الهوست، ألعب مكانه فوراً
+            if(isHost) {
+                setTimeout(() => autoBot(turnId), 1000); // 1 sec delay for realism
+            }
+            return; // No timer needed for bot
+        }
+        
+        timerInt = setInterval(() => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const remaining = 40 - elapsed;
+            const bar = document.getElementById(turnId===myId ? 'my-timer' : 'tbar-'+turnId);
+            if(bar) bar.style.width = Math.max(0, (remaining/40)*100) + "%";
+
+            if(remaining <= 0) {
+                clearInterval(timerInt);
+                if(turnId === myId) autoBot(myId);
+                else if(isHost && playerObj.isBot) autoBot(turnId);
+            }
+        }, 1000);
+    }
+
+    // --- Helpers ---
+    function nextTurn(board, hand) {
+        const pIds = gameData.playerOrder;
+        const next = (gameData.turnIndex + 1) % pIds.length;
+        db.ref('games/'+currentgame).update({
+            board: board, turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP,
+            [`players/${myId}/hand`]: hand, [`players/${myId}/count`]: hand.length
+        });
+    }
+    function handleRoundWin(winnerId, board) {
+        let total = 0;
+        Object.keys(gameData.players).forEach(id => {
+            if(id !== winnerId) (gameData.players[id].hand||[]).forEach(t => total += (t.a + t.b));
+        });
+        const newScore = (gameData.players[winnerId].score || 0) + total;
+        const up = {
+            [`players/${winnerId}/score`]: newScore, status: 'finished', lastWinnerId: winnerId,
+            roundWinnerName: gameData.players[winnerId].name, board: board, [`players/${winnerId}/hand`]: []
+        };
+        if(newScore >= 101) { up.status = 'match_over'; up.matchWinnerName = gameData.players[winnerId].name; }
+        db.ref('games/'+currentgame).update(up);
+    }
+    function drawTile() {
+        let stock = gameData.stock || [];
+        if(stock.length === 0) return;
+        const t = stock.pop();
+        const hand = gameData.players[myId].hand; hand.push(t);
+        db.ref('games/'+currentgame).update({ stock: stock, [`players/${myId}/hand`]: hand, [`players/${myId}/count`]: hand.length });
+        // Hand re-rendered automatically via listener
+    }
+    function hasMove(hand, board) {
+        if(!board || board.length===0) return true;
+        const l = board[0].a, r = board[board.length-1].b;
+        return hand.some(t => t.a===l || t.b===l || t.a===r || t.b===r);
+    }
+
+    // --- Rendering ---
+    function renderHand(hand) {
+        const d = document.getElementById('my-hand'); d.innerHTML = "";
+        hand.forEach((t, i) => {
+            const isSel = (i === selectedIdx) ? 'selected' : '';
+            d.innerHTML += createDomino(t, `hand-tile ${isSel}`, `onclick="selectTile(${i})"`);
+        });
+    }
+    function renderBoard(board) {
+        const d = document.getElementById('game-board'); d.innerHTML = "";
+        board.forEach(t => d.innerHTML += createDomino(t, (t.a===t.b ? 'board-tile double' : 'board-tile'), ''));
+    }
+    function createDomino(t, cls, attr) {
+        return `<div class="domino ${cls}" ${attr}><div class="pip-container">${getPips(t.a)}</div><div class="line"></div><div class="pip-container">${getPips(t.b)}</div></div>`;
+    }
+    function getPips(n) {
+        const m={1:['p1'],2:['p2-1','p2-2'],3:['p3-1','p3-2','p3-3'],4:['p4-1','p4-2','p4-3','p4-4'],5:['p5-1','p5-2','p5-3','p5-4','p5-5'],6:['p6-1','p6-2','p6-3','p6-4','p6-5','p6-6']};
+        return (m[n]||[]).map(c=>`<div class="pip ${c}"></div>`).join('');
+    }
+
+    // --- Bot Logic (Same as before, simplified calls) ---
+    function autoBot(pId) {
+        // ... (نفس منطق البوت السابق لكن بدون تغييرات جذرية، يتم تنفيذه فوراً)
+        // لتوفير المساحة، سنفترض وجود دالة autoBot بنفس المنطق السابق
+        // ولكن للتأكيد سأكتب الجزء المهم للتنفيذ الفوري
+        const p = gameData.players[pId];
+        const hand = p.hand || [];
+        const board = gameData.board || [];
+        let played=false, playIdx=-1, side='right';
+
+        if(board.length===0) { playIdx=0; side='any'; }
+        else {
+            const l=board[0].a, r=board[board.length-1].b;
+            for(let i=0; i<hand.length; i++) {
+                if(hand[i].a===r || hand[i].b===r) { playIdx=i; side='right'; break; }
+                if(hand[i].a===l || hand[i].b===l) { playIdx=i; side='left'; break; }
+            }
+        }
+
+        if(playIdx !== -1) {
+            // Bot plays
+            const tile = hand[playIdx]; let newTile = {...tile}; let newBoard = [...board];
+            if(side === 'left') { if(newTile.a===board[0].a) newTile={a:tile.b,b:tile.a}; newBoard.unshift(newTile); }
+            else { const end=board.length?board[board.length-1].b:-1; if(board.length && newTile.b===end) newTile={a:tile.b,b:tile.a}; newBoard.push(newTile); }
+            hand.splice(playIdx, 1);
+            
+            const next = (gameData.turnIndex + 1) % gameData.playerOrder.length;
+            const up = { board: newBoard, turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP, [`players/${pId}/hand`]: hand, [`players/${pId}/count`]: hand.length };
+            if(hand.length===0) {
+                 up.status='finished'; up.roundWinnerName=p.name; up.lastWinnerId=pId;
+                 let total=0; Object.keys(gameData.players).forEach(oid=>{ if(oid!==pId) (gameData.players[oid].hand||[]).forEach(t=>total+=t.a+t.b) });
+                 up[`players/${pId}/score`] = (p.score||0)+total;
+            }
+            db.ref('games/'+currentgame).update(up);
+        } else {
+            // Bot Pass or Draw
+            if(Object.keys(gameData.players).length===2 && (gameData.stock||[]).length>0) {
+                const stock = gameData.stock; const t = stock.pop(); hand.push(t);
+                db.ref('games/'+currentgame).update({ stock:stock, [`players/${pId}/hand`]:hand, [`players/${pId}/count`]:hand.length });
+            } else {
+                const next = (gameData.turnIndex + 1) % gameData.playerOrder.length;
+                db.ref('games/'+currentgame).update({ turnIndex: next, turnStartTime: firebase.database.ServerValue.TIMESTAMP });
+            }
+        }
+    }
+
+    // Chat
+    function toggleChat(){ chatOpen=!chatOpen; document.getElementById('chat-box').classList.toggle('hidden'); document.getElementById('chat-badge').classList.add('hidden'); }
+    function sendMsg(){ const i=document.getElementById('chat-in'); if(i.value) db.ref(`games/${currentgame}/chat`).push({n:myName, t:i.value}); i.value=""; }
+    function updateChat(c){ const b=document.getElementById('chat-msgs'); b.innerHTML=Object.values(c||{}).map(m=>`<div class="msg ${m.n===myName?'mine':''}"><b>${m.n}:</b> ${m.t}</div>`).join(''); if(!chatOpen && c) document.getElementById('chat-badge').classList.remove('hidden'); }
+</script>
+</body>
+</html>

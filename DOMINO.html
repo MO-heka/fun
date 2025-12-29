@@ -27,12 +27,13 @@
             background-size: 60px 60px;
             color: #e2e8f0; margin: 0; overflow: hidden; height: 100vh;
             display: flex; flex-direction: column; user-select: none;
-            touch-action: manipulation; /* تحسين اللمس */
+            touch-action: manipulation;
         }
 
         h1.game-title {
-            font-family: 'Righteous', cursive; font-size: 1.8rem; color: var(--gold);
+            font-family: 'Righteous', cursive; font-size: 1.5rem; color: var(--gold);
             text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin: 5px 0; text-align: center; pointer-events: none;
+            z-index: 10;
         }
 
         .container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; position: relative; }
@@ -51,7 +52,7 @@
         button:active { transform: scale(0.95); }
 
         /* الدومينو */
-        .domino { background-color: var(--domino-white); border-radius: 4px; box-shadow: 2px 2px 0px #555; display: flex; cursor: pointer; position: relative; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .domino { background-color: var(--domino-white); border-radius: 4px; box-shadow: 2px 2px 0px #555; display: flex; cursor: pointer; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .pip-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 2px; width: 100%; height: 100%; box-sizing: border-box; }
         .pip { background-color: var(--domino-black); border-radius: 50%; width: 100%; height: 100%; box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
         .line { background-color: #ccc; }
@@ -62,48 +63,66 @@
         .p5-1 { grid-area: 1 / 1; } .p5-2 { grid-area: 1 / 3; } .p5-3 { grid-area: 2 / 2; } .p5-4 { grid-area: 3 / 1; } .p5-5 { grid-area: 3 / 3; }
         .p6-1 { grid-area: 1 / 1; } .p6-2 { grid-area: 1 / 3; } .p6-3 { grid-area: 2 / 1; } .p6-4 { grid-area: 2 / 3; } .p6-5 { grid-area: 3 / 1; } .p6-6 { grid-area: 3 / 3; }
 
-        /* اليد */
-        .hand-tile { width: 38px; height: 76px; flex-direction: column; margin: 0 4px; z-index: 10; }
+        /* تعديلات اليد (تم الإصلاح) */
+        .hand-tile { width: 38px; height: 76px; flex-direction: column; margin: 0 5px; z-index: 10; flex-shrink: 0; }
         .hand-tile .line { height: 2px; width: 90%; margin: 2px auto; }
         .hand-tile .pip-container { width: 38px; height: 37px; } .hand-tile .pip { width: 7px; height: 7px; margin: auto; }
         
-        /* تأثير ارتفاع الورقة عند التحديد */
-        .hand-tile.selected { transform: translateY(-25px) scale(1.1); box-shadow: 0 10px 20px rgba(0,0,0,0.5); border: 2px solid var(--gold); z-index: 50; }
+        .hand-tile.selected { transform: translateY(-30px) scale(1.1); box-shadow: 0 10px 20px rgba(0,0,0,0.5); border: 2px solid var(--gold); z-index: 50; }
 
-        /* الطاولة */
-        .board-tile { width: 64px; height: 32px; flex-direction: row; margin: 0 1px; }
+        /* الطاولة - تعديلات الـ Absolute Positioning */
+        .board-tile { 
+            position: absolute; /* للتمركز الحر */
+            width: 64px; height: 32px; flex-direction: row; 
+            transform-origin: center center;
+            transition: all 0.5s ease;
+        }
         .board-tile .line { width: 2px; height: 90%; margin: auto 2px; }
         .board-tile .pip-container { width: 31px; height: 32px; } .board-tile .pip { width: 6px; height: 6px; margin: auto; }
-        .board-tile.double { width: 32px; height: 64px; flex-direction: column; margin: 0 2px; transform: translateY(-16px); }
+        
+        /* الدويش (Double) */
+        .board-tile.double { 
+            /* الدويش يبقى بنفس الأبعاد لتسهيل الحسابات، لكن يتم تدويره داخلياً أو تغيير اتجاهه */
+            width: 32px; height: 64px; flex-direction: column; 
+        }
         .board-tile.double .line { height: 2px; width: 90%; margin: 2px auto; }
         .board-tile.double .pip-container { width: 32px; height: 31px; }
 
         /* مناطق الإسقاط (المربع الأصفر) */
         .drop-zone {
+            position: absolute;
             border: 2px dashed var(--gold);
             background-color: var(--drop-zone);
             border-radius: 5px;
-            margin: 0 5px;
             animation: pulse 1s infinite;
             cursor: pointer;
             display: flex; justify-content: center; align-items: center;
             color: white; font-size: 20px; font-weight: bold;
+            z-index: 5;
         }
         .drop-zone:hover { background-color: var(--gold); color: black; }
-        /* أبعاد منطقة الإسقاط (نفس حجم الورقة) */
         .dz-h { width: 64px; height: 32px; } 
-        .dz-v { width: 32px; height: 64px; transform: translateY(-16px); }
+        .dz-v { width: 32px; height: 64px; }
 
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
         /* واجهة اللعب */
         #game-interface { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        
         #table-surface {
             flex: 1; margin: 10px; border-radius: 20px; border: 4px solid #334155;
-            background: rgba(15, 23, 42, 0.5); display: flex; justify-content: center; align-items: center;
-            position: relative; box-shadow: inset 0 0 50px black; overflow: auto;
+            background: rgba(15, 23, 42, 0.5); 
+            position: relative; box-shadow: inset 0 0 50px black; overflow: auto; /* Scrollable */
+            display: flex; justify-content: center; align-items: center;
         }
-        #game-board { display: flex; align-items: center; padding: 60px; min-width: min-content; }
+        
+        /* حاوية اللعب (تتحرك بالداخل) */
+        #game-board-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.5s ease;
+        }
 
         /* اللاعبين */
         .player-pos {
@@ -117,12 +136,24 @@
         .pos-right { top: 50%; right: 10px; transform: translateY(-50%); }
         .timer-bar { height: 3px; background: var(--danger); width: 100%; margin-top: 5px; transition: width 0.5s linear; }
 
-        /* منطقتي */
-        #my-area { height: 140px; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-top: 1px solid #444; }
-        #my-hand { display: flex; overflow-x: auto; padding: 20px 10px 10px 10px; max-width: 100%; align-items: center; height: 90px; }
+        /* منطقتي (تم التعديل لظهور اليد بالكامل) */
+        #my-area { 
+            height: 180px; /* زيادة الارتفاع */
+            padding-bottom: env(safe-area-inset-bottom, 20px); /* حماية من حواف الآيفون */
+            background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-top: 1px solid #444; 
+        }
+        #my-hand { 
+            display: flex; overflow-x: auto; 
+            padding: 40px 20px 20px 20px; /* زيادة الـ padding العلوي لاستيعاب حركة الارتفاع */
+            width: 95%; align-items: center; 
+            height: 100px;
+            scrollbar-width: none; /* إخفاء شريط التمرير */
+        }
+        #my-hand::-webkit-scrollbar { display: none; }
+        
         #draw-btn { position: absolute; top: -50px; background: var(--gold); color: black; z-index: 50; box-shadow: 0 0 10px var(--gold); }
 
-        /* رسالة منبثقة (Toast) */
+        /* رسالة منبثقة */
         #toast {
             position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px;
@@ -174,7 +205,9 @@
                 </div>
 
                 <div id="table-surface" onclick="cancelSelection(event)">
-                    <div id="opponents"></div> <div id="game-board"></div> </div>
+                    <div id="opponents"></div> 
+                    <div id="game-board-container"></div> 
+                </div>
 
                 <div id="my-area">
                     <button id="draw-btn" class="hidden">سحب</button>
@@ -209,7 +242,12 @@
     // --- Variables ---
     let myName="", myId="", currentgame="", isHost=false;
     let gameData={}, chatOpen=false, timerInt=null;
-    let selectedIdx = -1; // الورقة المحددة حالياً
+    let selectedIdx = -1; 
+    
+    // ثوابت الرسم للطاولة (Snake Layout)
+    const TILE_W = 68; // العرض مع الهامش
+    const TILE_H = 34;
+    const ROW_LIMIT = 6; // أقصى عدد كروت في الصف الواحد
 
     // --- Init ---
     window.onload = () => {
@@ -355,16 +393,16 @@
         if(turnId === myId) {
             myArea.style.borderTop = "3px solid var(--gold)";
             if(!document.getElementById('my-timer')) myArea.insertAdjacentHTML('afterbegin', `<div id="my-timer" class="timer-bar" style="position:absolute; top:0; width:100%"></div>`);
-            // Auto Pass Check
             checkAutoPass(data);
         } else {
             myArea.style.borderTop = "1px solid #444";
             if(document.getElementById('my-timer')) document.getElementById('my-timer').remove();
-            selectedIdx = -1; // Reset selection if not my turn
+            selectedIdx = -1; 
         }
 
+        // Render Board with Snake Logic
         renderBoard(data.board||[]);
-        if(selectedIdx === -1) renderHand(data.players[myId].hand||[]); // Only re-render hand if not selecting
+        if(selectedIdx === -1) renderHand(data.players[myId].hand||[]); 
         
         // Draw Button
         const btn = document.getElementById('draw-btn'); btn.classList.add('hidden');
@@ -373,22 +411,17 @@
         }
     }
 
-    // --- Interactive Play System (Click -> Select -> Drop) ---
+    // --- Play System ---
     function selectTile(idx) {
         const pIds = gameData.playerOrder;
-        if(pIds[gameData.turnIndex] !== myId) return; // Not my turn
+        if(pIds[gameData.turnIndex] !== myId) return; 
 
         const hand = gameData.players[myId].hand;
         const board = gameData.board || [];
         const tile = hand[idx];
 
-        // Toggle Selection
-        if(selectedIdx === idx) {
-            cancelSelection();
-            return;
-        }
+        if(selectedIdx === idx) { cancelSelection(); return; }
 
-        // Logic check
         if(board.length === 0) {
             if(gameData.roundCount === 1) {
                 const has66 = hand.findIndex(t => t.a===6 && t.b===6);
@@ -398,14 +431,12 @@
             }
         }
 
-        // Visual Select
         selectedIdx = idx;
-        renderHand(hand); // Re-render to show raised card
+        renderHand(hand);
         renderBoardWithGhosts(board, tile);
     }
 
     function cancelSelection(e) {
-        // لو ضغطنا على الطاولة نفسها مش الورق
         if(e && e.target.closest('.domino')) return;
         selectedIdx = -1;
         renderHand(gameData.players[myId].hand);
@@ -413,39 +444,159 @@
     }
 
     function renderBoardWithGhosts(board, tile) {
-        const div = document.getElementById('game-board');
-        // Render normal board first
-        renderBoard(board);
-        
+        renderBoard(board); // Render base board first to get coordinates
+        const container = document.getElementById('game-board-container');
+
         if(board.length === 0) {
-            // Empty board, add center ghost
-            const ghost = `<div class="drop-zone dz-h" onclick="commitMove('any')">+</div>`;
-            div.innerHTML = ghost;
+            const ghost = document.createElement('div');
+            ghost.className = "drop-zone dz-h";
+            ghost.innerHTML = "+";
+            ghost.onclick = () => commitMove('any');
+            // Center ghost
+            ghost.style.left = "0px"; ghost.style.top = "0px";
+            container.appendChild(ghost);
             return;
         }
 
         const l = board[0].a;
         const r = board[board.length-1].b;
-        
-        // Check moves
         const canLeft = (tile.a === l || tile.b === l);
         const canRight = (tile.a === r || tile.b === r);
 
-        // Prepend Left Ghost
+        // Get coordinates from the render logic helpers
+        const leftCoords = getSnakeCoords(-1); 
+        const rightCoords = getSnakeCoords(board.length);
+
         if(canLeft) {
-            const isDouble = (tile.a === tile.b); // Approximate shape
-            const cls = isDouble ? 'dz-v' : 'dz-h';
-            const ghost = `<div class="drop-zone ${cls}" onclick="commitMove('left')">+</div>`;
-            div.insertAdjacentHTML('afterbegin', ghost);
+            const isDouble = (tile.a === tile.b);
+            const ghost = document.createElement('div');
+            ghost.className = `drop-zone ${isDouble?'dz-v':'dz-h'}`;
+            ghost.innerHTML = "+";
+            ghost.style.left = leftCoords.x + "px";
+            ghost.style.top = leftCoords.y + (isDouble?-16:0) + "px"; // Adjust for double height
+            ghost.onclick = () => commitMove('left');
+            container.appendChild(ghost);
         }
 
-        // Append Right Ghost
         if(canRight) {
-             const isDouble = (tile.a === tile.b);
-             const cls = isDouble ? 'dz-v' : 'dz-h';
-             const ghost = `<div class="drop-zone ${cls}" onclick="commitMove('right')">+</div>`;
-             div.insertAdjacentHTML('beforeend', ghost);
+            const isDouble = (tile.a === tile.b);
+            const ghost = document.createElement('div');
+            ghost.className = `drop-zone ${isDouble?'dz-v':'dz-h'}`;
+            ghost.innerHTML = "+";
+            ghost.style.left = rightCoords.x + "px";
+            ghost.style.top = rightCoords.y + (isDouble?-16:0) + "px";
+            ghost.onclick = () => commitMove('right');
+            container.appendChild(ghost);
         }
+    }
+
+    // --- Snake Logic Coordinates Helper ---
+    function getSnakeCoords(index) {
+        // Adjust index to start from 0 for the first tile placed
+        // But logic is relative. Let's assume index 0 is at (0,0)
+        // This function returns visual X,Y for any logical index in the snake
+        // Index can be negative (prepending) or large (appending)
+        
+        // Normalize: We map the board array to 0..length-1. 
+        // Index -1 means "Before 0", Index Length means "After last".
+        
+        // Simplified approach: Treat the board as a sequence starting from 0 visual index.
+        // We need to shift everything visually based on where the "Start" of the array is relative to the visual grid.
+        // Actually, easiest is: Board[0] is always Visual Index 0? No, that shifts the whole snake.
+        // Let's stick to: The board is linear. We just map i => (x,y).
+        
+        // Logic:
+        // Row = floor(i / 6)
+        // If Row is Even: x = (i % 6) * W
+        // If Row is Odd:  x = (5 - (i % 6)) * W (Reverse direction)
+        // y = Row * H * 1.5
+        
+        // Wait, for negative index (Left side ghost)?
+        // We can't handle negative index easily in this modulo logic.
+        // Hack: We render Board[0] at a calculated offset so that negative indices don't happen, OR
+        // simpler: The "Left" ghost is simply the visual coordinate of "Index -1" if we supported it.
+        // But "Index -1" in snake logic is complex (it might be up, or left, or right depending on row).
+        
+        // Since we re-render fully on every move, let's treat the Current Board as indices 0 to N.
+        // Left Ghost = Visual position of a theoretical tile inserted at start -> effectively shifts everyone?
+        // No, in "renderBoardWithGhosts", we just want to know where to put the clicker.
+        // If we insert Left, the whole snake shifts. That's fine for the game logic.
+        // VISUALLY: The Left Ghost should appear at the logical position of index "-1".
+        // But since we can't do index -1, let's say:
+        // Left Ghost is at (Relative to Tile 0). 
+        // Tile 0 is at Row 0, Col 0.
+        // Tile -1 would be at Row 0, Col -1? -> Invalid.
+        
+        // Better Solution for UI:
+        // Always render board starting from index X.
+        // Actually, since the user wants "Snake", and the array grows at both ends, 
+        // it's best to assume the board starts at visual index 0 for Board[0].
+        // The Left Ghost is handled by shifting the whole container or just placing it "Before" 0.
+        // "Before 0" is ( -TILE_W, 0 ).
+        
+        const row = Math.floor(index / ROW_LIMIT);
+        const col = index % ROW_LIMIT;
+        
+        let x = 0;
+        let y = row * 50; // Vertical spacing
+
+        if (row % 2 === 0) { // Even row: Left to Right
+            x = col * TILE_W;
+            // Transition to next row check
+            if (col < 0) { // Handle the "Left Ghost" case for row 0
+                 x = col * TILE_W; 
+            }
+        } else { // Odd row: Right to Left
+            x = (ROW_LIMIT - 1 - col) * TILE_W;
+        }
+
+        // Adjust for index being negative (Left Ghost specific case simplified)
+        if (index === -1) return { x: -TILE_W, y: 0 }; 
+
+        return { x, y };
+    }
+
+    function renderBoard(board) {
+        const container = document.getElementById('game-board-container');
+        container.innerHTML = "";
+        
+        // Calculate center to pan the view
+        let maxX = 0, maxY = 0;
+        
+        board.forEach((t, i) => {
+            const coords = getSnakeCoords(i);
+            const isDouble = (t.a === t.b);
+            
+            // Adjust double position to center it in the slot
+            let finalX = coords.x + (isDouble ? 16 : 0);
+            let finalY = coords.y - (isDouble ? 16 : 0);
+            
+            // Generate HTML
+            const el = document.createElement('div');
+            el.className = `domino board-tile ${isDouble ? 'double' : ''}`;
+            el.style.left = `${finalX}px`;
+            el.style.top = `${finalY}px`;
+            
+            // Rotation based on connection? 
+            // For snake view, we just lay them out flat in slots usually.
+            // But to look good, we can rotate doubles. CSS .double handles the vertical look.
+            // Horizontal tiles are default.
+            
+            el.innerHTML = `<div class="pip-container">${getPips(t.a)}</div><div class="line"></div><div class="pip-container">${getPips(t.b)}</div>`;
+            container.appendChild(el);
+            
+            if(coords.x > maxX) maxX = coords.x;
+            if(coords.y > maxY) maxY = coords.y;
+        });
+        
+        // Auto-center logic?
+        // Since absolute positions start at 0,0 and go positive X/Y.
+        // We can just rely on the container centering.
+        // But if we have negative ghost (Left), it might clip.
+        // We will just let the user scroll #table-surface which has overflow:auto.
+        // To ensure scrollability, set container width/height
+        container.style.width = (Math.min(board.length, ROW_LIMIT) * TILE_W) + "px";
+        container.style.height = (maxY + 60) + "px";
     }
 
     function commitMove(side) {
@@ -472,14 +623,11 @@
         else nextTurn(board, hand);
     }
 
-    // --- Auto Pass & Instant Bot ---
+    // --- Helpers & Logic ---
     function checkAutoPass(data) {
         const hand = data.players[myId].hand || [];
         const board = data.board || [];
         const stock = data.stock || [];
-        
-        // لو مفيش حركة، ومفيش سحب (أو السحب ممنوع زي في الثلاثي/الرباعي)
-        // ملاحظة: في الثنائي السحب مسموح لو الستوك فيه ورق
         const canDraw = (Object.keys(data.players).length === 2 && stock.length > 0);
         
         if(!hasMove(hand, board) && !canDraw) {
@@ -493,20 +641,16 @@
             }, 1500);
         }
     }
-
+    
     function checkTimer(data) {
         if(timerInt) clearInterval(timerInt);
         const startTime = data.turnStartTime || Date.now();
         const turnId = data.playerOrder[data.turnIndex];
         const playerObj = data.players[turnId];
 
-        // **Instant Bot Logic**
         if(playerObj.isBot) {
-            // لو أنا الهوست، ألعب مكانه فوراً
-            if(isHost) {
-                setTimeout(() => autoBot(turnId), 1000); // 1 sec delay for realism
-            }
-            return; // No timer needed for bot
+            if(isHost) setTimeout(() => autoBot(turnId), 1000);
+            return; 
         }
         
         timerInt = setInterval(() => {
@@ -523,7 +667,6 @@
         }, 1000);
     }
 
-    // --- Helpers ---
     function nextTurn(board, hand) {
         const pIds = gameData.playerOrder;
         const next = (gameData.turnIndex + 1) % pIds.length;
@@ -551,7 +694,6 @@
         const t = stock.pop();
         const hand = gameData.players[myId].hand; hand.push(t);
         db.ref('games/'+currentgame).update({ stock: stock, [`players/${myId}/hand`]: hand, [`players/${myId}/count`]: hand.length });
-        // Hand re-rendered automatically via listener
     }
     function hasMove(hand, board) {
         if(!board || board.length===0) return true;
@@ -559,18 +701,15 @@
         return hand.some(t => t.a===l || t.b===l || t.a===r || t.b===r);
     }
 
-    // --- Rendering ---
     function renderHand(hand) {
         const d = document.getElementById('my-hand'); d.innerHTML = "";
         hand.forEach((t, i) => {
             const isSel = (i === selectedIdx) ? 'selected' : '';
+            // add onclick attribute back
             d.innerHTML += createDomino(t, `hand-tile ${isSel}`, `onclick="selectTile(${i})"`);
         });
     }
-    function renderBoard(board) {
-        const d = document.getElementById('game-board'); d.innerHTML = "";
-        board.forEach(t => d.innerHTML += createDomino(t, (t.a===t.b ? 'board-tile double' : 'board-tile'), ''));
-    }
+    
     function createDomino(t, cls, attr) {
         return `<div class="domino ${cls}" ${attr}><div class="pip-container">${getPips(t.a)}</div><div class="line"></div><div class="pip-container">${getPips(t.b)}</div></div>`;
     }
@@ -579,11 +718,8 @@
         return (m[n]||[]).map(c=>`<div class="pip ${c}"></div>`).join('');
     }
 
-    // --- Bot Logic (Same as before, simplified calls) ---
+    // --- Bot ---
     function autoBot(pId) {
-        // ... (نفس منطق البوت السابق لكن بدون تغييرات جذرية، يتم تنفيذه فوراً)
-        // لتوفير المساحة، سنفترض وجود دالة autoBot بنفس المنطق السابق
-        // ولكن للتأكيد سأكتب الجزء المهم للتنفيذ الفوري
         const p = gameData.players[pId];
         const hand = p.hand || [];
         const board = gameData.board || [];
@@ -599,7 +735,6 @@
         }
 
         if(playIdx !== -1) {
-            // Bot plays
             const tile = hand[playIdx]; let newTile = {...tile}; let newBoard = [...board];
             if(side === 'left') { if(newTile.a===board[0].a) newTile={a:tile.b,b:tile.a}; newBoard.unshift(newTile); }
             else { const end=board.length?board[board.length-1].b:-1; if(board.length && newTile.b===end) newTile={a:tile.b,b:tile.a}; newBoard.push(newTile); }
@@ -614,7 +749,6 @@
             }
             db.ref('games/'+currentgame).update(up);
         } else {
-            // Bot Pass or Draw
             if(Object.keys(gameData.players).length===2 && (gameData.stock||[]).length>0) {
                 const stock = gameData.stock; const t = stock.pop(); hand.push(t);
                 db.ref('games/'+currentgame).update({ stock:stock, [`players/${pId}/hand`]:hand, [`players/${pId}/count`]:hand.length });

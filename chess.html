@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HEKA CHESS PRO</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
-    
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Cinzel:wght@700&display=swap"
+        rel="stylesheet">
+
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
     <style>
@@ -29,9 +31,11 @@
             background-color: var(--bg-color);
             color: white;
             font-family: 'Cairo', sans-serif;
-            margin: 0; padding: 0;
+            margin: 0;
+            padding: 0;
             height: 100vh;
-            display: flex; flex-direction: column;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
             background-image: radial-gradient(#1e293b 15%, transparent 16%);
             background-size: 40px 40px;
@@ -47,116 +51,255 @@
         }
 
         .screen {
-            position: absolute; top:0; left:0; width:100%; height:100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: var(--bg-color);
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding-top: 5vh;
+            /* إضافة مسافة علوية لرفع المحتوى */
             z-index: 10;
         }
-        
+
         .box {
             background: var(--glass-bg);
-            padding: 25px; border-radius: 15px;
-            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-            width: 90%; max-width: 400px;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 90%;
+            max-width: 400px;
         }
 
-        input, select {
-            background: rgba(255,255,255,0.1); border: 1px solid #555;
-            color: white; padding: 12px; width: 85%;
-            margin: 10px 0; border-radius: 8px; font-family: 'Cairo'; outline: none;
+        input,
+        select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            color: white;
+            padding: 12px;
+            width: 85%;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-family: 'Cairo';
+            outline: none;
             text-align: center;
         }
 
         button {
-            background: var(--accent); color: white;
-            border: none; padding: 12px 30px;
-            border-radius: 8px; cursor: pointer;
-            font-weight: bold; font-family: 'Cairo';
-            margin: 5px; transition: 0.2s;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Cairo';
+            margin: 5px;
+            transition: 0.2s;
         }
-        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); }
-        .hidden { display: none !important; }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .hidden {
+            display: none !important;
+        }
 
         /* رقعة الشطرنج */
         #game-area {
-            flex: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
         }
 
         #chessboard {
-            width: 340px; height: 340px;
+            width: 340px;
+            height: 340px;
             display: grid;
             grid-template-columns: repeat(8, 1fr);
             grid-template-rows: repeat(8, 1fr);
             border: 8px solid #334155;
             border-radius: 4px;
             user-select: none;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             background: #333;
         }
 
         .square {
-            width: 100%; height: 100%;
-            display: flex; justify-content: center; align-items: center;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             position: relative;
         }
-        .white-sq { background-color: var(--board-white); color: black; }
-        .black-sq { background-color: var(--board-black); color: white; }
-        
-        .highlight { background-color: var(--highlight) !important; }
-        .selected { background-color: rgba(59, 130, 246, 0.7) !important; }
+
+        .white-sq {
+            background-color: var(--board-white);
+            color: black;
+        }
+
+        .black-sq {
+            background-color: var(--board-black);
+            color: white;
+        }
+
+        .highlight {
+            background-color: var(--highlight) !important;
+        }
+
+        .selected {
+            background-color: rgba(59, 130, 246, 0.7) !important;
+        }
 
         /* قطع الشطرنج */
         .piece {
-            width: 100%; height: 100%;
+            width: 100%;
+            height: 100%;
             background-repeat: no-repeat;
             background-position: center;
-            background-size: 90%; /* حجم الصورة */
+            background-size: 90%;
+            /* حجم الصورة */
             cursor: pointer;
             z-index: 2;
             transition: transform 0.15s;
         }
-        .piece:active { transform: scale(1.1); }
+
+        .piece:active {
+            transform: scale(1.1);
+        }
 
         /* تلميحات */
         .hint-dot {
-            position: absolute; width: 25%; height: 25%;
+            position: absolute;
+            width: 25%;
+            height: 25%;
             background: rgba(0, 0, 0, 0.2);
-            border-radius: 50%; z-index: 1;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+            border-radius: 50%;
+            z-index: 1;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
         }
+
         .capture-hint {
-            position: absolute; width: 100%; height: 100%;
+            position: absolute;
+            width: 100%;
+            height: 100%;
             border: 4px solid var(--danger);
             border-radius: 50%;
-            box-sizing: border-box; z-index: 1;
+            box-sizing: border-box;
+            z-index: 1;
             opacity: 0.5;
         }
 
         /* معلومات اللاعبين */
         .player-info {
-            width: 340px; display: flex; justify-content: space-between;
-            padding: 8px 15px; background: rgba(0,0,0,0.4);
-            border-radius: 8px; margin: 8px 0;
-            font-size: 14px; align-items: center;
+            width: 340px;
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 14px;
+            align-items: center;
             border: 1px solid transparent;
         }
-        .turn-active { border-color: var(--gold); background: rgba(251, 191, 36, 0.15); box-shadow: 0 0 10px rgba(251, 191, 36, 0.2); }
-        .avatar { font-size: 1.2rem; margin-left: 5px; }
+
+        .turn-active {
+            border-color: var(--gold);
+            background: rgba(251, 191, 36, 0.15);
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
+        }
+
+        .avatar {
+            font-size: 1.2rem;
+            margin-left: 5px;
+        }
 
         /* الشات */
-        #chat-btn { position: fixed; bottom: 20px; right: 20px; background: var(--accent); width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 100; font-size: 24px; }
-        #chat-box { position: fixed; bottom: 90px; right: 20px; width: 300px; height: 350px; background: var(--glass-bg); border-radius: 12px; display: flex; flex-direction: column; z-index: 100; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        .msg { background: rgba(255,255,255,0.08); padding: 8px; margin: 4px; border-radius: 6px; font-size: 13px; text-align: right; color: #ddd; }
-        .msg b { color: var(--gold); }
+        #chat-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--accent);
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            font-size: 24px;
+        }
+
+        #chat-box {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 300px;
+            height: 350px;
+            background: var(--glass-bg);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .msg {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 8px;
+            margin: 4px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: right;
+            color: #ddd;
+        }
+
+        .msg b {
+            color: var(--gold);
+        }
+
+        /* احداثيات الرقعة */
+        .coord-rank {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            font-size: 10px;
+            font-weight: bold;
+            color: inherit;
+            opacity: 0.8;
+        }
+
+        .coord-file {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            font-size: 10px;
+            font-weight: bold;
+            color: inherit;
+            opacity: 0.8;
+        }
     </style>
 </head>
+
 <body>
 
     <div id="screen-login" class="screen">
-        <h1 class="title">HEKA CHESS</h1>
         <div class="box">
             <h3>تسجيل الدخول</h3>
             <input type="text" id="username" placeholder="اسمك يا بطل" maxlength="15">
@@ -165,11 +308,10 @@
     </div>
 
     <div id="screen-menu" class="screen hidden">
-        <h1 class="title">HEKA CHESS</h1>
         <div class="box">
             <h3 id="welcome-msg" style="color:var(--gold)"></h3>
             <hr style="border-color:rgba(255,255,255,0.1); margin: 15px 0;">
-            
+
             <div style="margin-bottom: 20px;">
                 <h4 style="margin:5px">إنشاء غرفة جديدة</h4>
                 <select id="level-select">
@@ -178,7 +320,7 @@
                 </select>
                 <button onclick="createRoom()" style="background:#10b981; width:90%">إنشاء</button>
             </div>
-            
+
             <div>
                 <h4 style="margin:5px">دخول غرفة</h4>
                 <div style="display:flex; justify-content:center; gap:5px">
@@ -191,7 +333,8 @@
 
     <div id="screen-lobby" class="screen hidden">
         <div class="box">
-            <h2>كود الغرفة: <span id="lobby-code" style="color:var(--gold); font-size:2rem; letter-spacing:2px"></span></h2>
+            <h2>كود الغرفة: <span id="lobby-code" style="color:var(--gold); font-size:2rem; letter-spacing:2px"></span>
+            </h2>
             <p style="color:#ccc">أرسل الكود لصديقك ليدخل...</p>
             <div id="lobby-loader" style="margin:20px; font-size:20px">⏳ في الانتظار...</div>
             <button onclick="leaveRoom()" style="background:var(--danger)">إلغاء</button>
@@ -210,14 +353,16 @@
             <div><span class="avatar">👤</span> <span id="my-name">أنا</span></div>
             <div id="my-color-indicator" style="font-size:12px; color:#aaa"></div>
         </div>
-        
+
         <div id="game-status" style="margin-top:15px; color:var(--gold); font-weight:bold; height:20px;"></div>
-        <button onclick="leaveRoom()" style="margin-top:10px; font-size:13px; background:var(--danger); padding:8px 20px">انسحاب</button>
+        <button onclick="leaveRoom()"
+            style="margin-top:10px; font-size:13px; background:var(--danger); padding:8px 20px">انسحاب</button>
     </div>
 
     <div id="chat-btn" class="hidden" onclick="toggleChat()">💬</div>
     <div id="chat-box" class="hidden">
-        <div style="padding:12px; background:rgba(0,0,0,0.3); display:flex; justify-content:space-between; border-radius:12px 12px 0 0;">
+        <div
+            style="padding:12px; background:rgba(0,0,0,0.3); display:flex; justify-content:space-between; border-radius:12px 12px 0 0;">
             <span style="font-weight:bold">الدردشة</span> <span onclick="toggleChat()" style="cursor:pointer">✖</span>
         </div>
         <div id="chat-msgs" style="flex:1; overflow-y:auto; padding:10px;"></div>
@@ -227,267 +372,345 @@
         </div>
     </div>
 
-<script>
-    // --- إعدادات Firebase ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
-        authDomain: "heka-codenames.firebaseapp.com",
-        projectId: "heka-codenames",
-        storageBucket: "heka-codenames.firebasestorage.app",
-        messagingSenderId: "901713932504",
-        appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
-    };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    <script>
+        // --- إعدادات Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
+            authDomain: "heka-codenames.firebaseapp.com",
+            projectId: "heka-codenames",
+            storageBucket: "heka-codenames.firebasestorage.app",
+            messagingSenderId: "901713932504",
+            appId: "1:901713932504:web:b6710ddf537cd3c7c4e7ad"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-    // --- متغيرات ---
-    let game = new Chess();
-    let myName="", myId="", currentRoom="", myColor='w', gameMode='beginner', boardOrientation='white';
-    let selectedSquare = null;
-    let chatOpen = false;
+        // --- متغيرات ---
+        let game = new Chess();
+        let myName = "", myId = "", currentRoom = "", myColor = 'w', gameMode = 'beginner', boardOrientation = 'white';
+        let selectedSquare = null;
+        let chatOpen = false;
 
-    window.onload = () => {
-        if(localStorage.getItem('heka_chess_name')) {
-            document.getElementById('username').value = localStorage.getItem('heka_chess_name');
-            saveName();
-        }
-    }
-
-    function showScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-    }
-
-    function saveName() {
-        const v = document.getElementById('username').value.trim();
-        if(!v) return;
-        myName = v;
-        localStorage.setItem('heka_chess_name', myName);
-        document.getElementById('welcome-msg').innerText = "أهلاً بك يا " + myName;
-        showScreen('screen-menu');
-    }
-
-    // --- الغرف ---
-    function createRoom() {
-        const code = Math.floor(1000 + Math.random() * 9000).toString();
-        myId = Date.now().toString();
-        const mode = document.getElementById('level-select').value;
-        db.ref('chess_rooms/'+code).set({
-            white: { id: myId, name: myName },
-            black: null,
-            fen: 'start',
-            mode: mode,
-            turn: 'w',
-            status: 'waiting',
-            lastMove: null
-        }).then(() => enterRoom(code, 'w'));
-    }
-
-    function joinRoom() {
-        const code = document.getElementById('room-code-in').value.trim();
-        if(!code) return alert("الكود؟");
-        myId = Date.now().toString();
-        db.ref('chess_rooms/'+code).once('value', s => {
-            if(!s.exists()) return alert("غير موجودة");
-            const d = s.val();
-            if(d.black) return alert("ممتلئة");
-            db.ref('chess_rooms/'+code).update({
-                black: { id: myId, name: myName },
-                status: 'playing'
-            }).then(() => enterRoom(code, 'b'));
-        });
-    }
-
-    function enterRoom(code, color) {
-        currentRoom = code; myColor = color;
-        boardOrientation = (color==='w') ? 'white' : 'black';
-        document.getElementById('lobby-code').innerText = code;
-        document.getElementById('chat-btn').classList.remove('hidden');
-        
-        if(color === 'w') showScreen('screen-lobby');
-        else showScreen('screen-game');
-        
-        listen();
-    }
-
-    function leaveRoom() {
-        if(currentRoom) db.ref('chess_rooms/'+currentRoom).remove();
-        location.reload();
-    }
-
-    function listen() {
-        db.ref('chess_rooms/'+currentRoom).on('value', s => {
-            const d = s.val();
-            if(!d) return location.reload();
-
-            gameMode = d.mode;
-            
-            // تحديث اللوبي
-            if(d.status === 'playing') {
-                if(!document.getElementById('screen-game').classList.contains('hidden') === false) {
-                    showScreen('screen-game');
-                }
-                updateGameUI(d);
-            }
-
-            // الشات
-            updateChat(d.chat);
-        });
-    }
-
-    // --- المنطق والرسم ---
-    // المصدر الجديد الموثوق للصور (GitHub Raw)
-    function getPieceImg(piece) {
-        // piece.color: 'w', piece.type: 'p' -> wP.svg
-        const c = piece.color; 
-        const t = piece.type.toUpperCase();
-        // نستخدم رابط GitHub Raw مباشر من مستودع Lichess (موثوق وسريع)
-        return `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett/${c}${t}.svg`;
-    }
-
-    function updateGameUI(data) {
-        // الأسماء
-        const oppColor = (myColor==='w')?'black':'white';
-        const myColorFull = (myColor==='w')?'white':'black';
-        if(data[myColorFull]) {
-            document.getElementById('my-name').innerText = data[myColorFull].name;
-            document.getElementById('my-color-indicator').innerText = (myColor==='w'?"(أبيض)":"(أسود)");
-        }
-        if(data[oppColor]) document.getElementById('opp-name').innerText = data[oppColor].name;
-        else document.getElementById('opp-name').innerText = "جاري الاتصال...";
-
-        // اللعبة
-        if(data.fen === 'start') game.reset();
-        else game.load(data.fen);
-
-        renderBoard(data.lastMove);
-        updateStatus();
-    }
-
-    function renderBoard(lastMove) {
-        const boardEl = document.getElementById('chessboard');
-        boardEl.innerHTML = "";
-        const board = game.board();
-
-        for(let r=0; r<8; r++) {
-            for(let c=0; c<8; c++) {
-                // عكس الصفوف لو أنا أسود
-                let row = (boardOrientation==='white') ? r : (7-r);
-                let col = (boardOrientation==='white') ? c : (7-c);
-                
-                const square = String.fromCharCode(97+col) + (8-row);
-                const piece = board[row][col];
-                
-                const isLight = (row+col)%2===0;
-                const div = document.createElement('div');
-                div.className = `square ${isLight?'white-sq':'black-sq'}`;
-                
-                // الهايلايت
-                if(lastMove && (lastMove.from===square || lastMove.to===square)) div.classList.add('highlight');
-                if(selectedSquare === square) div.classList.add('selected');
-
-                // القطعة
-                if(piece) {
-                    const img = document.createElement('div');
-                    img.className = 'piece';
-                    img.style.backgroundImage = `url(${getPieceImg(piece)})`;
-                    div.appendChild(img);
-                }
-
-                // المساعدات (للمبتدئ)
-                if(gameMode === 'beginner' && selectedSquare) {
-                    const moves = game.moves({ square: selectedSquare, verbose: true });
-                    const move = moves.find(m => m.to === square);
-                    if(move) {
-                        const hint = document.createElement('div');
-                        // هل هي أكلة؟
-                        if(move.flags.includes('c') || move.flags.includes('e')) hint.className = 'capture-hint';
-                        else hint.className = 'hint-dot';
-                        div.appendChild(hint);
-                    }
-                }
-
-                div.onclick = () => handleSquareClick(square);
-                boardEl.appendChild(div);
+        window.onload = () => {
+            if (localStorage.getItem('heka_chess_name')) {
+                document.getElementById('username').value = localStorage.getItem('heka_chess_name');
+                saveName();
             }
         }
-    }
 
-    function handleSquareClick(sq) {
-        if(game.turn() !== myColor) return; // ليس دوري
-        
-        // 1. تحديد قطعة
-        const p = game.get(sq);
-        if(p && p.color === myColor) {
-            selectedSquare = sq;
-            // إعادة رسم محلي فقط للتحديد
-            renderBoard(null); 
-            return;
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
         }
 
-        // 2. التحرك
-        if(selectedSquare) {
-            const move = game.move({
-                from: selectedSquare,
-                to: sq,
-                promotion: 'q' // دائماً وزير للتبسيط
+        function saveName() {
+            const v = document.getElementById('username').value.trim();
+            if (!v) return;
+            myName = v;
+            localStorage.setItem('heka_chess_name', myName);
+            document.getElementById('welcome-msg').innerText = "أهلاً بك يا " + myName;
+            showScreen('screen-menu');
+        }
+
+        // --- الغرف ---
+        function createRoom() {
+            const code = Math.floor(1000 + Math.random() * 9000).toString();
+            myId = Date.now().toString();
+            const mode = document.getElementById('level-select').value;
+            db.ref('chess_rooms/' + code).set({
+                white: { id: myId, name: myName },
+                black: null,
+                fen: 'start',
+                mode: mode,
+                turn: 'w',
+                status: 'waiting',
+                lastMove: null
+            }).then(() => enterRoom(code, 'w'));
+        }
+
+        function joinRoom() {
+            const code = document.getElementById('room-code-in').value.trim();
+            if (!code) return alert("الكود؟");
+            myId = Date.now().toString();
+            db.ref('chess_rooms/' + code).once('value', s => {
+                if (!s.exists()) return alert("غير موجودة");
+                const d = s.val();
+                if (d.black) return alert("ممتلئة");
+                db.ref('chess_rooms/' + code).update({
+                    black: { id: myId, name: myName },
+                    status: 'playing'
+                }).then(() => enterRoom(code, 'b'));
             });
+        }
 
-            if(move) {
-                selectedSquare = null;
-                // تحديث السيرفر
-                db.ref('chess_rooms/'+currentRoom).update({
-                    fen: game.fen(),
-                    turn: game.turn(),
-                    lastMove: { from: move.from, to: move.to }
-                });
-            } else {
-                selectedSquare = null;
+        function enterRoom(code, color) {
+            currentRoom = code; myColor = color;
+            boardOrientation = (color === 'w') ? 'white' : 'black';
+            document.getElementById('lobby-code').innerText = code;
+            document.getElementById('chat-btn').classList.remove('hidden');
+
+            if (color === 'w') showScreen('screen-lobby');
+            else showScreen('screen-game');
+
+            listen();
+        }
+
+        function leaveRoom() {
+            if (currentRoom) db.ref('chess_rooms/' + currentRoom).remove();
+            location.reload();
+        }
+
+        function listen() {
+            db.ref('chess_rooms/' + currentRoom).on('value', s => {
+                const d = s.val();
+                if (!d) return location.reload();
+
+                gameMode = d.mode;
+
+                // تحديث اللوبي
+                if (d.status === 'playing') {
+                    if (!document.getElementById('screen-game').classList.contains('hidden') === false) {
+                        showScreen('screen-game');
+                    }
+                    updateGameUI(d);
+                }
+
+                // الشات
+                updateChat(d.chat);
+            });
+        }
+
+        // --- المنطق والرسم ---
+        // المصدر الجديد الموثوق للصور (GitHub Raw)
+        function getPieceImg(piece) {
+            // piece.color: 'w', piece.type: 'p' -> wP.svg
+            const c = piece.color;
+            const t = piece.type.toUpperCase();
+            // نستخدم رابط GitHub Raw مباشر من مستودع Lichess (موثوق وسريع)
+            return `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett/${c}${t}.svg`;
+        }
+
+        function updateGameUI(data) {
+            // الأسماء
+            const oppColor = (myColor === 'w') ? 'black' : 'white';
+            const myColorFull = (myColor === 'w') ? 'white' : 'black';
+            if (data[myColorFull]) {
+                document.getElementById('my-name').innerText = data[myColorFull].name;
+                document.getElementById('my-color-indicator').innerText = (myColor === 'w' ? "(أبيض)" : "(أسود)");
+            }
+            if (data[oppColor]) document.getElementById('opp-name').innerText = data[oppColor].name;
+            else document.getElementById('opp-name').innerText = "جاري الاتصال...";
+
+            // اللعبة
+            if (data.fen === 'start') game.reset();
+            else game.load(data.fen);
+
+            renderBoard(data.lastMove);
+            updateStatus();
+        }
+
+        function renderBoard(lastMove) {
+            const boardEl = document.getElementById('chessboard');
+            boardEl.innerHTML = "";
+            const board = game.board();
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    // عكس الصفوف لو أنا أسود
+                    let row = (boardOrientation === 'white') ? r : (7 - r);
+                    let col = (boardOrientation === 'white') ? c : (7 - c);
+
+                    const square = String.fromCharCode(97 + col) + (8 - row);
+                    const piece = board[row][col];
+
+                    const isLight = (row + col) % 2 === 0;
+                    const div = document.createElement('div');
+                    div.className = `square ${isLight ? 'white-sq' : 'black-sq'}`;
+
+                    // الهايلايت
+                    if (lastMove && (lastMove.from === square || lastMove.to === square)) div.classList.add('highlight');
+                    if (selectedSquare === square) div.classList.add('selected');
+
+                    // القطعة
+                    if (piece) {
+                        const img = document.createElement('div');
+                        img.className = 'piece';
+                        img.style.backgroundImage = `url(${getPieceImg(piece)})`;
+                        div.appendChild(img);
+                    }
+
+                    // المساعدات (للمبتدئ)
+                    if (gameMode === 'beginner' && selectedSquare) {
+                        const moves = game.moves({ square: selectedSquare, verbose: true });
+                        const move = moves.find(m => m.to === square);
+                        if (move) {
+                            const hint = document.createElement('div');
+                            // هل هي أكلة؟
+                            if (move.flags.includes('c') || move.flags.includes('e')) hint.className = 'capture-hint';
+                            else hint.className = 'hint-dot';
+                            div.appendChild(hint);
+                        }
+                    }
+
+                    if (c === 0) {
+                        const rankLabel = document.createElement('span');
+                        rankLabel.className = 'coord-rank';
+                        rankLabel.innerText = (8 - row);
+                        div.appendChild(rankLabel);
+                    }
+                    if (r === 7) {
+                        const fileLabel = document.createElement('span');
+                        fileLabel.className = 'coord-file';
+                        fileLabel.innerText = String.fromCharCode(97 + col);
+                        div.appendChild(fileLabel);
+                    }
+
+                    div.onclick = () => handleSquareClick(square);
+                    boardEl.appendChild(div);
+                }
+            }
+        }
+
+        function handleSquareClick(sq) {
+            if (game.turn() !== myColor) return; // ليس دوري
+
+            // 1. تحديد قطعة
+            const p = game.get(sq);
+            if (p && p.color === myColor) {
+                selectedSquare = sq;
+                // إعادة رسم محلي فقط للتحديد
                 renderBoard(null);
+                return;
+            }
+
+            // 2. التحرك
+            if (selectedSquare) {
+                let move = game.move({
+                    from: selectedSquare,
+                    to: sq,
+                    promotion: 'q' // دائماً وزير للتبسيط
+                });
+
+                if (!move && gameMode === 'pro') move = tryForceMove(selectedSquare, sq);
+
+                if (move) {
+                    selectedSquare = null;
+                    // تحديث السيرفر
+                    db.ref('chess_rooms/' + currentRoom).update({
+                        fen: game.fen(),
+                        turn: game.turn(),
+                        lastMove: { from: move.from, to: move.to }
+                    });
+                } else {
+                    selectedSquare = null;
+                    renderBoard(null);
+                }
             }
         }
-    }
 
-    function updateStatus() {
-        const s = document.getElementById('game-status');
-        const myInfo = document.getElementById('bottom-player');
-        const oppInfo = document.getElementById('top-player');
-        
-        myInfo.classList.remove('turn-active');
-        oppInfo.classList.remove('turn-active');
+        function tryForceMove(from, to) {
+            const piece = game.get(from);
+            if (!piece) return null;
+            if (!isGeometricValid(piece, from, to)) return null;
 
-        if(game.game_over()) {
-            if(game.in_checkmate()) s.innerText = "كش مات! 🏁";
-            else if(game.in_draw()) s.innerText = "تعادل 🤝";
-            else s.innerText = "انتهت اللعبة";
-        } else {
-            if(game.turn() === myColor) {
-                s.innerText = "دورك للعب";
-                myInfo.classList.add('turn-active');
+            game.remove(from);
+            game.put(piece, to);
+
+            let fen = game.fen();
+            let tokens = fen.split(' ');
+            tokens[1] = (tokens[1] === 'w' ? 'b' : 'w');
+            tokens[3] = '-';
+            game.load(tokens.join(' '));
+
+            return { from: from, to: to };
+        }
+
+        function isGeometricValid(piece, from, to) {
+            const fx = from.charCodeAt(0) - 97;
+            const fy = parseInt(from[1]) - 1;
+            const tx = to.charCodeAt(0) - 97;
+            const ty = parseInt(to[1]) - 1;
+            const dx = tx - fx;
+            const dy = ty - fy;
+            const adx = Math.abs(dx);
+            const ady = Math.abs(dy);
+
+            if (dx === 0 && dy === 0) return false;
+
+            if (piece.type !== 'n') {
+                const stepX = Math.sign(dx);
+                const stepY = Math.sign(dy);
+                let curX = fx + stepX;
+                let curY = fy + stepY;
+                while (curX !== tx || curY !== ty) {
+                    const sq = String.fromCharCode(97 + curX) + (curY + 1);
+                    if (game.get(sq)) return false;
+                    curX += stepX;
+                    curY += stepY;
+                }
+            }
+
+            const target = game.get(to);
+            if (target && target.color === piece.color) return false;
+
+            const dir = (piece.color === 'w') ? 1 : -1;
+
+            switch (piece.type) {
+                case 'p':
+                    if (dx === 0 && dy === dir && !target) return true;
+                    if (dx === 0 && dy === dir * 2 && !target && ((piece.color === 'w' && fy === 1) || (piece.color === 'b' && fy === 6))) return true;
+                    if (adx === 1 && dy === dir && target) return true;
+                    return false;
+                case 'n': return (adx * ady === 2);
+                case 'b': return adx === ady;
+                case 'r': return dx === 0 || dy === 0;
+                case 'q': return (adx === ady) || (dx === 0 || dy === 0);
+                case 'k': return adx <= 1 && ady <= 1;
+                default: return false;
+            }
+        }
+
+        function updateStatus() {
+            const s = document.getElementById('game-status');
+            const myInfo = document.getElementById('bottom-player');
+            const oppInfo = document.getElementById('top-player');
+
+            myInfo.classList.remove('turn-active');
+            oppInfo.classList.remove('turn-active');
+
+            if (game.game_over()) {
+                if (game.in_checkmate()) s.innerText = "كش مات! 🏁";
+                else if (game.in_draw()) s.innerText = "تعادل 🤝";
+                else s.innerText = "انتهت اللعبة";
             } else {
-                s.innerText = "دور الخصم";
-                oppInfo.classList.add('turn-active');
+                if (game.turn() === myColor) {
+                    s.innerText = "دورك للعب";
+                    myInfo.classList.add('turn-active');
+                } else {
+                    s.innerText = "دور الخصم";
+                    oppInfo.classList.add('turn-active');
+                }
+                if (game.in_check() && gameMode !== 'pro') s.innerText += " (كش!)";
             }
-            if(game.in_check()) s.innerText += " (كش!)";
         }
-    }
 
-    // --- الشات ---
-    function toggleChat() { chatOpen=!chatOpen; document.getElementById('chat-box').classList.toggle('hidden'); }
-    function sendMsg() {
-        const i = document.getElementById('chat-in');
-        if(i.value.trim()) db.ref('chess_rooms/'+currentRoom+'/chat').push({n:myName, t:i.value});
-        i.value="";
-    }
-    function updateChat(c) {
-        const d = document.getElementById('chat-msgs');
-        d.innerHTML = "";
-        if(!c) return;
-        Object.values(c).forEach(m => {
-            d.innerHTML += `<div class="msg"><b>${m.n}:</b> ${m.t}</div>`;
-        });
-        d.scrollTop = d.scrollHeight;
-    }
-</script>
+        // --- الشات ---
+        function toggleChat() { chatOpen = !chatOpen; document.getElementById('chat-box').classList.toggle('hidden'); }
+        function sendMsg() {
+            const i = document.getElementById('chat-in');
+            if (i.value.trim()) db.ref('chess_rooms/' + currentRoom + '/chat').push({ n: myName, t: i.value });
+            i.value = "";
+        }
+        function updateChat(c) {
+            const d = document.getElementById('chat-msgs');
+            d.innerHTML = "";
+            if (!c) return;
+            Object.values(c).forEach(m => {
+                d.innerHTML += `<div class="msg"><b>${m.n}:</b> ${m.t}</div>`;
+            });
+            d.scrollTop = d.scrollHeight;
+        }
+    </script>
 </body>
+
 </html>

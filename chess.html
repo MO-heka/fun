@@ -278,21 +278,29 @@
         .coord-rank {
             position: absolute;
             top: 2px;
-            left: 2px;
-            font-size: 10px;
+            left: 4px;
+            font-size: 11px;
             font-weight: bold;
-            color: inherit;
-            opacity: 0.8;
+            pointer-events: none;
         }
 
         .coord-file {
             position: absolute;
-            bottom: 2px;
-            right: 2px;
-            font-size: 10px;
+            bottom: 1px;
+            right: 4px;
+            font-size: 11px;
             font-weight: bold;
-            color: inherit;
-            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .white-sq .coord-rank,
+        .white-sq .coord-file {
+            color: var(--board-black);
+        }
+
+        .black-sq .coord-rank,
+        .black-sq .coord-file {
+            color: var(--board-white);
         }
     </style>
 </head>
@@ -468,10 +476,11 @@
                 gameMode = d.mode;
 
                 // تحديث اللوبي
-                if (d.status === 'playing') {
+                if (d.status === 'playing' || d.status === 'finished') {
                     if (!document.getElementById('screen-game').classList.contains('hidden') === false) {
                         showScreen('screen-game');
                     }
+                    window.roomData = d; // حفظ البيانات
                     updateGameUI(d);
                 }
 
@@ -595,12 +604,25 @@
 
                 if (move) {
                     selectedSquare = null;
-                    // تحديث السيرفر
-                    db.ref('chess_rooms/' + currentRoom).update({
+                    const updateData = {
                         fen: game.fen(),
                         turn: game.turn(),
                         lastMove: { from: move.from, to: move.to }
-                    });
+                    };
+
+                    if (move.capturedKing) {
+                        updateData.status = 'finished';
+                        updateData.winner = (game.turn() === 'w' ? 'black' : 'white'); // Turn switched *after* move in regular chess, but here we forced it? 
+                        // wait, tryForceMove did force load which might have switched turn.
+                        // In tryForceMove: tokens[1] = ... (swapped).
+                        // So if White moved and killed Black King, fen turn is B.
+                        // Winner is White.
+                        // So winner is opposite of current turn?
+                        // Let's rely on who made the move. `myColor`.
+                        updateData.winner = myColor;
+                    }
+
+                    db.ref('chess_rooms/' + currentRoom).update(updateData);
                 } else {
                     selectedSquare = null;
                     renderBoard(null);
@@ -611,6 +633,15 @@
         function tryForceMove(from, to) {
             const piece = game.get(from);
             if (!piece) return null;
+
+            const target = game.get(to);
+            let capturedKing = false;
+
+            // هل القطعة الهدف هي ملك؟
+            if (target && target.type === 'k') {
+                capturedKing = true;
+            }
+
             if (!isGeometricValid(piece, from, to)) return null;
 
             game.remove(from);
@@ -618,11 +649,14 @@
 
             let fen = game.fen();
             let tokens = fen.split(' ');
+
+            // إذا لم نأكل الملك، نبدل الدور. إذا أكلناه، لا يهم المهم اللعبة تنتهي
             tokens[1] = (tokens[1] === 'w' ? 'b' : 'w');
             tokens[3] = '-';
+
             game.load(tokens.join(' '));
 
-            return { from: from, to: to };
+            return { from: from, to: to, capturedKing: capturedKing };
         }
 
         function isGeometricValid(piece, from, to) {
@@ -678,10 +712,29 @@
             myInfo.classList.remove('turn-active');
             oppInfo.classList.remove('turn-active');
 
+            // فحص حالة الفوز من السيرفر (بيانات الغرفة قد تحتوي على winner)
+            // سنحتاج لقراءة الحالة من data الممررة لـ updateGameUI في الـ Listen
+            // لكن هنا نعتمد على game object محلياً... المشكلة game object لا يعرف winner if forced.
+            // الحل: الاعتماد على roomData Global أو تمريرها.
+            // سنفترض أننا سنقوم بتعديل بسيط لجلب حالة الفوز.
+
+            // بما أننا لا نمرر roomData هنا، سنحفظها عالمياً في listen
+            if (window.roomData && window.roomData.status === 'finished') {
+                let msg = "انتهت اللعبة!";
+                if (window.roomData.winner) {
+                    if (window.roomData.winner === myColor) msg = "🎉 مبروك! لقد قتلت الملك!";
+                    else msg = "💀 لقد تم اغتيال ملكك!";
+                }
+                s.innerHTML = `${msg} <button onclick="resetGame()" style="padding:2px 8px; font-size:12px; background:var(--gold); color:black; border:none; border-radius:4px; cursor:pointer;">لعب مرة أخرى ↺</button>`;
+                return;
+            }
+
             if (game.game_over()) {
                 if (game.in_checkmate()) s.innerText = "كش مات! 🏁";
                 else if (game.in_draw()) s.innerText = "تعادل 🤝";
                 else s.innerText = "انتهت اللعبة";
+                // زر إعادة اللعب أيضاً هنا
+                s.innerHTML += ` <button onclick="resetGame()" style="padding:2px 8px; font-size:12px; background:var(--gold); color:black; border:none; border-radius:4px; cursor:pointer;">إعادة ↺</button>`;
             } else {
                 if (game.turn() === myColor) {
                     s.innerText = "دورك للعب";
@@ -692,6 +745,17 @@
                 }
                 if (game.in_check() && gameMode !== 'pro') s.innerText += " (كش!)";
             }
+        }
+
+        function resetGame() {
+            if (!currentRoom) return;
+            db.ref('chess_rooms/' + currentRoom).update({
+                fen: 'start',
+                turn: 'w',
+                status: 'playing',
+                winner: null,
+                lastMove: null
+            });
         }
 
         // --- الشات ---

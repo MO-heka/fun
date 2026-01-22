@@ -180,19 +180,23 @@
         /* --- Game Layout --- */
         #game-layout {
             display: grid;
-            grid-template-rows: auto 1fr auto;
+            grid-template-rows: auto auto 1fr auto !important;
+            /* Fix: 4 Rows for 4 Sections */
             height: 100%;
             width: 100%;
+            overflow: hidden;
         }
 
         /* Player Info Header */
         #top-bar {
-            padding: 15px;
-            background: rgba(15, 23, 42, 0.9);
+            padding: 8px 15px;
+            /* Compact padding */
+            background: rgba(15, 23, 42, 0.95);
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #334155;
+            z-index: 20;
         }
 
         .room-info {
@@ -205,19 +209,22 @@
         #opponents-area {
             display: flex;
             justify-content: center;
-            gap: 20px;
-            padding: 10px;
-            background: rgba(30, 41, 59, 0.5);
+            gap: 10px;
+            padding: 8px 5px;
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            min-height: 40px;
         }
 
         .opponent {
             display: flex;
             flex-direction: column;
             align-items: center;
-            background: var(--card-color);
-            padding: 5px 15px;
-            border-radius: 12px;
+            background: rgba(30, 41, 59, 0.9);
+            padding: 4px 10px;
+            border-radius: 8px;
             border: 1px solid #334155;
+            min-width: 60px;
         }
 
         .opponent.active {
@@ -504,6 +511,7 @@
             .card {
                 padding: 15px;
                 width: 95%;
+                max-width: 100%;
             }
 
             h1 {
@@ -511,8 +519,9 @@
             }
 
             .btn {
-                padding: 14px;
+                padding: 12px;
                 font-size: 16px;
+                margin: 8px 0;
             }
 
             input[type="text"] {
@@ -525,85 +534,95 @@
             }
 
             #btn-start {
-                padding: 8px 16px;
-                font-size: 14px;
+                padding: 6px 12px;
+                font-size: 13px;
             }
 
+            /* Opponent Compact View */
             #opponents-area {
-                gap: 8px;
-                padding: 5px;
-                flex-wrap: wrap;
+                gap: 5px;
+                padding: 4px;
             }
 
             .opponent {
-                padding: 2px 8px;
-                border-radius: 8px;
+                padding: 2px 6px;
+                border-radius: 6px;
             }
 
             .opponent div {
-                font-size: 0.8rem;
+                font-size: 0.75rem;
             }
 
             .mini-tile {
-                width: 8px;
-                height: 16px;
-                margin: 0;
+                width: 6px;
+                height: 12px;
+                margin: 0 1px;
+                border-radius: 1px;
             }
 
             #board-content {
-                padding: 50px;
+                padding: 60px;
             }
 
-            /* Smaller tiles for mobile */
+            /* Smaller tiles for mobile hand */
             .tile {
-                width: 34px;
-                height: 68px;
+                width: 36px;
+                height: 72px;
             }
 
             .tile.horizontal {
-                width: 68px;
-                height: 34px;
+                width: 72px;
+                height: 36px;
             }
 
             .dot {
-                width: 5px;
-                height: 5px;
+                width: 6px;
+                height: 6px;
             }
 
             .tile::after {
                 height: 1px;
             }
 
+            /* Board Tiles Scale */
+            #board-content .tile {
+                transform: scale(0.9);
+            }
+
             #bottom-area {
-                padding: 10px;
+                padding: 8px;
+                padding-bottom: 20px;
             }
 
             #my-hand {
                 min-height: 80px;
                 justify-content: flex-start;
+                gap: 6px;
             }
 
             #controls {
                 max-width: 100%;
+                margin-top: 5px;
             }
 
             #btn-draw,
             #btn-pass {
-                padding: 12px;
+                padding: 10px;
                 font-size: 14px;
-                border-radius: 12px;
+                border-radius: 10px;
             }
 
-            /* Responsive Chat */
+            /* Responsive Chat - Less Intrusive */
             #chat-container {
-                width: 85%;
-                right: 7.5%;
-                bottom: 140px;
+                width: 50%;
+                right: 10px;
+                bottom: 150px;
+                height: 40px;
             }
 
-            #chat-container.minimized {
-                width: 50%;
-                right: 20px;
+            #chat-container:not(.minimized) {
+                height: 200px;
+                width: 70%;
             }
         }
     </style>

@@ -13,6 +13,7 @@
         rel="stylesheet">
     <style>
         :root {
+            color-scheme: dark;
             --bg-color: #0f172a;
             --card-default: #ffffff;
             --team1-color: #2563eb;
@@ -544,6 +545,15 @@
         let currentMode = "local", myRole = "explorer", roomId = "", timerInt, timeLeft = 60;
         let myName = "مجهول";
         let isChatOpen = false;
+
+        // Auto-fill name from centralized storage
+        window.onload = () => {
+            const savedName = localStorage.getItem('heka_global_player_name') || localStorage.getItem('heka_player_name');
+            if (savedName) {
+                document.getElementById('playerName').value = savedName;
+                myName = savedName;
+            }
+        };
 
         // قائمة الكلمات الكاملة (يرجى ملؤها بكلماتك الـ 300)
         const words = [

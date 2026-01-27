@@ -283,7 +283,7 @@
                     <span class="game-icon">🧠</span>
                     <div class="game-text">
                         <span class="game-title">ورقة شفرة</span>
-                        <span class="game-desc">لعبة الذكاء والتخمين</span>
+                        <span class="game-desc">لعبة والتخمين</span>
                     </div>
                 </div>
                 <span class="arrow">⬅</span>
@@ -294,78 +294,68 @@
                     <span class="game-icon">♟️</span>
                     <div class="game-text">
                         <span class="game-title">شطرنج</span>
-                        <span class="game-desc">تحدي الملوك والاستراتيجية</span>
+                        <span class="game-desc">لعبه الذكاء و الاستراتيجية</span>
                     </div>
                 </div>
                 <span class="arrow">⬅</span>
             </a>
 
-            <a href="DOMINO.html" class="game-card">
-                <div class="game-info">
-                    <span class="game-icon">🀄</span>
-                    <div class="game-text">
-                        <span class="game-title">دومينو</span>
-                        <span class="game-desc">اللعبة الكلاسيكية</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
+
+
+            <footer>
+                Developed by Heka 👨🏻‍💻 <br>
+
+            </footer>
         </div>
 
-        <footer>
-            Developed by Heka 👨🏻‍💻 <br>
-            v2.0 Premium Edition
-        </footer>
-    </div>
+        <script>
+            // Centralized logic for Player Name
+            const STORAGE_KEY = 'heka_global_player_name';
 
-    <script>
-        // Centralized logic for Player Name
-        const STORAGE_KEY = 'heka_global_player_name';
+            function init() {
+                const savedName = localStorage.getItem(STORAGE_KEY);
+                if (savedName) {
+                    showGames(savedName);
+                } else {
+                    showNameEntry();
+                }
+            }
 
-        function init() {
-            const savedName = localStorage.getItem(STORAGE_KEY);
-            if (savedName) {
-                showGames(savedName);
-            } else {
+            function saveName() {
+                const nameInput = document.getElementById('usernameInput');
+                const name = nameInput.value.trim();
+                if (!name) return alert("الرجاء كتابة اسم!");
+
+                localStorage.setItem(STORAGE_KEY, name);
+                // Also sync with legacy keys if needed by individual games before their update
+                localStorage.setItem('heka_player_name', name); // Standard key I'll use in games
+                localStorage.setItem('heka_chess_name', name); // Legacy chess key
+
+                showGames(name);
+            }
+
+            function showGames(name) {
+                document.getElementById('name-section').style.display = 'none';
+                document.getElementById('user-display').style.display = 'flex';
+                document.getElementById('games-area').style.display = 'flex';
+                document.getElementById('displayName').innerText = name;
+            }
+
+            function showNameEntry() {
+                document.getElementById('name-section').style.display = 'flex';
+                document.getElementById('user-display').style.display = 'none';
+                document.getElementById('games-area').style.display = 'none';
+                // Pre-fill if exists but editing
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) document.getElementById('usernameInput').value = saved;
+            }
+
+            function editName() {
                 showNameEntry();
             }
-        }
 
-        function saveName() {
-            const nameInput = document.getElementById('usernameInput');
-            const name = nameInput.value.trim();
-            if (!name) return alert("الرجاء كتابة اسم!");
-
-            localStorage.setItem(STORAGE_KEY, name);
-            // Also sync with legacy keys if needed by individual games before their update
-            localStorage.setItem('heka_player_name', name); // Standard key I'll use in games
-            localStorage.setItem('heka_chess_name', name); // Legacy chess key
-
-            showGames(name);
-        }
-
-        function showGames(name) {
-            document.getElementById('name-section').style.display = 'none';
-            document.getElementById('user-display').style.display = 'flex';
-            document.getElementById('games-area').style.display = 'flex';
-            document.getElementById('displayName').innerText = name;
-        }
-
-        function showNameEntry() {
-            document.getElementById('name-section').style.display = 'flex';
-            document.getElementById('user-display').style.display = 'none';
-            document.getElementById('games-area').style.display = 'none';
-            // Pre-fill if exists but editing
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) document.getElementById('usernameInput').value = saved;
-        }
-
-        function editName() {
-            showNameEntry();
-        }
-
-        window.onload = init;
-    </script>
+            window.onload = init;
+        </script>
 
 </body>
 

@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     <title>ألعاب 4fun 🎮</title>
 
     <link rel="apple-touch-icon" href="icon.png">
@@ -12,189 +13,258 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
 
-    <style>
-        /* --- تنسيقات CSS --- */
-        
-        /* إعادة ضبط الهوامش والخطوط */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Tajawal', sans-serif;
-        }
+    :root {
+    color-scheme: dark;
+    --primary: #3b82f6;
+    --accent: #8b5cf6;
+    --glass: rgba(30, 41, 59, 0.7);
+    --text-main: #f8fafc;
+    }
 
-        /* تنسيق خلفية الصفحة والجسم */
-        body {
-            background: #0f172a; /* خلفية متدرجة جذابة */
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-align: center;
-        }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
 
-        /* تنسيق الحاوية الرئيسية */
-        .container {
-            width: 90%;
-            max-width: 600px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.1); /* خلفية شفافة */
-            backdrop-filter: blur(10px); /* تأثير الزجاج */
-            border-radius: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
+    body {
+    background: #0f172a;
+    background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main);
+    text-align: center;
+    padding: 20px;
+    }
 
-        /* تنسيق العنوان الرئيسي */
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
+    .container {
+    width: 100%;
+    max-width: 500px;
+    padding: 30px;
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
+    transition: 0.3s;
+    }
 
-        p.description {
-            margin-bottom: 30px;
-            font-size: 1.1rem;
-            color: #eee;
-        }
+    h1 {
+    font-size: 2.2rem;
+    margin-bottom: 5px;
+    background: linear-gradient(to right, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    }
 
-        /* تنسيق شبكة الألعاب (الأزرار) */
-        .games-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+    .welcome-text { color: #94a3b8; font-size: 1rem; margin-bottom: 25px; }
 
-        /* تنسيق بطاقة اللعبة (الرابط) */
-        .game-card {
-            background: white;
-            color: #333;
-            text-decoration: none; /* إزالة الخط أسفل الرابط */
-            padding: 20px;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between; /* توزيع المسافات */
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
+    /* Name Input Section */
+    #name-section {
+    display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px;
+    animation: fadeIn 0.5s ease;
+    }
 
-        /* تأثير عند مرور الماوس */
-        .game-card:hover {
-            transform: translateY(-5px); /* رفع البطاقة قليلاً */
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            background: #f8f9fa;
-        }
+    .input-group { position: relative; width: 100%; }
 
-        /* تنسيق أيقونة وعنوان اللعبة */
-        .game-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+    input {
+    width: 100%;
+    padding: 15px 20px;
+    border-radius: 12px;
+    border: 2px solid #334155;
+    background: #1e293b;
+    color: white;
+    font-size: 1.1rem;
+    text-align: center;
+    transition: 0.3s;
+    outline: none;
+    }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
 
-        .game-icon {
-            font-size: 2.5rem;
-            background: #eee;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
+    .save-btn {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    }
+    .save-btn:active { transform: scale(0.97); }
 
-        .game-title {
-            font-weight: bold;
-            font-size: 1.2rem;
-            text-align: right;
-        }
+    /* User Profile Display */
+    #user-display {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+    background: rgba(255,255,255,0.05);
+    padding: 10px;
+    border-radius: 15px;
+    animation: fadeIn 0.5s ease;
+    }
+    .user-name { font-weight: bold; font-size: 1.2rem; color: #e2e8f0; }
+    .edit-icon {
+    cursor: pointer; opacity: 0.6; padding: 5px; border-radius: 5px; transition: 0.2s;
+    }
+    .edit-icon:hover { opacity: 1; background: rgba(255,255,255,0.1); }
 
-        .play-btn {
-            background: #2c3e50;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
+    /* Games Grid */
+    #games-area { margin-top: 20px; display: none; flex-direction: column; gap: 15px; animation: slideUp 0.5s ease; }
 
-        /* تحسين التذييل */
-        footer {
-            margin-top: 30px;
-            font-size: 0.8rem;
-            opacity: 0.8;
-        }
+    .game-card {
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    text-decoration: none;
+    color: white;
+    padding: 20px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #334155;
+    transition: transform 0.2s, border-color 0.2s;
+    }
+    .game-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
 
-        /* تعديلات للشاشات الكبيرة */
-        @media (min-width: 600px) {
-            .games-grid {
-                flex-direction: row; /* عرض الألعاب بجانب بعضها في الشاشات الكبيرة */
-            }
-            .game-card {
-                flex: 1;
-                flex-direction: column;
-                text-align: center;
-                gap: 15px;
-                padding: 30px 20px;
-            }
-            .game-info {
-                flex-direction: column;
-            }
-            .game-title {
-                text-align: center;
-            }
-        }
+    .game-info { display: flex; align-items: center; gap: 15px; }
+    .game-icon { font-size: 2rem; width: 50px; height: 50px; background: rgba(255,255,255,0.05); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; }
+    .game-text { text-align: right; }
+    .game-title { font-weight: bold; font-size: 1.1rem; display: block; }
+    .game-desc { font-size: 0.8rem; color: #94a3b8; }
+
+    .arrow { font-size: 1.2rem; opacity: 0.5; }
+
+    footer { margin-top: 40px; font-size: 0.8rem; color: #64748b; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); }
+    }
     </style>
 </head>
+
 <body>
 
     <div class="container">
-        <h1>ألعاب 4fun 🎮</h1>
-        <p class="description">اختر لعبتك المفضلة وابدأ التحدي الآن!</p>
+        <h1>4fun Games 🎮</h1>
+        <p class="welcome-text">منصة الألعاب الجماعية</p>
 
-        <div class="games-grid">
-            
+        <!-- Name Entry Section -->
+        <div id="name-section">
+            <h3 style="margin-bottom:10px;">👋 مرحباً بك!</h3>
+            <p style="font-size:0.9rem; color:#cbd5e1; margin-bottom:15px;">الرجاء كتابة اسمك لتبدأ اللعب مع أصدقائك</p>
+            <div class="input-group">
+                <input type="text" id="usernameInput" placeholder="اسمك (مثلاً: ميدو)" maxlength="15">
+            </div>
+            <button class="save-btn" onclick="saveName()">✨ حفظ ودخول</button>
+        </div>
+
+        <!-- User Profile Display (Hidden by default) -->
+        <div id="user-display">
+            <span class="edit-icon" onclick="editName()" title="تعديل الاسم">✏️</span>
+            <span class="user-name" id="displayName">---</span>
+            <span style="font-size:1.5rem;">👤</span>
+        </div>
+
+        <!-- Games List (Hidden by default) -->
+        <div id="games-area">
             <a href="gasos.html" class="game-card">
                 <div class="game-info">
                     <span class="game-icon">🕵️</span>
-                    <div class="game-title">من هو الجاسوس؟</div>
+                    <div class="game-text">
+                        <span class="game-title">من هو الجاسوس؟</span>
+                        <span class="game-desc">اكتشف المخادع بينكم</span>
+                    </div>
                 </div>
-                <span class="play-btn">ابدأ اللعب</span>
+                <span class="arrow">⬅</span>
             </a>
 
             <a href="shafra.html" class="game-card">
                 <div class="game-info">
                     <span class="game-icon">🧠</span>
-                    <div class="game-title">ورقة شفرة</div>
+                    <div class="game-text">
+                        <span class="game-title">ورقة شفرة</span>
+                        <span class="game-desc">لعبة الذكاء والتخمين</span>
+                    </div>
                 </div>
-                <span class="play-btn">ابدأ اللعب</span>
+                <span class="arrow">⬅</span>
             </a>
 
-
-          
-<a href="chess.html" class="game-card">
+            <a href="chess.html" class="game-card">
                 <div class="game-info">
                     <span class="game-icon">♟️</span>
-                    <div class="game-title">شطرنج</div>
+                    <div class="game-text">
+                        <span class="game-title">شطرنج</span>
+                        <span class="game-desc">تحدي الملوك والاستراتيجية</span>
+                    </div>
                 </div>
-                <span class="play-btn">ابدأ اللعب</span>
+                <span class="arrow">⬅</span>
             </a>
-
-
-
-            
         </div>
 
         <footer>
-            Heka 👨🏻‍💻 <br>
-        
+            Developed by Heka 👨🏻‍💻 <br>
+            v2.0 Premium Edition
         </footer>
     </div>
+
+    <script>
+        // Centralized logic for Player Name
+        const STORAGE_KEY = 'heka_global_player_name';
+
+        function init() {
+            const savedName = localStorage.getItem(STORAGE_KEY);
+            if (savedName) {
+                showGames(savedName);
+            } else {
+                showNameEntry();
+            }
+        }
+
+        function saveName() {
+            const nameInput = document.getElementById('usernameInput');
+            const name = nameInput.value.trim();
+            if (!name) return alert("الرجاء كتابة اسم!");
+
+            localStorage.setItem(STORAGE_KEY, name);
+            // Also sync with legacy keys if needed by individual games before their update
+            localStorage.setItem('heka_player_name', name); // Standard key I'll use in games
+            localStorage.setItem('heka_chess_name', name); // Legacy chess key
+
+            showGames(name);
+        }
+
+        function showGames(name) {
+            document.getElementById('name-section').style.display = 'none';
+            document.getElementById('user-display').style.display = 'flex';
+            document.getElementById('games-area').style.display = 'flex';
+            document.getElementById('displayName').innerText = name;
+        }
+
+        function showNameEntry() {
+            document.getElementById('name-section').style.display = 'flex';
+            document.getElementById('user-display').style.display = 'none';
+            document.getElementById('games-area').style.display = 'none';
+            // Pre-fill if exists but editing
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) document.getElementById('usernameInput').value = saved;
+        }
+
+        function editName() {
+            showNameEntry();
+        }
+
+        window.onload = init;
+    </script>
 
 </body>
 
 </html>
-
-

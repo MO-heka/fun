@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HEKA CHESS</title>
+    <title>HEKA CHESS PRO</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Cinzel:wght@700&display=swap"
         rel="stylesheet">
@@ -434,8 +434,9 @@
         const pieceValues = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
 
         window.onload = () => {
-            if (localStorage.getItem('heka_chess_name')) {
-                document.getElementById('username').value = localStorage.getItem('heka_chess_name');
+            const saved = localStorage.getItem('heka_global_player_name') || localStorage.getItem('heka_chess_name');
+            if (saved) {
+                document.getElementById('username').value = saved;
                 saveName();
             }
         }
@@ -450,6 +451,7 @@
             if (!v) return;
             myName = v;
             localStorage.setItem('heka_chess_name', myName);
+            localStorage.setItem('heka_global_player_name', myName); // Sync global
             document.getElementById('welcome-msg').innerText = "أهلاً بك يا " + myName;
             showScreen('screen-menu');
             // Reset Menu View

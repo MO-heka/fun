@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HEKA CHESS PRO</title>
+    <title>HEKA CHESS</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Cinzel:wght@700&display=swap"
         rel="stylesheet">
@@ -16,9 +16,10 @@
 
     <style>
         :root {
+            color-scheme: dark;
             --bg-color: #0f172a;
             --glass-bg: rgba(30, 41, 59, 0.95);
-            --board-white: #e2e8f0;
+            --board-white: #a3a3a4;
             --board-black: #475569;
             --accent: #3b82f6;
             --highlight: rgba(255, 255, 0, 0.5);
@@ -28,8 +29,8 @@
         }
 
         body {
-            background-color: var(--bg-color);
-            color: white;
+            background-color: var(--bg-color) !important;
+            color: white !important;
             font-family: 'Cairo', sans-serif;
             margin: 0;
             padding: 0;
@@ -316,10 +317,23 @@
     </div>
 
     <div id="screen-menu" class="screen hidden">
-        <div class="box">
+        <!-- القائمة الرئيسية -->
+        <div class="box" id="main-menu-box">
             <h3 id="welcome-msg" style="color:var(--gold)"></h3>
             <hr style="border-color:rgba(255,255,255,0.1); margin: 15px 0;">
 
+            <button onclick="showOnlineSection()" style="width:100%; padding:15px; margin:10px 0; font-size:16px;">
+                لعب مع صديق (أونلاين) 🌐
+            </button>
+            <button onclick="showOfflineSection()"
+                style="width:100%; padding:15px; margin:10px 0; font-size:16px; background:#8b5cf6;">
+                ضد الذكاء الاصطناعي (أوفلاين) 🤖
+            </button>
+        </div>
+
+        <!-- قسم الأونلاين -->
+        <div class="box hidden" id="online-section">
+            <h3 style="color:var(--accent)">لعب أونلاين 🌐</h3>
             <div style="margin-bottom: 20px;">
                 <h4 style="margin:5px">إنشاء غرفة جديدة</h4>
                 <select id="level-select">
@@ -336,6 +350,20 @@
                     <button onclick="joinRoom()" style="margin:0; padding:12px 20px">انضمام</button>
                 </div>
             </div>
+            <button onclick="backToMain()" style="background:transparent; color:#aaa; margin-top:10px;">رجوع</button>
+        </div>
+
+        <!-- قسم الأوفلاين -->
+        <div class="box hidden" id="offline-section">
+            <h3 style="color:#8b5cf6">ضد الذكاء الاصطناعي 🤖</h3>
+            <p>اختر مستوى الصعوبة:</p>
+            <button onclick="startOfflineGame('easy')" style="width:100%; background:#10b981; margin:8px 0;">سهل (Easy)
+                👶</button>
+            <button onclick="startOfflineGame('medium')" style="width:100%; background:#f59e0b; margin:8px 0;">متوسط
+                (Medium) 🤓</button>
+            <button onclick="startOfflineGame('hard')" style="width:100%; background:#ef4444; margin:8px 0;">صعب (Hard)
+                🔥</button>
+            <button onclick="backToMain()" style="background:transparent; color:#aaa; margin-top:10px;">رجوع</button>
         </div>
     </div>
 
@@ -374,7 +402,8 @@
             <span style="font-weight:bold">الدردشة</span> <span onclick="toggleChat()" style="cursor:pointer">✖</span>
         </div>
         <div id="chat-msgs" style="flex:1; overflow-y:auto; padding:10px;"></div>
-        <div style="padding:10px; display:flex; border-top:1px solid rgba(255,255,255,0.1)">
+        <div id="chat-msgs" style="flex:1; overflow-y:auto; padding:10px;"></div>
+        <div id="chat-input-area" style="padding:10px; display:flex; border-top:1px solid rgba(255,255,255,0.1)">
             <input id="chat-in" style="margin:0; flex:1; text-align:right" placeholder="اكتب هنا...">
             <button onclick="sendMsg()" style="margin:0 5px; padding:0 15px">➤</button>
         </div>
@@ -396,8 +425,13 @@
         // --- متغيرات ---
         let game = new Chess();
         let myName = "", myId = "", currentRoom = "", myColor = 'w', gameMode = 'beginner', boardOrientation = 'white';
+        let playMode = 'online'; // 'online' or 'offline'
+        let aiLevel = 'easy'; // 'easy', 'medium', 'hard'
         let selectedSquare = null;
         let chatOpen = false;
+
+        // قيم القطع للتقييم
+        const pieceValues = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
 
         window.onload = () => {
             if (localStorage.getItem('heka_chess_name')) {
@@ -418,10 +452,30 @@
             localStorage.setItem('heka_chess_name', myName);
             document.getElementById('welcome-msg').innerText = "أهلاً بك يا " + myName;
             showScreen('screen-menu');
+            // Reset Menu View
+            backToMain();
         }
 
-        // --- الغرف ---
+        // --- قوائم ---
+        function showOnlineSection() {
+            document.getElementById('main-menu-box').classList.add('hidden');
+            document.getElementById('online-section').classList.remove('hidden');
+        }
+
+        function showOfflineSection() {
+            document.getElementById('main-menu-box').classList.add('hidden');
+            document.getElementById('offline-section').classList.remove('hidden');
+        }
+
+        function backToMain() {
+            document.getElementById('online-section').classList.add('hidden');
+            document.getElementById('offline-section').classList.add('hidden');
+            document.getElementById('main-menu-box').classList.remove('hidden');
+        }
+
+        // --- الغرف (أونلاين) ---
         function createRoom() {
+            playMode = 'online';
             const code = Math.floor(1000 + Math.random() * 9000).toString();
             myId = Date.now().toString();
             const mode = document.getElementById('level-select').value;
@@ -437,6 +491,7 @@
         }
 
         function joinRoom() {
+            playMode = 'online';
             const code = document.getElementById('room-code-in').value.trim();
             if (!code) return alert("الكود؟");
             myId = Date.now().toString();
@@ -464,11 +519,12 @@
         }
 
         function leaveRoom() {
-            if (currentRoom) db.ref('chess_rooms/' + currentRoom).remove();
+            if (playMode === 'online' && currentRoom) db.ref('chess_rooms/' + currentRoom).remove();
             location.reload();
         }
 
         function listen() {
+            if (playMode === 'offline') return; // لا استماع في الأوفلاين
             db.ref('chess_rooms/' + currentRoom).on('value', s => {
                 const d = s.val();
                 if (!d) return location.reload();
@@ -499,6 +555,141 @@
             return `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett/${c}${t}.svg`;
         }
 
+        // --- الأوفلاين (AI) ---
+        function startOfflineGame(level) {
+            playMode = 'offline';
+            aiLevel = level;
+            myColor = 'w'; // اللاعب دائماً أبيض حالياً للتبسيط
+            gameMode = (level === 'easy') ? 'beginner' : 'pro'; // إظهار المساعدات في السهل فقط
+            boardOrientation = 'white';
+
+            game.reset();
+            showScreen('screen-game');
+            updateOfflineUI();
+        }
+
+        function updateOfflineUI() {
+            document.getElementById('my-name').innerText = myName;
+            document.getElementById('my-color-indicator').innerText = "(أبيض)";
+            document.getElementById('opp-name').innerText = "الذكاء الاصطناعي 🤖";
+            document.getElementById('opp-status').innerText = `المستوى: ${aiLevel}`;
+            document.getElementById('chat-btn').classList.add('hidden'); // لا شات مع البوت
+            document.getElementById('chat-box').classList.add('hidden');
+
+            renderBoard(null);
+            updateStatus();
+        }
+
+        function makeAIMove() {
+            if (game.game_over()) return;
+
+            const moves = game.moves();
+            if (moves.length === 0) return;
+
+            let move = null;
+
+            if (aiLevel === 'easy') {
+                // حركة عشوائية تماماً
+                move = moves[Math.floor(Math.random() * moves.length)];
+            } else if (aiLevel === 'medium') {
+                // التقاط قطع إن أمكن، وإلا عشوائي
+                // نحتاج game.moves({verbose: true}) لنعرف الـ capture
+                const vMoves = game.moves({ verbose: true });
+                const captures = vMoves.filter(m => m.flags.includes('c') || m.flags.includes('e')); // capture or en passant
+                if (captures.length > 0) {
+                    // خذ أفضل أكلة (تقييم بسيط)
+                    // بما أننا لا نعرف القطعة المأكولة بالتفصيل في chess.js 0.10.x بسهولة في الـ move object أحياناً
+                    // سنجرب حركة عشوائية من الأكلات
+                    move = captures[Math.floor(Math.random() * captures.length)];
+                } else {
+                    move = moves[Math.floor(Math.random() * moves.length)];
+                }
+            } else {
+                // Hard: Minimax Depth 2
+                // أفضل حركة باستخدام تقييم بسيط
+                move = getBestMove(game, 2);
+            }
+
+            // تنفيذ الحركة
+            // move قد تكون string (SAN) أو object. chess.js .move() يقبل كلاهما
+            game.move(move);
+            renderBoard(game.history({ verbose: true }).pop()); // آخر حركة
+            updateStatus();
+        }
+
+        // Minimax بسيط للصعب
+        function getBestMove(gameInst, depth) {
+            let possibleMoves = gameInst.moves();
+            let bestMove = -9999;
+            let bestMoveFound;
+
+            for (let i = 0; i < possibleMoves.length; i++) {
+                let move = possibleMoves[i];
+                gameInst.move(move);
+                let value = minimax(gameInst, depth - 1, -10000, 10000, false);
+                gameInst.undo();
+                if (value >= bestMove) {
+                    bestMove = value;
+                    bestMoveFound = move;
+                }
+            }
+            return bestMoveFound;
+        }
+
+        function minimax(gameInst, depth, alpha, beta, isMaximisingPlayer) {
+            if (depth === 0) return -evaluateBoard(gameInst.board()); // تقييم اللوح
+
+            let possibleMoves = gameInst.moves();
+            if (isMaximisingPlayer) {
+                let bestMove = -9999;
+                for (let i = 0; i < possibleMoves.length; i++) {
+                    gameInst.move(possibleMoves[i]);
+                    bestMove = Math.max(bestMove, minimax(gameInst, depth - 1, alpha, beta, !isMaximisingPlayer));
+                    gameInst.undo();
+                    alpha = Math.max(alpha, bestMove);
+                    if (beta <= alpha) return bestMove;
+                }
+                return bestMove;
+            } else {
+                let bestMove = 9999;
+                for (let i = 0; i < possibleMoves.length; i++) {
+                    gameInst.move(possibleMoves[i]);
+                    bestMove = Math.min(bestMove, minimax(gameInst, depth - 1, alpha, beta, !isMaximisingPlayer));
+                    gameInst.undo();
+                    beta = Math.min(beta, bestMove);
+                    if (beta <= alpha) return bestMove;
+                }
+                return bestMove;
+            }
+        }
+
+        function evaluateBoard(board) {
+            let totalEvaluation = 0;
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    totalEvaluation = totalEvaluation + getPieceValue(board[i][j], i, j);
+                }
+            }
+            return totalEvaluation;
+        }
+
+        function getPieceValue(piece, x, y) {
+            if (piece === null) return 0;
+            const getAbsoluteValue = (piece) => {
+                if (piece.type === 'p') return 10;
+                if (piece.type === 'r') return 50;
+                if (piece.type === 'n') return 30;
+                if (piece.type === 'b') return 30;
+                if (piece.type === 'q') return 90;
+                if (piece.type === 'k') return 900;
+                return 0;
+            };
+            const absoluteValue = getAbsoluteValue(piece);
+            return piece.color === 'w' ? absoluteValue : -absoluteValue;
+        }
+
+
+        // --- التحديث والرسم ---
         function updateGameUI(data) {
             // الأسماء
             const oppColor = (myColor === 'w') ? 'black' : 'white';
@@ -602,6 +793,21 @@
 
                 if (!move && gameMode === 'pro') move = tryForceMove(selectedSquare, sq);
 
+                // إذا كانت لعبة أوفلاين
+                if (playMode === 'offline') {
+                    if (move) {
+                        selectedSquare = null;
+                        renderBoard({ from: move.from, to: move.to });
+                        updateStatus();
+                        // دور الذكاء الاصطناعي
+                        setTimeout(makeAIMove, 500);
+                    } else {
+                        selectedSquare = null;
+                        renderBoard(null);
+                    }
+                    return;
+                }
+
                 if (move) {
                     selectedSquare = null;
                     const updateData = {
@@ -612,14 +818,7 @@
 
                     if (move.capturedKing) {
                         updateData.status = 'finished';
-                        updateData.winner = (game.turn() === 'w' ? 'black' : 'white'); // Turn switched *after* move in regular chess, but here we forced it? 
-                        // wait, tryForceMove did force load which might have switched turn.
-                        // In tryForceMove: tokens[1] = ... (swapped).
-                        // So if White moved and killed Black King, fen turn is B.
-                        // Winner is White.
-                        // So winner is opposite of current turn?
-                        // Let's rely on who made the move. `myColor`.
-                        updateData.winner = myColor;
+                        updateData.winner = myColor; // بما أنني قمت بالحركة
                     }
 
                     db.ref('chess_rooms/' + currentRoom).update(updateData);
@@ -650,7 +849,20 @@
             let fen = game.fen();
             let tokens = fen.split(' ');
 
-            // إذا لم نأكل الملك، نبدل الدور. إذا أكلناه، لا يهم المهم اللعبة تنتهي
+            // تحديث محلي للكائن game ليتم تعميم الفكرة على الـ offline أيضاً
+            // لكن لاحظ أن tryForceMove معدلة خصيصاً لـ offline قد لا نحتاجها لأن chess.js يمنع أكل الملك
+            // في نسختنا المعدلة (heka rules) نسمح بأكل الملك.
+            // لذا يجب تطبيق نفس المنطق على الـ game object المحلي في الأوفلاين
+
+            // تحديث: بما أننا نستخدم game.move() في الأوفلاين، chess.js لن يسمح بحركة غير قانونية أو أكل الملك عادة.
+            // ولكن المستخدم طلب "لعب ضد الذكاء الاصطناعي" - سنلتزم بقوانين الشطرنج العادية (كش مات) في الأوفلاين
+            // بدلاً من "أكل الملك" الذي كان في النسخة السابقة (لأن هذا وضع احترافي/pro كان فيه تعديل).
+            // إذا أردنا الحفاظ على "أكل الملك" في الأوفلاين نحتاج لتعديل makeAIMove ليقبله.
+            // للتبسيط: سنجعل الأوفلاين شطرنج عادي (Checkmate ends game).
+
+            // ومع ذلك كود Online كان يستخدم tryForceMove "للغصب".
+            // سنبقيه للأونلاين كما هو.
+
             tokens[1] = (tokens[1] === 'w' ? 'b' : 'w');
             tokens[3] = '-';
 
@@ -748,14 +960,18 @@
         }
 
         function resetGame() {
-            if (!currentRoom) return;
-            db.ref('chess_rooms/' + currentRoom).update({
-                fen: 'start',
-                turn: 'w',
-                status: 'playing',
-                winner: null,
-                lastMove: null
-            });
+            if (playMode === 'offline') {
+                startOfflineGame(aiLevel);
+            } else {
+                if (!currentRoom) return;
+                db.ref('chess_rooms/' + currentRoom).update({
+                    fen: 'start',
+                    turn: 'w',
+                    status: 'playing',
+                    winner: null,
+                    lastMove: null
+                });
+            }
         }
 
         // --- الشات ---

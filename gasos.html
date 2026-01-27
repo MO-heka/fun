@@ -1,27 +1,36 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🕵️ من هو الجاسوس</title>
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
-    
+
     <style>
         /* =========================================
            1. متغيرات الألوان (CSS Variables)
            لسهولة تعديل الألوان في مكان واحد
         ========================================= */
         :root {
-            --bg-color: #0f172a;       /* لون الخلفية الغامق */
-            --card-color: #1e293b;     /* لون الكروت */
-            --primary-color: #3b82f6;  /* الأزرق الأساسي */
-            --create-btn: #8b5cf6;     /* لون زر الإنشاء (بنفسجي) */
-            --accent-color: #f43f5e;   /* الأحمر (للخطر أو الجاسوس) */
-            --text-main: #f8fafc;      /* النص الأبيض */
-            --text-muted: #94a3b8;     /* النص الرمادي */
+            color-scheme: dark;
+            --bg-color: #0f172a;
+            /* لون الخلفية الغامق */
+            --card-color: #1e293b;
+            /* لون الكروت */
+            --primary-color: #3b82f6;
+            /* الأزرق الأساسي */
+            --create-btn: #8b5cf6;
+            /* لون زر الإنشاء (بنفسجي) */
+            --accent-color: #f43f5e;
+            /* الأحمر (للخطر أو الجاسوس) */
+            --text-main: #f8fafc;
+            /* النص الأبيض */
+            --text-muted: #94a3b8;
+            /* النص الرمادي */
         }
 
         /* تنسيقات الصفحة العامة */
@@ -38,7 +47,10 @@
             font-size: 18px;
         }
 
-        .container { width: 100%; max-width: 550px; }
+        .container {
+            width: 100%;
+            max-width: 550px;
+        }
 
         /* تنسيق الكارت (الصندوق الذي يحتوي العناصر) */
         .card {
@@ -48,13 +60,29 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
             border: 1px solid #334155;
             margin-bottom: 20px;
-            transition: transform 0.2s; /* حركة بسيطة */
+            transition: transform 0.2s;
+            /* حركة بسيطة */
         }
 
         /* العناوين */
-        h1 { color: #60a5fa; margin: 0 0 10px 0; font-size: 32px; font-weight: 900; }
-        h2 { margin: 0 0 15px 0; font-weight: 700; font-size: 24px; }
-        p { color: var(--text-muted); line-height: 1.6; margin-bottom: 15px; }
+        h1 {
+            color: #60a5fa;
+            margin: 0 0 10px 0;
+            font-size: 32px;
+            font-weight: 900;
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            font-weight: 700;
+            font-size: 24px;
+        }
+
+        p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
 
         /* =========================================
            2. تنسيق الأزرار (Buttons Styling)
@@ -67,21 +95,50 @@
             font-family: 'Tajawal', sans-serif;
             font-weight: 800;
             font-size: 20px;
-           color: rgb(241, 236, 236);
+            color: rgb(241, 236, 236);
             border: none;
             border-radius: 16px;
             cursor: pointer;
             transition: transform 0.1s, filter 0.2s;
         }
-        .btn:active { transform: scale(0.96); } /* تأثير عند الضغط */
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        /* تأثير عند الضغط */
 
         /* أنواع الأزرار بألوان مختلفة */
-        .btn-blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); } /* دخول */
-        .btn-create { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); } /* إنشاء (بنفسجي) */
-        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); } /* خروج */
-        .btn-reveal { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); } /* كشف النتائج */
-        .btn-restart { background: linear-gradient(135deg, #10b981 0%, #059669 100%); } /* إعادة */
-        .btn-secondary { background: transparent; border: 2px solid #334155; color: var(--text-muted); }
+        .btn-blue {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        /* دخول */
+        .btn-create {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        /* إنشاء (بنفسجي) */
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        /* خروج */
+        .btn-reveal {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        /* كشف النتائج */
+        .btn-restart {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        /* إعادة */
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #334155;
+            color: var(--text-muted);
+        }
 
         /* أزرار التحكم بالمؤقت (صغيرة وجانب بعض) */
         .timer-btn-group {
@@ -90,6 +147,7 @@
             gap: 10px;
             margin-top: 10px;
         }
+
         .btn-small {
             width: auto;
             padding: 10px 20px;
@@ -98,29 +156,42 @@
         }
 
         /* حقول الإدخال */
-        input, select {
+        input,
+        select {
             width: 100%;
             padding: 16px;
             margin: 10px 0;
             background-color: #0f172a;
             border: 2px solid #334155;
             border-radius: 14px;
-            color: rgb(241, 236, 236);
+            color: white;
             font-family: 'Tajawal', sans-serif;
             font-size: 18px;
             text-align: center;
             box-sizing: border-box;
         }
-        input:focus { outline: none; border-color: var(--primary-color); }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
 
         /* إخفاء وإظهار الشاشات */
-        .screen { display: none; opacity: 0; transition: opacity 0.3s; }
-        .active { display: block; opacity: 1; }
+        .screen {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .active {
+            display: block;
+            opacity: 1;
+        }
 
         /* =========================================
            3. تنسيق عناصر اللعبة الخاصة
         ========================================= */
-        
+
         /* شبكة التصويت */
         .voting-grid {
             display: grid;
@@ -128,6 +199,7 @@
             gap: 10px;
             margin-top: 20px;
         }
+
         .vote-card {
             background: #334155;
             padding: 15px;
@@ -137,12 +209,16 @@
             border: 2px solid transparent;
             position: relative;
         }
-        .vote-card.selected { border-color: var(--accent-color); background: #451a1a; }
-        
+
+        .vote-card.selected {
+            border-color: var(--accent-color);
+            background: #451a1a;
+        }
+
         /* دائرة عدد الأصوات */
         .vote-count {
             background: var(--primary-color);
-             color: rgb(241, 236, 236);
+            color: white;
             border-radius: 50%;
             width: 25px;
             height: 25px;
@@ -151,52 +227,87 @@
             justify-content: center;
             font-size: 14px;
             position: absolute;
-            top: -5px; right: -5px;
+            top: -5px;
+            right: -5px;
         }
 
         /* صندوق النتائج */
         #voting-results {
-            margin-top:20px; padding:20px; background: #0f172a; 
-            border: 2px solid #fbbf24; border-radius:15px; 
-            display:none; animation: popIn 0.5s ease;
+            margin-top: 20px;
+            padding: 20px;
+            background: #0f172a;
+            border: 2px solid #fbbf24;
+            border-radius: 15px;
+            display: none;
+            animation: popIn 0.5s ease;
         }
-        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
 
         /* المؤقت */
         .timer-container {
-            background: rgba(0,0,0,0.3);
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 15px;
             padding: 20px;
             margin: 15px 0;
             border: 1px solid #334155;
-            text-align: center; /* توسيط المحتوى */
+            text-align: center;
+            /* توسيط المحتوى */
         }
-        .timer-display { 
-            font-size: 45px; 
-            font-weight: 900; 
-            color: #f8fafc; 
-            letter-spacing: 3px; 
+
+        .timer-display {
+            font-size: 45px;
+            font-weight: 900;
+            color: #f8fafc;
+            letter-spacing: 3px;
             line-height: 1;
             margin: 10px 0;
             text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
         }
 
         /* حركة الإيموجي */
-        .big-emoji { font-size: 60px; display: block; margin: 10px 0; animation: float 3s infinite ease-in-out; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .big-emoji {
+            font-size: 60px;
+            display: block;
+            margin: 10px 0;
+            animation: float 3s infinite ease-in-out;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
     </style>
 </head>
+
 <body>
 
     <div class="container">
-        
+
         <div id="main-menu" class="screen active card" style="text-align: center;">
             <div style="font-size: 60px;">🕵️‍♂️</div>
             <h1>من هو الجاسوس؟</h1>
             <p>يلا بينا</p>
-            
+
             <button class="btn btn-blue" onclick="window.showScreen('local-setup')">👥 لعب محلي (جهاز واحد)</button>
-            <button class="btn btn-create" onclick="window.showScreen('name-entry')">🌐 لعب أون لاين (مع تصويت)</button>
+            <button class="btn btn-create" onclick="window.checkNameAndGo()">🌐 لعب أون لاين (مع تصويت)</button>
         </div>
 
         <div id="name-entry" class="screen card">
@@ -208,23 +319,24 @@
 
         <div id="online-menu" class="screen card">
             <h2>مرحباً <span id="display-player-name" style="color:var(--primary-color)"></span></h2>
-            
+
             <button class="btn btn-create" onclick="window.createRoom()">✨ إنشاء غرفة جديدة</button>
-            
+
             <div style="margin: 20px 0; border-top: 1px solid #334155;"></div>
-            
+
             <input type="text" id="room-code-input" placeholder="أدخل كود الغرفة (4 أرقام)">
             <button class="btn btn-blue" onclick="window.joinRoom()">دخول الغرفة</button>
-            
+
             <button class="btn btn-secondary" onclick="window.showScreen('name-entry')">رجوع</button>
         </div>
 
         <div id="online-lobby" class="screen card">
             <p>كود الغرفة</p>
             <h1 id="display-room-code" style="letter-spacing:5px; font-size:45px; color:#fbbf24;">----</h1>
-            
+
             <div style="background:#0f172a; padding:15px; border-radius:15px; margin-bottom:20px;">
-                <p style="margin:0;">🟢 المتواجدون الآن: <span id="connected-players-list" style="color:#fff; font-weight:bold;"></span></p>
+                <p style="margin:0;">🟢 المتواجدون الآن: <span id="connected-players-list"
+                        style="color:#fff; font-weight:bold;"></span></p>
             </div>
 
             <div id="host-controls" style="display:none;">
@@ -243,7 +355,7 @@
                 </select>
                 <button class="btn btn-create" onclick="window.startOnlineGame()">🚀 ابدأ الجولة</button>
             </div>
-            
+
             <p id="waiting-msg">المضيف يظبط الإعدادات...</p>
         </div>
 
@@ -252,10 +364,11 @@
                 <div class="timer-container">
                     <span class="timer-label" style="color:#fbbf24;">⏳ الوقت المتبقي للكشف</span>
                     <div id="timer-box" class="timer-display">00:00</div>
-                    
+
                     <div id="host-timer-controls" class="timer-btn-group" style="display:none;">
                         <button class="btn btn-blue btn-small" onclick="window.controlTimer('pause')">⏸ إيقاف</button>
-                        <button class="btn btn-create btn-small" onclick="window.controlTimer('resume')">▶ استئناف</button>
+                        <button class="btn btn-create btn-small" onclick="window.controlTimer('resume')">▶
+                            استئناف</button>
                     </div>
                 </div>
 
@@ -270,7 +383,7 @@
                 <h3>🗳️ من هو الجاسوس؟</h3>
                 <p style="font-size:14px;">اضغط على اسم اللاعب لاتهامه</p>
                 <div id="voting-area" class="voting-grid"></div>
-                
+
                 <div id="voting-results">
                     <h3 style="color:#fbbf24; margin-top:0;">🌟 نتائج التحقيق</h3>
                     <p id="spy-identity-reveal" style="font-size:18px; color:#f43f5e; font-weight:bold;"></p>
@@ -279,10 +392,11 @@
                 </div>
 
                 <div id="host-game-controls" style="display:none; margin-top:20px;">
-                    <button class="btn btn-reveal" onclick="window.revealResultsNow()">🛑 كشف النتائج وإنهاء اللعبة</button>
+                    <button class="btn btn-reveal" onclick="window.revealResultsNow()">🛑 كشف النتائج وإنهاء
+                        اللعبة</button>
                     <button class="btn btn-restart" onclick="window.startOnlineGame()">🔄 جولة جديدة</button>
                 </div>
-                
+
                 <button class="btn btn-danger" onclick="location.reload()" style="margin-top:20px;">خروج نهائي</button>
             </div>
         </div>
@@ -320,8 +434,8 @@
     <script type="module">
         // 1. استيراد دوال Firebase الضرورية
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, get, onDisconnect } 
-        from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, get, onDisconnect }
+            from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
         // 2. إعدادات المشروع (Firebase Config)
         const firebaseConfig = {
@@ -342,54 +456,54 @@
         // 4. قاعدة بيانات الكلمات (يمكنك الإضافة هنا)
         const wordsData = {
             animals: [
-        {t:"أسد",e:"🦁"},{t:"فيل",e:"🐘"},{t:"بطريق",e:"🐧"},{t:"قرش",e:"🦈"},
-        {t:"صقر",e:"🦅"},{t:"نملة",e:"🐜"},{t:"قطة",e:"🐈"}, {t:"كلب",e:"🐕"}, {t:"حصان",e:"🐎"},{t:"قرد",e:"🐒"},{t:"ذئب",e:"🐺"},{t:"ثعلب",e:"🦊"},
-        {t:"أرنب",e:"🐇"},{t:"دب",e:"🐻"},{t:"باندا",e:"🐼"},{t:"كانجرو",e:"🦘"},{t:"تمساح",e:"🐊"},{t:"حوت",e:"🐋"},{t:"دولفين",e:"🐬"},{t:"فراشة",e:"🦋"},{t:"نحلة",e:"🐝"},
-    ],
+                { t: "أسد", e: "🦁" }, { t: "فيل", e: "🐘" }, { t: "بطريق", e: "🐧" }, { t: "قرش", e: "🦈" },
+                { t: "صقر", e: "🦅" }, { t: "نملة", e: "🐜" }, { t: "قطة", e: "🐈" }, { t: "كلب", e: "🐕" }, { t: "حصان", e: "🐎" }, { t: "قرد", e: "🐒" }, { t: "ذئب", e: "🐺" }, { t: "ثعلب", e: "🦊" },
+                { t: "أرنب", e: "🐇" }, { t: "دب", e: "🐻" }, { t: "باندا", e: "🐼" }, { t: "كانجرو", e: "🦘" }, { t: "تمساح", e: "🐊" }, { t: "حوت", e: "🐋" }, { t: "دولفين", e: "🐬" }, { t: "فراشة", e: "🦋" }, { t: "نحلة", e: "🐝" },
+            ],
 
 
             places: [
-        {t:"مدرسة",e:"🏫"},{t:"سجن",e:"👮"},{t:"مستشفى",e:"🏥"},
-        {t:"مطار",e:"✈️"},{t:"فضاء",e:"🚀"},{t:"سينما",e:"🍿"},
-        {t:"مطعم",e:"🍔"},{t:"منزل",e:"🏠"},{t:"مسجد",e:"🕌"},{t:"كنيسة",e:"⛪"},{t:"بنك",e:"🏦"},{t:"مكتبة",e:"📚"},{t:"سوق",e:"🛒"},{t:"حديقة",e:"🌳"},{t:"شاطئ",e:"🏖️"},{t:"جبل",e:"⛰️"},{t:"صحراء",e:"🏜️"},{t:"غابة",e:"🌲"},{t:"فندق",e:"🏨"},{t:"متحف",e:"🖼️"},{t:"ملعب",e:"🏟️"},{t:"مصنع",e:"🏭"},{t:"ميناء",e:"⚓"},
+                { t: "مدرسة", e: "🏫" }, { t: "سجن", e: "👮" }, { t: "مستشفى", e: "🏥" },
+                { t: "مطار", e: "✈️" }, { t: "فضاء", e: "🚀" }, { t: "سينما", e: "🍿" },
+                { t: "مطعم", e: "🍔" }, { t: "منزل", e: "🏠" }, { t: "مسجد", e: "🕌" }, { t: "كنيسة", e: "⛪" }, { t: "بنك", e: "🏦" }, { t: "مكتبة", e: "📚" }, { t: "سوق", e: "🛒" }, { t: "حديقة", e: "🌳" }, { t: "شاطئ", e: "🏖️" }, { t: "جبل", e: "⛰️" }, { t: "صحراء", e: "🏜️" }, { t: "غابة", e: "🌲" }, { t: "فندق", e: "🏨" }, { t: "متحف", e: "🖼️" }, { t: "ملعب", e: "🏟️" }, { t: "مصنع", e: "🏭" }, { t: "ميناء", e: "⚓" },
 
-    ],
+            ],
 
             food: [
-                {t:"تفاح",e:"🍎"},{t:"موز",e:"🍌"},{t:"عنب",e:"🍇"},{t:"بطيخ",e:"🍉"},
-                {t:"برتقال",e:"🍊"},{t:"فراولة",e:"🍓"},{t:"مانجو",e:"🥭"},
-                {t:"أناناس",e:"🍍"},{t:"ليمون",e:"🍋"},{t:"كرز",e:"�"},
-                {t:"بيتزا",e:"🍕"},{t:"برجر",e:"�🍔"},{t:"بطاطس مقلية",e:"🍟"},
-                {t:"سوشي",e:"🍣"},{t:"تاكو",e:"🌮"},{t:"خبز",e:"🍞"},
-                {t:"جبنة",e:"🧀"},{t:"بيض",e:"🥚"},{t:"لحم",e:"🥩"},
-                {t:"دجاج",e:"🍗"},{t:"كيك",e:"🍰"},{t:"دونات",e:"🍩"},
-                {t:"شوكولاتة",e:"🍫"},{t:"آيس كريم",e:"🍦"},{t:"عسل",e:"🍯"}
+                { t: "تفاح", e: "🍎" }, { t: "موز", e: "🍌" }, { t: "عنب", e: "🍇" }, { t: "بطيخ", e: "🍉" },
+                { t: "برتقال", e: "🍊" }, { t: "فراولة", e: "🍓" }, { t: "مانجو", e: "🥭" },
+                { t: "أناناس", e: "🍍" }, { t: "ليمون", e: "🍋" }, { t: "كرز", e: "�" },
+                { t: "بيتزا", e: "🍕" }, { t: "برجر", e: "�🍔" }, { t: "بطاطس مقلية", e: "🍟" },
+                { t: "سوشي", e: "🍣" }, { t: "تاكو", e: "🌮" }, { t: "خبز", e: "🍞" },
+                { t: "جبنة", e: "🧀" }, { t: "بيض", e: "🥚" }, { t: "لحم", e: "🥩" },
+                { t: "دجاج", e: "🍗" }, { t: "كيك", e: "🍰" }, { t: "دونات", e: "🍩" },
+                { t: "شوكولاتة", e: "🍫" }, { t: "آيس كريم", e: "🍦" }, { t: "عسل", e: "🍯" }
             ],
 
             tools: [
-                {t:"مطرقة",e:"🔨"},{t:"مفك",e:"🔧"},{t:"مفتاح",e:"🔑"},
-                {t:"مقص",e:"✂️"},{t:"منشار",e:"🪚"},{t:"فأس",e:"🪓"},
-                {t:"مصباح",e:"💡"},{t:"قفل",e:"🔒"},{t:"بطارية",e:"🔋"},
-                {t:"شاحن",e:"🔌"},{t:"كاميرا",e:"📷"},{t:"هاتف",e:"📱"},
-                {t:"كمبيوتر",e:"💻"},{t:"سماعات",e:"🎧"},{t:"ساعة",e:"⌚"},
-                {t:"قلم",e:"✏️"},{t:"كتاب",e:"📖"},{t:"شنطة",e:"🎒"},
-                {t:"مغناطيس",e:"🧲"},{t:"مسمار",e:"📍"},{t:"مكنسة",e:"🧹"},
-                {t:"غسالة",e:"🧺"},{t:"مروحة",e:"🌀"},{t:"صافرة",e:"📣"},
-                {t:"طبلة",e:"🥁"}
+                { t: "مطرقة", e: "🔨" }, { t: "مفك", e: "🔧" }, { t: "مفتاح", e: "🔑" },
+                { t: "مقص", e: "✂️" }, { t: "منشار", e: "🪚" }, { t: "فأس", e: "🪓" },
+                { t: "مصباح", e: "💡" }, { t: "قفل", e: "🔒" }, { t: "بطارية", e: "🔋" },
+                { t: "شاحن", e: "🔌" }, { t: "كاميرا", e: "📷" }, { t: "هاتف", e: "📱" },
+                { t: "كمبيوتر", e: "💻" }, { t: "سماعات", e: "🎧" }, { t: "ساعة", e: "⌚" },
+                { t: "قلم", e: "✏️" }, { t: "كتاب", e: "📖" }, { t: "شنطة", e: "🎒" },
+                { t: "مغناطيس", e: "🧲" }, { t: "مسمار", e: "📍" }, { t: "مكنسة", e: "🧹" },
+                { t: "غسالة", e: "🧺" }, { t: "مروحة", e: "🌀" }, { t: "صافرة", e: "📣" },
+                { t: "طبلة", e: "🥁" }
             ],
 
             jobs: [
-                {t:"طبيب",e:"👨‍⚕️"},{t:"مهندس",e:"👷"},{t:"معلم",e:"👨‍🏫"},
-                {t:"شرطي",e:"👮"},{t:"طباخ",e:"👨‍🍳"},{t:"طيار",e:"👨‍✈️"},
-                {t:"مزارع",e:"👨‍🌾"},{t:"فنان",e:"👨‍🎨"},{t:"مغني",e:"👨‍🎤"},
-                {t:"محامي",e:"👨‍⚖️"},{t:"قاضي",e:"⚖️"},{t:"بحار",e:"⚓"},
-                {t:"هكر",e:"👨‍💻"},{t:"رائد فضاء",e:"👨‍🚀"},
-                {t:"عالم",e:"👨‍🔬"},{t:"مصور",e:"📸"},
-                {t:"صحفي",e:"📰"},{t:"سائق",e:"🚗"},
-                {t:"نجار",e:"🪚"},{t:"حداد",e:"⚒️"},
-                {t:"كهربائي",e:"💡"},{t:"سباك",e:"🚿"},
-                {t:"بائع",e:"🛒"},{t:"حارس",e:"🛡️"},
-                {t:"مترجم",e:"🌐"}
+                { t: "طبيب", e: "👨‍⚕️" }, { t: "مهندس", e: "👷" }, { t: "معلم", e: "👨‍🏫" },
+                { t: "شرطي", e: "👮" }, { t: "طباخ", e: "👨‍🍳" }, { t: "طيار", e: "👨‍✈️" },
+                { t: "مزارع", e: "👨‍🌾" }, { t: "فنان", e: "👨‍🎨" }, { t: "مغني", e: "👨‍🎤" },
+                { t: "محامي", e: "👨‍⚖️" }, { t: "قاضي", e: "⚖️" }, { t: "بحار", e: "⚓" },
+                { t: "هكر", e: "👨‍💻" }, { t: "رائد فضاء", e: "👨‍🚀" },
+                { t: "عالم", e: "👨‍🔬" }, { t: "مصور", e: "📸" },
+                { t: "صحفي", e: "📰" }, { t: "سائق", e: "🚗" },
+                { t: "نجار", e: "🪚" }, { t: "حداد", e: "⚒️" },
+                { t: "كهربائي", e: "💡" }, { t: "سباك", e: "🚿" },
+                { t: "بائع", e: "🛒" }, { t: "حارس", e: "🛡️" },
+                { t: "مترجم", e: "🌐" }
             ]
         };
 
@@ -399,13 +513,31 @@
         let myPlayerId = null;
         let isHost = false; // هل أنا المضيف؟
         let timerInterval = null; // مرجع لعداد الوقت
-        
+
+        // Initial Name Check
+        setTimeout(() => {
+            const saved = localStorage.getItem('heka_global_player_name');
+            if (saved) {
+                myName = saved;
+                document.getElementById('player-name').value = saved;
+                document.getElementById('display-player-name').innerText = saved;
+            }
+        }, 100);
+
+        window.checkNameAndGo = () => {
+            if (myName) {
+                window.showScreen('online-menu');
+            } else {
+                window.showScreen('name-entry');
+            }
+        };
+
         // متغيرات للعب المحلي
         let localPlayers = [];
         let currentPlayerIndex = 0;
 
         // --- دوال مساعدة ---
-        
+
         // دالة لعرض شاشة محددة وإخفاء الباقي
         window.showScreen = (id) => {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -424,6 +556,7 @@
             const name = document.getElementById('player-name').value.trim();
             if (!name) return alert("اكتب اسمك الأول على الأقل");
             myName = name;
+            localStorage.setItem('heka_global_player_name', name); // Persist
             document.getElementById('display-player-name').innerText = name;
             window.showScreen('online-menu');
         };
@@ -435,17 +568,17 @@
             const count = parseInt(document.getElementById('local-players-count').value);
             const spies = parseInt(document.getElementById('local-spies-count').value);
             const cat = document.getElementById('local-category').value;
-            
+
             if (spies >= count) return alert("عدد الجواسيس لازم يكون أقل!");
 
             const w = getRandomWord(cat);
             // إنشاء مصفوفة اللاعبين
             let roles = Array(count).fill({ role: "citizen", w: w.t, e: w.e });
             // تعيين الجواسيس
-            for(let i=0; i<spies; i++) roles[i] = { role: "spy", w: "؟؟؟", e: "🕵️" };
+            for (let i = 0; i < spies; i++) roles[i] = { role: "spy", w: "؟؟؟", e: "🕵️" };
             // خلط الأدوار
             roles.sort(() => Math.random() - 0.5);
-            
+
             localPlayers = roles;
             currentPlayerIndex = 0;
             window.showScreen('local-reveal');
@@ -453,7 +586,7 @@
         };
 
         function updateLocalUI() {
-            document.getElementById('player-turn-text').innerText = `اللاعب ${currentPlayerIndex+1}`;
+            document.getElementById('player-turn-text').innerText = `اللاعب ${currentPlayerIndex + 1}`;
             document.getElementById('reveal-btn').style.display = 'block';
             document.getElementById('role-content').style.display = 'none';
         }
@@ -466,7 +599,7 @@
             document.getElementById('role-text').innerText = isSpy ? "أنت الجاسوس!" : "أنت لمّاح 😎";
             document.getElementById('role-text').style.color = isSpy ? "#f43f5e" : "#34d399";
             document.getElementById('secret-word-display').innerText = isSpy ? "مهمتك: اعرف الكلمة" : `الكلمة: ${p.w}`;
-            
+
             document.getElementById('reveal-btn').style.display = 'none';
             document.getElementById('role-content').style.display = 'block';
         };
@@ -484,7 +617,7 @@
         // 1. إنشاء غرفة جديدة
         window.createRoom = () => {
             if (!myName) return alert("سجل اسمك أولاً");
-            const roomId = Math.floor(1000 + Math.random()*9000).toString(); // كود عشوائي من 4 أرقام
+            const roomId = Math.floor(1000 + Math.random() * 9000).toString(); // كود عشوائي من 4 أرقام
             myPlayerId = "host_" + Date.now();
             isHost = true;
 
@@ -506,7 +639,7 @@
             if (!roomId) return alert("أدخل الكود");
             myPlayerId = "player_" + Date.now();
             isHost = false;
-            
+
             get(ref(db, `grooms/${roomId}`)).then(snap => {
                 if (snap.exists()) {
                     // إضافة اللاعب للغرفة
@@ -522,7 +655,7 @@
             currentRoomId = roomId;
             window.showScreen('online-lobby');
             document.getElementById('display-room-code').innerText = roomId;
-            
+
             // إظهار تحكم المضيف فقط للمضيف
             document.getElementById('host-controls').style.display = isHost ? 'block' : 'none';
             document.getElementById('waiting-msg').style.display = isHost ? 'none' : 'block';
@@ -558,7 +691,7 @@
                 const cat = (document.getElementById('online-category') && document.getElementById('online-category').value) || 'random';
                 const w = getRandomWord(cat);
                 let roles = Array(pIds.length).fill("citizen");
-                for(let i=0; i<spiesCount; i++) roles[i] = "spy";
+                for (let i = 0; i < spiesCount; i++) roles[i] = "spy";
                 roles.sort(() => Math.random() - 0.5); // خلط عشوائي
 
                 const updates = {};
@@ -592,15 +725,15 @@
                 if (action === 'pause' && data.timerStatus === 'running') {
                     // حساب الوقت المتبقي وحفظه
                     const remaining = data.endTime - Date.now();
-                    update(roomRef, { 
-                        timerStatus: 'paused', 
-                        timeRemaining: remaining 
+                    update(roomRef, {
+                        timerStatus: 'paused',
+                        timeRemaining: remaining
                     });
                 } else if (action === 'resume' && data.timerStatus === 'paused') {
                     // حساب وقت الانتهاء الجديد
                     const newEndTime = Date.now() + data.timeRemaining;
-                    update(roomRef, { 
-                        timerStatus: 'running', 
+                    update(roomRef, {
+                        timerStatus: 'running',
                         endTime: newEndTime,
                         timeRemaining: null // مسح الوقت المتبقي
                     });
@@ -625,7 +758,7 @@
             document.getElementById('my-role').innerText = isSpy ? "أنت الجاسوس! 🤫" : "أنت لمّاح 😎";
             document.getElementById('my-role').style.color = isSpy ? "#f43f5e" : "#34d399";
             document.getElementById('my-word').innerText = isSpy ? "حاول معرفة الكلمة" : `الكلمة: ${myData.word}`;
-            
+
             // إدارة المؤقت
             handleTimer(data);
 
@@ -645,14 +778,14 @@
         // 7. منطق المؤقت (معقد قليلاً لدعم الإيقاف)
         function handleTimer(data) {
             const timerEl = document.getElementById('timer-box');
-            
+
             if (timerInterval) clearInterval(timerInterval); // تنظيف أي عداد سابق
 
             // الحالة 1: المؤقت متوقف مؤقتاً
             if (data.timerStatus === 'paused' && data.timeRemaining) {
                 const m = Math.floor(data.timeRemaining / 60000);
                 const s = Math.floor((data.timeRemaining % 60000) / 1000);
-                timerEl.innerText = `${m}:${s.toString().padStart(2,'0')} ⏸`; // علامة التوقف
+                timerEl.innerText = `${m}:${s.toString().padStart(2, '0')} ⏸`; // علامة التوقف
                 timerEl.style.color = "#fbbf24"; // لون أصفر عند التوقف
                 return;
             }
@@ -662,18 +795,18 @@
                 timerInterval = setInterval(() => {
                     const now = Date.now();
                     const diff = data.endTime - now;
-                    
+
                     if (diff <= 0) {
                         timerEl.innerText = "انتهى الوقت!";
                         timerEl.style.color = "#f43f5e";
                         clearInterval(timerInterval);
-                        
+
                         // إذا انتهى الوقت وأنا المضيف، اكشف النتائج
                         if (isHost) window.revealResultsNow();
                     } else {
                         const m = Math.floor(diff / 60000);
                         const s = Math.floor((diff % 60000) / 1000);
-                        timerEl.innerText = `${m}:${s.toString().padStart(2,'0')}`;
+                        timerEl.innerText = `${m}:${s.toString().padStart(2, '0')}`;
                         timerEl.style.color = "#f8fafc";
                     }
                 }, 1000); // التحديث كل ثانية
@@ -684,7 +817,7 @@
         function renderVotingBoard(players) {
             const container = document.getElementById('voting-area');
             container.innerHTML = '';
-            
+
             Object.keys(players).forEach(pid => {
                 // حساب عدد الأصوات لكل لاعب
                 const votesReceived = Object.values(players).filter(p => p.vote === pid).length;
@@ -697,7 +830,7 @@
                     <div style="font-weight:bold; color:white;">${p.name}</div>
                     ${votesReceived > 0 ? `<div class="vote-count">${votesReceived}</div>` : ''}
                 `;
-                
+
                 // إضافة حدث الضغط للتصويت
                 if (pid !== myPlayerId) {
                     btn.onclick = () => update(ref(db, `grooms/${currentRoomId}/players/${myPlayerId}`), { vote: pid });
@@ -712,18 +845,18 @@
         // 9. التحقق من الفائزين وعرض النتائج
         function checkResultsVisibility(players, showResults) {
             const resultsDiv = document.getElementById('voting-results');
-            
+
             if (!showResults) {
                 resultsDiv.style.display = 'none';
                 return;
             }
 
             resultsDiv.style.display = 'block';
-            
+
             // تحديد الجواسيس
             const spies = Object.keys(players).filter(pid => players[pid].role === 'spy');
             const spyNames = spies.map(pid => players[pid].name).join(' و ');
-            
+
             document.getElementById('spy-identity-reveal').innerText = `الجاسوس كان: ${spyNames}`;
 
             // تحديد الأبطال (من صوت للجاسوس)
@@ -742,4 +875,5 @@
         }
     </script>
 </body>
+
 </html>

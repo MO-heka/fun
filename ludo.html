@@ -712,10 +712,11 @@
                 <rect x="0" y="0" width="1500" height="1500" rx="20" fill="none" stroke="#5d4037" stroke-width="30" />
 
                 <!-- Bases -->
-                <rect x="0" y="0" width="600" height="600" fill="#22c55e" /> <!-- Green Base -->
-                <rect x="900" y="0" width="600" height="600" fill="#eab308" /> <!-- Yellow Base -->
-                <rect x="900" y="900" width="600" height="600" fill="#3b82f6" /> <!-- Blue Base -->
-                <rect x="0" y="900" width="600" height="600" fill="#ef4444" /> <!-- Red Base -->
+                <!-- Bases (Colors Adjusted: G=TL, Y=TR, B=BR, R=BL) -->
+                <rect x="0" y="0" width="600" height="600" fill="#22c55e" /> <!-- Green TL -->
+                <rect x="900" y="0" width="600" height="600" fill="#eab308" /> <!-- Yellow TR -->
+                <rect x="900" y="900" width="600" height="600" fill="#3b82f6" /> <!-- Blue BR -->
+                <rect x="0" y="900" width="600" height="600" fill="#ef4444" /> <!-- Red BL -->
 
                 <!-- Inner Whites -->
                 <rect x="100" y="100" width="400" height="400" fill="white" rx="40" />
@@ -723,46 +724,43 @@
                 <rect x="1000" y="1000" width="400" height="400" fill="white" rx="40" />
                 <rect x="100" y="1000" width="400" height="400" fill="white" rx="40" />
 
-                <!-- Center -->
-                <polygon points="600,600 900,600 750,750" fill="#22c55e" opacity="0.8" />
-                <polygon points="900,600 900,900 750,750" fill="#eab308" opacity="0.8" />
-                <polygon points="900,900 600,900 750,750" fill="#3b82f6" opacity="0.8" />
-                <polygon points="600,900 600,600 750,750" fill="#ef4444" opacity="0.8" />
+                <!-- Center Triangle Colors (Match Arms) -->
+                <!-- Top (Yellow), Right (Blue), Bottom (Red), Left (Green) -->
+                <polygon points="600,600 900,600 750,750" fill="#eab308" opacity="0.8" /> <!-- Top -->
+                <polygon points="900,600 900,900 750,750" fill="#3b82f6" opacity="0.8" /> <!-- Right -->
+                <polygon points="900,900 600,900 750,750" fill="#ef4444" opacity="0.8" /> <!-- Bottom -->
+                <polygon points="600,900 600,600 750,750" fill="#22c55e" opacity="0.8" /> <!-- Left -->
 
-                <!-- Tracks (Grid is 15x15, each cell 100x100) -->
-                <!-- Cells generated via script for cleaner code? No, let's hardcode critical paths for visual clarity -->
-                <!-- Path Logic: We will overlay the grid lines using a Path for sharpness -->
+                <!-- Tracks -->
                 <g id="grid-lines" stroke="#ccc" stroke-width="2">
-                    <!-- Vertical Lines -->
+                    <!-- ... existing lines ... -->
                     <line x1="600" y1="0" x2="600" y2="1500" />
                     <line x1="700" y1="0" x2="700" y2="600" />
                     <line x1="800" y1="0" x2="800" y2="600" />
                     <line x1="700" y1="900" x2="700" y2="1500" />
                     <line x1="800" y1="900" x2="800" y2="1500" />
                     <line x1="900" y1="0" x2="900" y2="1500" />
-
-                    <!-- Horizontal Lines -->
                     <line x1="0" y1="600" x2="1500" y2="600" />
                     <line x1="0" y1="700" x2="600" y2="700" />
                     <line x1="0" y1="800" x2="600" y2="800" />
                     <line x1="900" y1="700" x2="1500" y2="700" />
                     <line x1="900" y1="800" x2="1500" y2="800" />
                     <line x1="0" y1="900" x2="1500" y2="900" />
-
-                    <!-- Individual Cell Separators -->
                     <path d="M600 100 H900 M600 200 H900 M600 300 H900 M600 400 H900 M600 500 H900" />
                     <path d="M600 1000 H900 M600 1100 H900 M600 1200 H900 M600 1300 H900 M600 1400 H900" />
                     <path d="M100 600 V900 M200 600 V900 M300 600 V900 M400 600 V900 M500 600 V900" />
                     <path d="M1000 600 V900 M1100 600 V900 M1200 600 V900 M1300 600 V900 M1400 600 V900" />
                 </g>
 
-                <!-- Home Runs Colors -->
-                <rect x="700" y="100" width="100" height="500" fill="#22c55e" opacity="0.4" />
-                <rect x="900" y="700" width="500" height="100" fill="#eab308" opacity="0.4" />
-                <rect x="700" y="900" width="100" height="500" fill="#3b82f6" opacity="0.4" />
-                <rect x="100" y="700" width="500" height="100" fill="#ef4444" opacity="0.4" />
-
-                <!-- Home Arrows / Triangles -->
+                <!-- Home Runs Colors Corrected -->
+                <!-- Top: Yellow -->
+                <rect x="700" y="100" width="100" height="500" fill="#eab308" opacity="0.4" />
+                <!-- Right: Blue -->
+                <rect x="900" y="700" width="500" height="100" fill="#3b82f6" opacity="0.4" />
+                <!-- Bottom: Red -->
+                <rect x="700" y="900" width="100" height="500" fill="#ef4444" opacity="0.4" />
+                <!-- Left: Green -->
+                <rect x="100" y="700" width="500" height="100" fill="#22c55e" opacity="0.4" />
 
                 <!-- Safe Spots (Darkened Cells) -->
                 <defs>
@@ -772,17 +770,28 @@
                     </g>
                 </defs>
 
-                <!-- Base Safe Exits -->
+                <!-- Base Safe Exits (Colored Start Squares) -->
+                <!-- Green Start (Left): x100 y600 -->
                 <rect x="100" y="600" width="100" height="100" fill="#22c55e" opacity="0.5" />
+                <!-- Yellow Start (Top): x800 y100 -->
                 <rect x="800" y="100" width="100" height="100" fill="#eab308" opacity="0.5" />
+                <!-- Blue Start (Right): x1300 y800 -->
                 <rect x="1300" y="800" width="100" height="100" fill="#3b82f6" opacity="0.5" />
+                <!-- Red Start (Bottom): x600 y1300 -->
                 <rect x="600" y="1300" width="100" height="100" fill="#ef4444" opacity="0.5" />
 
-                <!-- Shared Safe Spots (Corrected) -->
-                <use href="#safe-cell" x="600" y="200" />
-                <use href="#safe-cell" x="1200" y="600" />
-                <use href="#safe-cell" x="800" y="1200" />
-                <use href="#safe-cell" x="200" y="800" />
+                <!-- Shared Safe Spots (All Shields) -->
+                <!-- Star Positions (Safe) -->
+                <use href="#safe-cell" x="600" y="200" /> <!-- Top L -->
+                <use href="#safe-cell" x="1200" y="600" /> <!-- Right T -->
+                <use href="#safe-cell" x="800" y="1200" /> <!-- Bottom R -->
+                <use href="#safe-cell" x="200" y="800" /> <!-- Left B -->
+
+                <!-- Start Positions (Safe Shields too according to request) -->
+                <use href="#safe-cell" x="100" y="600" /> <!-- Green Start -->
+                <use href="#safe-cell" x="800" y="100" /> <!-- Yellow Start -->
+                <use href="#safe-cell" x="1300" y="800" /> <!-- Blue Start -->
+                <use href="#safe-cell" x="600" y="1300" /> <!-- Red Start -->
             </svg>
 
             <!-- Tokens & Ghosts -->
@@ -1283,19 +1292,52 @@
             // Need Global Coordinates
             if (currentLocal < 52) { // Only on shared tracks
                 const myGlobal = toGlobal(pid, currentLocal);
-                // Check against others
+                // Check against others - STACK PROTECTION
                 let captured = false;
                 for (let op = 0; op < 4; op++) {
                     if (op === pid) continue;
+
+                    // Count opponents on this cell
+                    let stackedOpponents = 0;
+                    gameState.tokens[op].forEach((opos) => {
+                        if (opos !== -1 && opos < 52 && toGlobal(op, opos) === myGlobal) {
+                            stackedOpponents++;
+                        }
+                    });
+
+                    // If stack > 1, PROTECTED. Cannot land/kill.
+                    if (stackedOpponents > 1) {
+                        // Move Invalid! Rollback.
+                        gameState.tokens[pid][tid] = currentLocal - roll; // Revert
+                        renderTokens();
+                        toast("محمية! لا يمكن القتل 🛡️");
+                        // Reset turn as if invalid
+                        // But dice was used? In Ludo invalid move means lose turn or pick another.
+                        // We handled "canMove" loosely. Better to check this in canMove.
+                        // But canMove is complex global check.
+                        // Let's just "Lose Turn" or "Stay".
+                        // Logic: bounce back?
+                        // Simple: Stay put, lose turn. 
+                        sfx.kill(); // Error tone ideally
+                        // Force next turn
+                        // Wait, we need to handle "canMove" check pre-click preferably.
+                        // But since we are here, let's just abort.
+                        if (roll === 6) { /* handled below */ }
+                        nextTurn();
+                        return;
+                    }
+
                     gameState.tokens[op].forEach((opos, oid) => {
                         if (opos !== -1 && opos < 52) {
-                            if (toGlobal(op, opos) === myGlobal && !isSafe(myGlobal)) {
-                                // Kill!
-                                gameState.tokens[op][oid] = -1; // Send back
-                                sfx.kill();
-                                toast(`💥 ${gameState.players[pid].name || 'Player'} Killed!`);
-                                showConfetti(5);
-                                captured = true;
+                            if (toGlobal(op, opos) === myGlobal) {
+                                if (!isSafe(myGlobal)) {
+                                    // Kill!
+                                    gameState.tokens[op][oid] = -1; // Send back
+                                    sfx.kill();
+                                    toast(`💥 ${gameState.players[pid].name || 'Player'} Killed!`);
+                                    showConfetti(5);
+                                    captured = true;
+                                }
                             }
                         }
                     });

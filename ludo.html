@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HEKA LUDO MASTER</title>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --green: #22c55e;
+            --yellow: #eab308;
+            --blue: #3b82f6;
+            --red: #ef4444;
+            --accent: #f59e0b;
+            --shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            --font-main: 'Cairo', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+        }
+
+        /* Screen Management */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s;
+            z-index: 10;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+            display: none !important;
+        }
+
+        /* UI Components */
+        .panel {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            width: 90%;
+            max-width: 400px;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        h1 {
+            margin: 0 0 20px;
+            color: var(--accent);
+            font-weight: 900;
+            text-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        button {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-family: var(--font-main);
+            font-weight: bold;
+            margin: 10px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 4px 0 #3730a3;
+        }
+
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        button.secondary {
+            background: #334155;
+            box-shadow: 0 4px 0 #1e293b;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 2px solid #334155;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-family: var(--font-main);
+            text-align: center;
+            font-size: 1.2rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        /* Game Area */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            max-width: 600px;
+            aspect-ratio: 1/1;
+            margin: auto;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        /* SVG Board */
+        #ludo-board {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 5px;
+        }
+
+        /* Tokens */
+        .token {
+            position: absolute;
+            width: 6%;
+            height: 6%;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 5px rgba(0, 0, 0, 0.4), inset 0 -3px 5px rgba(0, 0, 0, 0.3), inset 0 3px 5px rgba(255, 255, 255, 0.4);
+            transform: translate(-50%, -50%);
+            transition: top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.1s;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .token.green {
+            background: var(--green);
+        }
+
+        .token.yellow {
+            background: var(--yellow);
+        }
+
+        .token.blue {
+            background: var(--blue);
+        }
+
+        .token.red {
+            background: var(--red);
+        }
+
+        .token.glow {
+            animation: pulse-glow 1s infinite alternate;
+            z-index: 110;
+            cursor: pointer;
+        }
+
+        .token.stacked-2 {
+            transform: translate(-50%, -60%) scale(0.9);
+        }
+
+        /* Dice */
+        #dice-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        #dice-panel:active {
+            transform: scale(0.95);
+        }
+
+        #dice-cube {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            padding: 6px;
+            gap: 2px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .dot {
+            background: #333;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        /* Dice Dot Configurations (0=hidden, 1=visible) */
+        .d-1 :nth-child(5) {
+            opacity: 1;
+        }
+
+        .d-2 :nth-child(1),
+        .d-2 :nth-child(9) {
+            opacity: 1;
+        }
+
+        .d-3 :nth-child(1),
+        .d-3 :nth-child(5),
+        .d-3 :nth-child(9) {
+            opacity: 1;
+        }
+
+        .d-4 :nth-child(1),
+        .d-4 :nth-child(3),
+        .d-4 :nth-child(7),
+        .d-4 :nth-child(9) {
+            opacity: 1;
+        }
+
+        .d-5 :nth-child(1),
+        .d-5 :nth-child(3),
+        .d-5 :nth-child(5),
+        .d-5 :nth-child(7),
+        .d-5 :nth-child(9) {
+            opacity: 1;
+        }
+
+        .d-6 :nth-child(1),
+        .d-6 :nth-child(3),
+        .d-6 :nth-child(4),
+        .d-6 :nth-child(6),
+        .d-6 :nth-child(7),
+        .d-6 :nth-child(9) {
+            opacity: 1;
+        }
+
+        .rolling {
+            animation: shake 0.4s infinite;
+        }
+
+        /* Player Info */
+        .player-card {
+            position: absolute;
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 2px solid transparent;
+            transition: 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .player-card img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #333;
+        }
+
+        .player-card.active {
+            border-color: var(--accent);
+            background: rgba(245, 158, 11, 0.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .p-green {
+            top: 10px;
+            left: 10px;
+        }
+
+        .p-yellow {
+            top: 10px;
+            right: 10px;
+        }
+
+        .p-red {
+            bottom: 10px;
+            left: 10px;
+        }
+
+        /* Swapped standard positions for UI balance */
+        .p-blue {
+            bottom: 10px;
+            right: 10px;
+        }
+
+        /* Notification Toast */
+        #toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid var(--accent);
+            z-index: 1000;
+            transition: 0.3s;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Chat */
+        #chat-btn {
+            position: fixed;
+            bottom: 120px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 200;
+            border: none;
+        }
+
+        #chat-box {
+            position: fixed;
+            bottom: 180px;
+            right: 20px;
+            width: 300px;
+            height: 350px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 201;
+            transform: scale(0);
+            transition: 0.2s;
+            transform-origin: bottom right;
+        }
+
+        #chat-box.open {
+            transform: scale(1);
+        }
+
+        .msg {
+            padding: 5px 10px;
+            margin: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+
+        /* Animations */
+        @keyframes popIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse-glow {
+            from {
+                box-shadow: 0 0 5px white;
+            }
+
+            to {
+                box-shadow: 0 0 20px var(--accent);
+            }
+        }
+
+        @keyframes shake {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            25% {
+                transform: rotate(10deg);
+            }
+
+            50% {
+                transform: rotate(0deg);
+            }
+
+            75% {
+                transform: rotate(-10deg);
+            }
+
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: red;
+            animation: fall 3s linear forwards;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Notification -->
+    <div id="toast">🔔 <span id="toast-msg"></span></div>
+
+    <!-- MAIN MENU -->
+    <div id="screen-menu" class="screen">
+        <div class="panel">
+            <h1>🎲 LUDO MASTER</h1>
+            <h3 id="welcome-msg" style="color: #cbd5e1; margin-bottom: 20px;"></h3>
+            <button onclick="startGame('offline')">👤 ضد الكمبيوتر (Offline)</button>
+            <button onclick="showOnlineMenu()" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🌐 لعب
+                أونلاين (Online)</button>
+        </div>
+    </div>
+
+    <!-- ONLINE MENU -->
+    <div id="screen-online" class="screen hidden">
+        <div class="panel">
+            <h2>🌍 الأونلاين</h2>
+            <button onclick="createRoom()">➕ إنشاء غرفة</button>
+            <div style="display:flex; gap: 5px; align-items: center;">
+                <input id="room-code-input" placeholder="اكتب كود الغرفة" style="margin: 0;">
+                <button onclick="joinRoom()" style="width: auto; padding: 15px;">دخول</button>
+            </div>
+            <button class="secondary" onclick="showScreen('screen-menu')">رجوع</button>
+        </div>
+    </div>
+
+    <!-- LOBBY -->
+    <div id="screen-lobby" class="screen hidden">
+        <div class="panel">
+            <h2>🛋️ صالة الانتظار</h2>
+            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin: 10px 0;">
+                <span style="color: #94a3b8; font-size: 0.9rem;">كود الغرفة:</span>
+                <div style="font-size: 2rem; color: var(--accent); letter-spacing: 2px; font-weight: bold; cursor: pointer;"
+                    onclick="copyCode()" id="lobby-code">---</div>
+                <div style="font-size: 0.8rem; color: #64748b;">(اضغط للنسخ)</div>
+            </div>
+            <div id="lobby-players" style="text-align: right; min-height: 100px;">
+                <!-- Player List -->
+            </div>
+            <button id="start-btn" class="hidden" onclick="startOnlineGame()">🚀 ابدأ اللعب</button>
+            <button class="secondary" onclick="leaveRoom()">خروج</button>
+        </div>
+    </div>
+
+    <!-- GAME AREA -->
+    <div id="screen-game" class="screen hidden">
+        <!-- Player Stats -->
+        <div class="player-card p-green" id="p-card-0"><img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed= Felix"> <span class="p-name">Player 1</span></div>
+        <div class="player-card p-yellow" id="p-card-1"><span class="p-name">Player 2</span> <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka"></div>
+        <div class="player-card p-blue" id="p-card-2"><span class="p-name">Player 3</span> <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob"></div>
+        <div class="player-card p-red" id="p-card-3"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Zack">
+            <span class="p-name">Player 4</span>
+        </div>
+
+        <!-- The Board -->
+        <div id="game-container">
+            <svg id="ludo-board" viewBox="0 0 1500 1500">
+                <!-- Defs -->
+                <defs>
+                    <pattern id="star" x="0" y="0" width="1" height="1">
+                        <polygon points="50,5 20,90 95,30 5,30 80,90" fill="rgba(0,0,0,0.2)" />
+                    </pattern>
+                </defs>
+                <!-- Background -->
+                <rect width="1500" height="1500" fill="white" rx="20" />
+
+                <!-- Bases -->
+                <rect x="0" y="0" width="600" height="600" fill="#22c55e" /> <!-- Green Base -->
+                <rect x="900" y="0" width="600" height="600" fill="#eab308" /> <!-- Yellow Base -->
+                <rect x="900" y="900" width="600" height="600" fill="#3b82f6" /> <!-- Blue Base -->
+                <rect x="0" y="900" width="600" height="600" fill="#ef4444" /> <!-- Red Base -->
+
+                <!-- Inner Whites -->
+                <rect x="100" y="100" width="400" height="400" fill="white" rx="40" />
+                <rect x="1000" y="100" width="400" height="400" fill="white" rx="40" />
+                <rect x="1000" y="1000" width="400" height="400" fill="white" rx="40" />
+                <rect x="100" y="1000" width="400" height="400" fill="white" rx="40" />
+
+                <!-- Center -->
+                <polygon points="600,600 900,600 750,750" fill="#22c55e" opacity="0.8" />
+                <polygon points="900,600 900,900 750,750" fill="#eab308" opacity="0.8" />
+                <polygon points="900,900 600,900 750,750" fill="#3b82f6" opacity="0.8" />
+                <polygon points="600,900 600,600 750,750" fill="#ef4444" opacity="0.8" />
+
+                <!-- Tracks (Grid is 15x15, each cell 100x100) -->
+                <!-- Cells generated via script for cleaner code? No, let's hardcode critical paths for visual clarity -->
+                <!-- Path Logic: We will overlay the grid lines using a Path for sharpness -->
+                <g id="grid-lines" stroke="#ccc" stroke-width="2">
+                    <!-- Vertical Lines -->
+                    <line x1="600" y1="0" x2="600" y2="1500" />
+                    <line x1="700" y1="0" x2="700" y2="600" />
+                    <line x1="800" y1="0" x2="800" y2="600" />
+                    <line x1="700" y1="900" x2="700" y2="1500" />
+                    <line x1="800" y1="900" x2="800" y2="1500" />
+                    <line x1="900" y1="0" x2="900" y2="1500" />
+
+                    <!-- Horizontal Lines -->
+                    <line x1="0" y1="600" x2="1500" y2="600" />
+                    <line x1="0" y1="700" x2="600" y2="700" />
+                    <line x1="0" y1="800" x2="600" y2="800" />
+                    <line x1="900" y1="700" x2="1500" y2="700" />
+                    <line x1="900" y1="800" x2="1500" y2="800" />
+                    <line x1="0" y1="900" x2="1500" y2="900" />
+
+                    <!-- Individual Cell Separators -->
+                    <path d="M600 100 H900 M600 200 H900 M600 300 H900 M600 400 H900 M600 500 H900" />
+                    <path d="M600 1000 H900 M600 1100 H900 M600 1200 H900 M600 1300 H900 M600 1400 H900" />
+                    <path d="M100 600 V900 M200 600 V900 M300 600 V900 M400 600 V900 M500 600 V900" />
+                    <path d="M1000 600 V900 M1100 600 V900 M1200 600 V900 M1300 600 V900 M1400 600 V900" />
+                </g>
+
+                <!-- Home Runs Colors -->
+                <rect x="700" y="100" width="100" height="500" fill="#22c55e" opacity="0.4" />
+                <rect x="900" y="700" width="500" height="100" fill="#eab308" opacity="0.4" />
+                <rect x="700" y="900" width="100" height="500" fill="#3b82f6" opacity="0.4" />
+                <rect x="100" y="700" width="500" height="100" fill="#ef4444" opacity="0.4" />
+
+                <!-- Home Arrows / Triangles -->
+
+                <!-- Safe Spots (Stars) -->
+                <use href="#star" x="200" y="600" width="100" height="100" transform="translate(10,10) scale(0.8)" />
+                <!-- Starting Red -->
+                <use href="#star" x="800" y="200" width="100" height="100" transform="translate(10,10) scale(0.8)" />
+                <!-- Starting Green -->
+                <use href="#star" x="1200" y="800" width="100" height="100" transform="translate(10,10) scale(0.8)" />
+                <!-- Starting Yellow -->
+                <use href="#star" x="600" y="1200" width="100" height="100" transform="translate(10,10) scale(0.8)" />
+                <!-- Starting Blue -->
+            </svg>
+
+            <!-- Tokens Container -->
+            <div id="tokens-layer"></div>
+        </div>
+
+        <!-- Controls -->
+        <div id="dice-panel" class="hidden" onclick="requestRoll()">
+            <div id="dice-cube" class="d-6">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <div
+                style="position: absolute; bottom: -25px; font-weight: bold; font-size: 0.8rem; width: 100px; text-align: center;">
+                اضغط للرمي</div>
+        </div>
+
+        <button id="chat-btn" onclick="toggleChat()">💬</button>
+        <div id="chat-box" class="hidden">
+            <div
+                style="padding: 10px; background: var(--accent); color: black; font-weight: bold; border-radius: 12px 12px 0 0; display:flex; justify-content:space-between;">
+                <span>شات الغرفة</span> <span onclick="toggleChat()">✖</span>
+            </div>
+            <div id="chat-msgs" style="flex: 1; overflow-y: auto; padding: 10px;"></div>
+            <div style="display: flex; padding: 5px;">
+                <input id="chat-input" placeholder="اكتب..." style="margin: 0; flex:1">
+                <button onclick="sendChat()" style="width: auto; padding: 0 15px; margin: 0 5px;">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG & UTILS ---
+        const colors = ['green', 'yellow', 'blue', 'red'];
+        // Path Coords (0-51 Loop, 52-57 Home Run) + Base Coords
+        // Mapping a flattened path index to X,Y percentages on the board
+        // Grid is 15x15. Each cell is 1000/15 = 6.66% approx.
+        // Wait, SVG is 1500x1500. Cell = 100.
+
+        // This mapping follows the standard Ludo path:
+        // Start Green (index 1) at (100,600) -> waits, logic handles offsets.
+        // Let's define the 52 common cells visually.
+        // 0-4: Green safe start straight... 
+        // To save huge array space, I'll program a function `getCellCoord(index, color)`
+
+        const db = firebase.database();
+
+        let gameState = {
+            turn: 0,
+            dice: 0,
+            tokens: [[-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1]], // 0:green, 1:yellow, 2:blue, 3:red
+            lastMove: null,
+            finished: [false, false, false, false],
+            players: []
+        };
+
+        let myName = localStorage.getItem('heka_global_player_name') || "Player";
+        let myId = Math.random().toString(36).substr(2, 9);
+        let currentRoom = null;
+        let playMode = 'offline'; // offline, online
+        let myColorIndex = 0; // if online
+        let diceAnimInterval;
+
+        // --- SOUNDS ---
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        function playTone(freq, type = 'sine', dur = 0.1) {
+            if (ctx.state === 'suspended') ctx.resume();
+            const o = ctx.createOscillator(); const g = ctx.createGain();
+            o.type = type; o.frequency.value = freq;
+            o.connect(g); g.connect(ctx.destination);
+            o.start(); g.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + dur);
+            o.stop(ctx.currentTime + dur);
+        }
+        const sfx = {
+            move: () => playTone(300, 'triangle', 0.1),
+            dice: () => playTone(400, 'square', 0.05),
+            kill: () => { playTone(150, 'sawtooth', 0.2); setTimeout(() => playTone(100, 'sawtooth', 0.4), 100); },
+            win: () => { playTone(500, 'sine', 0.2); setTimeout(() => playTone(800, 'square', 0.4), 200); }
+        };
+
+        // --- INIT ---
+        window.onload = () => {
+            document.getElementById('welcome-msg').innerText = "مرحباً " + myName;
+            renderTokens();
+        };
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        // --- NAVIGATION ---
+        function startGame(mode) {
+            playMode = mode;
+            if (mode === 'offline') {
+                myColorIndex = 0; // You are always Green (First)
+                gameState.players = [{ n: myName, id: 'me' }, { n: 'Bot 1', id: 'bot' }, { n: 'Bot 2', id: 'bot' }, { n: 'Bot 3', id: 'bot' }];
+                gameState.turn = 0;
+                resetBoard();
+                showScreen('screen-game');
+                updateUI();
+                setDiceVisible(true);
+            }
+        }
+
+        function showOnlineMenu() { showScreen('screen-online'); }
+
+        // --- ONLINE LOGIC ---
+        function createRoom() {
+            const code = Math.floor(1000 + Math.random() * 9000).toString();
+            db.ref('ludo_rooms/' + code).set({
+                players: [{ name: myName, id: myId, color: 0 }],
+                turn: 0,
+                dice: 0,
+                tokens: gameState.tokens,
+                status: 'waiting'
+            });
+            enterLobby(code, 0);
+        }
+
+        function joinRoom() {
+            const code = document.getElementById('room-code-input').value;
+            db.ref('ludo_rooms/' + code).once('value', s => {
+                if (!s.exists()) return toast('الغرفة غير موجودة');
+                const d = s.val();
+                if (d.status !== 'waiting') return toast('اللعبة بدأت بالفعل');
+                if (d.players.length >= 4) return toast('الغرفة ممتلئة');
+
+                const color = d.players.length;
+                d.players.push({ name: myName, id: myId, color: color });
+                db.ref('ludo_rooms/' + code).update({ players: d.players });
+                enterLobby(code, color);
+            });
+        }
+
+        function enterLobby(code, color) {
+            currentRoom = code;
+            myColorIndex = color;
+            playMode = 'online';
+            showScreen('screen-lobby');
+            document.getElementById('lobby-code').innerText = code;
+
+            db.ref('ludo_rooms/' + currentRoom).on('value', snap => {
+                const val = snap.val();
+                if (!val) return location.reload();
+
+                // Lobby Update
+                const pList = document.getElementById('lobby-players');
+                pList.innerHTML = val.players.map(p => `<div>${p.color === myColorIndex ? '👤' : '👤'} ${p.name} <span class="d-dot" style="background:${getHexColor(p.color)}">●</span></div>`).join('');
+
+                if (val.players[0].id === myId) document.getElementById('start-btn').classList.remove('hidden');
+
+                // Game Start Trigger
+                if (val.status === 'playing') {
+                    // Sync Game State
+                    gameState = val; // Dangerous overwrite, better merge
+                    if (document.getElementById('screen-game').classList.contains('hidden')) {
+                        showScreen('screen-game');
+                    }
+                    updateUI();
+
+                    // Check if it's my turn to show dice
+                    setDiceVisible(gameState.turn === myColorIndex && gameState.dice === 0);
+                }
+            });
+        }
+
+        function startOnlineGame() {
+            db.ref('ludo_rooms/' + currentRoom).update({ status: 'playing' });
+        }
+
+        function updateOnlineState(updates) {
+            if (playMode === 'online') {
+                db.ref('ludo_rooms/' + currentRoom).update(updates);
+            }
+        }
+
+        // --- GAME LOGIC CORES ---
+        function resetBoard() {
+            gameState.tokens = [[-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1]];
+            renderTokens();
+        }
+
+        function getHexColor(i) {
+            return ['#22c55e', '#eab308', '#3b82f6', '#ef4444'][i];
+        }
+
+        function updateUI() {
+            // Update Active Player Card
+            document.querySelectorAll('.player-card').forEach((c, i) => {
+                c.classList.toggle('active', i === gameState.turn);
+                const p = gameState.players[i] || {};
+                c.querySelector('.p-name').innerText = p.name || '---';
+                c.style.opacity = p.name ? 1 : 0.5;
+            });
+
+            // Render Tokens
+            renderTokens();
+
+            // Dice
+            renderDice(gameState.dice);
+        }
+
+        function renderDice(val) {
+            const d = document.getElementById('dice-cube');
+            d.className = 'd-' + val;
+            d.classList.remove('rolling');
+        }
+
+        function setDiceVisible(v) {
+            const dp = document.getElementById('dice-panel');
+            if (v) dp.classList.remove('hidden');
+            else dp.classList.add('hidden');
+        }
+
+        function requestRoll() {
+            if (playMode === 'online' && gameState.dice !== 0) return;
+
+            const btn = document.getElementById('dice-panel');
+            btn.style.pointerEvents = 'none'; // Lock
+            document.getElementById('dice-cube').classList.add('rolling');
+            sfx.dice();
+
+            setTimeout(() => {
+                const roll = Math.floor(Math.random() * 6) + 1;
+
+                if (playMode === 'online') {
+                    // Send to server
+                    // But in online, we usually trust client who rolled or server. Here trust client.
+                    // Ideally we update only dice first.
+                    gameState.dice = roll;
+                    // Only I can click my dice
+                    updateOnlineState({ dice: roll });
+                    // Logic continues in listener or here?
+                    // Let's do local optimistic, listener will confirm
+                } else {
+                    gameState.dice = roll;
+                    handleRollResult(roll);
+                }
+
+                renderDice(roll);
+                btn.style.pointerEvents = 'auto';
+            }, 600);
+        }
+
+        function handleRollResult(roll) {
+            // Check movable tokens
+            const playerId = gameState.turn;
+            const pieces = gameState.tokens[playerId];
+            const moveables = pieces.map((pos, idx) => canMove(playerId, idx, roll) ? idx : -1).filter(i => i !== -1);
+
+            if (moveables.length === 0) {
+                // No move possible
+                toast('لا توجد حركات متاحة');
+                setTimeout(nextTurn, 1000);
+            } else if (moveables.length === 1 && playMode !== 'online') { // Auto move single option in offline
+                // Wait a bit for visual
+                setTimeout(() => moveToken(playerId, moveables[0]), 500);
+            } else {
+                // Highlight options
+                moveables.forEach(idx => {
+                    const el = document.getElementById(`t-${playerId}-${idx}`);
+                    if (el) el.classList.add('glow');
+                });
+
+                // If offline AI
+                if (playMode === 'offline' && gameState.turn !== 0) {
+                    setTimeout(() => runAI(moveables), 800);
+                }
+            }
+        }
+
+        function runAI(options) {
+            // Simple AI: Prioritize Capture > Home > Start > Advance
+            // Just random for now to keep it simple but functional
+            const pick = options[Math.floor(Math.random() * options.length)];
+            moveToken(gameState.turn, pick);
+        }
+
+        function canMove(pid, tid, roll) {
+            const pos = gameState.tokens[pid][tid];
+            if (pos === -1) return roll === 6; // Needs 6 to start
+            if (pos >= 100) return false; // Already home
+            // Check distance to goal
+            // We use a normalized step count. 0 to 57.
+            // But our pos storage is simple integers.
+            // Let's assume standard path length logic below.
+            const steps = getStepsMoved(pos);
+            if (steps + roll > 57) return false; // Overshoot
+            return true;
+        }
+
+        // --- MOVEMENT SYSTEM ---
+        // Ludo Layout:
+        // 52 common cells on the perimeter.
+        // Each color has a starting offset in the common loop.
+        // Green: Starts at 0.
+        // Yellow: Starts at 13.
+        // Blue: Starts at 26.
+        // Red: Starts at 39.
+
+        // Logic:
+        // State -1 = Base.
+        // State 0-51 = Common Track (absolute index).
+        // State 100+ = Home Stretch (100 = First square, 105 = Goal).
+        // Wait, overlapping is tricky.
+        // Better State: 
+        // LOCAL position 0-57. 0 = Start Square. 51 = Entry to home. 52-56 = Home column. 57 = Goal.
+        // Convert LOCAL to GLOBAL for collision.
+
+        function moveToken(pid, tid) {
+            // Clear glows
+            document.querySelectorAll('.glow').forEach(e => e.classList.remove('glow'));
+
+            const roll = gameState.dice;
+            let currentLocal = gameState.tokens[pid][tid];
+
+            // Logic
+            if (currentLocal === -1) {
+                currentLocal = 0; // Move to start
+                sfx.move();
+            } else {
+                currentLocal += roll;
+                sfx.move();
+            }
+
+            // Update State
+            gameState.tokens[pid][tid] = currentLocal;
+
+            // Animations handled by CSS via renderTokens()
+            renderTokens();
+
+            // Check Collision / Capture
+            // Need Global Coordinates
+            if (currentLocal < 52) { // Only on shared tracks
+                const myGlobal = toGlobal(pid, currentLocal);
+                // Check against others
+                let captured = false;
+                for (let op = 0; op < 4; op++) {
+                    if (op === pid) continue;
+                    gameState.tokens[op].forEach((opos, oid) => {
+                        if (opos !== -1 && opos < 52) {
+                            if (toGlobal(op, opos) === myGlobal && !isSafe(myGlobal)) {
+                                // Kill!
+                                gameState.tokens[op][oid] = -1; // Send back
+                                sfx.kill();
+                                toast(`💥 ${gameState.players[pid].name || 'Player'} Killed!`);
+                                showConfetti(5);
+                                captured = true;
+                            }
+                        }
+                    });
+                }
+
+                // Bonus throw for 6 or capture?
+                // Standard Ludo: 6 gives another turn. Capture might depending on variant.
+            }
+
+            if (currentLocal === 57) { // Reached Goal
+                sfx.win();
+                showConfetti(20);
+                // Bonus turn for finishing?
+            }
+
+            // Next Turn decision
+            // If roll was 6, same player. Else next.
+            if (roll === 6) {
+                toast("لديك لفة إضافية! 🎲");
+                gameState.dice = 0; // Reset dice
+                if (playMode === 'online') updateOnlineState(gameState);
+                else {
+                    setDiceVisible(true);
+                    if (playMode === 'offline' && gameState.turn !== 0) setTimeout(requestRoll, 1000); // AI rolls again
+                }
+            } else {
+                nextTurn();
+            }
+        }
+
+        function nextTurn() {
+            gameState.dice = 0;
+            gameState.turn = (gameState.turn + 1) % 4;
+
+            if (playMode === 'online') {
+                updateOnlineState(gameState);
+            } else {
+                updateUI();
+                if (gameState.turn === 0) {
+                    setDiceVisible(true);
+                } else {
+                    setDiceVisible(false);
+                    setTimeout(requestRoll, 1000); // AI
+                }
+            }
+        }
+
+        function toGlobal(pid, localPos) {
+            const offset = pid * 13;
+            return (localPos + offset) % 52;
+        }
+
+        function isSafe(globalPos) {
+            // Stars at 0, 8, 13, 21, 26, 34, 39, 47 (Global indices for starts and safe spots)
+            // Green start: 0 (Global 0)
+            // Yellow start: 0 (Global 13)
+            // Blue start: 0 (Global 26)
+            // Red start: 0 (Global 39)
+            // Usually star represents safe.
+            const safes = [0, 8, 13, 21, 26, 34, 39, 47];
+            return safes.includes(globalPos);
+        }
+
+        // --- RENDERING ---
+        function renderTokens() {
+            const layer = document.getElementById('tokens-layer');
+            layer.innerHTML = "";
+
+            // To handle stacking, we map coordinates to list of tokens
+            const map = {};
+
+            for (let p = 0; p < 4; p++) {
+                gameState.tokens[p].forEach((pos, tId) => {
+                    const xy = getCoordinates(p, pos, tId);
+                    const key = xy.x + "," + xy.y;
+                    if (!map[key]) map[key] = [];
+                    map[key].push({ p, tId });
+                });
+            }
+
+            // Draw
+            for (let key in map) {
+                const stack = map[key];
+                stack.forEach((d, i) => {
+                    const xy = key.split(',');
+                    const el = document.createElement('div');
+                    el.className = `token ${colors[d.p]}`;
+                    el.id = `t-${d.p}-${d.tId}`;
+                    // Offset for stack
+                    const scale = stack.length > 1 ? 0.8 : 1;
+                    const offX = stack.length > 1 ? (Math.random() * 10 - 5) : 0;
+                    const offY = stack.length > 1 ? (Math.random() * 10 - 5) : 0;
+
+                    el.style.left = (parseFloat(xy[0]) + offX) + 'px';
+                    el.style.top = (parseFloat(xy[1]) + offY) + 'px';
+                    el.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
+                    // Interaction
+                    el.onclick = () => {
+                        if (gameState.turn !== myColorIndex && playMode === 'online') return;
+                        if (gameState.turn !== 0 && playMode === 'offline') return;
+                        if (gameState.dice === 0) return;
+                        if (el.classList.contains('glow')) moveToken(d.p, d.tId);
+                    };
+
+                    layer.appendChild(el);
+                });
+            }
+        }
+
+        function getCoordinates(pid, pos, tokenIndex) {
+            // Helpers
+            const bases = [
+                [[150, 150], [350, 150], [150, 350], [350, 350]], // Green Base
+                [[1050, 150], [1250, 150], [1050, 350], [1250, 350]], // Yellow
+                [[1050, 1050], [1250, 1050], [1050, 1250], [1250, 1250]], // Blue
+                [[150, 1050], [350, 1050], [150, 1250], [350, 1250]] // Red
+            ];
+
+            if (pos === -1) {
+                const b = bases[pid][tokenIndex];
+                return { x: b[0], y: b[1] };
+            }
+
+            if (pos >= 57) { // Goal Center
+                return { x: 750, y: 750 }; // Approximate
+            }
+
+            // Path Logic
+            // We define a path array of 52 {x,y} points around the board
+            // Starting from Green Start (1,6) in terms of 15x15 grid
+            // Grid cell size = 100. Center of cell 0,0 is 50,50.
+
+            // Let's create a lookup or calculate based on segment.
+            // It's tedious to hardcode 52 points.
+            // But path is symmetrical.
+
+            // Path Segments (Green Walker perspective):
+            // 0-4: Right (Start)
+            // 5-10: Up
+            // 11-12: Right 
+            // 13-18: Down
+            // 19-23: Right
+            // 24-25: Down
+            // 26-30: Left
+            // 31-36: Down
+            // 37-38: Left
+            // 39-44: Up
+            // 45-49: Left
+            // 50: Up
+            // 52-56: Right (Home Stretch)
+
+            // Function to get Common Track Coords (0-51) starting from Green Start
+            // Green Start is at Grid col 1, row 6. (x=150, y=650)
+
+            let lx = 0, ly = 0;
+
+            // We need to map global index (0-51) to xy
+            // Let's assume standard starts at 1,6 on grid (600, 100 is top vertical strip)
+            // Actually let's map generic "Tracks"
+
+            // Track definition: 15x15 grid.
+            // G1: (1,6). Y: (8,1). B: (13, 8). R: (6, 13). (Start Pos)
+
+            // Let's calculate local-to-xy directly for the player's path
+            const track = getPathForPlayer(pid);
+            if (pos < track.length) {
+                const pt = track[pos];
+                return { x: pt[0] * 100 + 50, y: pt[1] * 100 + 50 };
+            }
+            return { x: 750, y: 750 };
+        }
+
+        function getPathForPlayer(pid) {
+            // Base path (Green)
+            // 0=(1,6), 1=(2,6), 2=(3,6), 3=(4,6), 4=(5,6)
+            // 5=(6,5), 6=(6,4), 7=(6,3), 8=(6,2), 9=(6,1), 10=(6,0)
+            // 11=(7,0), 12=(8,0) (Top pivot)
+            // 13=(8,1), 14=(8,2)... down
+
+            // We generate 57 points for Green. Then rotate for others.
+            const p = [];
+            // 0-4
+            for (let i = 1; i <= 5; i++) p.push([i, 6]);
+            // 5-10
+            for (let i = 5; i >= 0; i--) p.push([6, i]);
+            // 11-12
+            p.push([7, 0], [8, 0]);
+            // 13-18
+            for (let i = 1; i <= 6; i++) p.push([8, i]);
+            // 19-23
+            for (let i = 9; i <= 13; i++) p.push([i, 6]);
+            // 24-25
+            p.push([14, 6], [14, 7]); // Right Pivot
+            // 26-30
+            for (let i = 13; i >= 9; i--) p.push([i, 8]);
+            // 31-36
+            for (let i = 9; i <= 14; i++) p.push([8, i]);
+            // 37-38
+            p.push([8, 14], [7, 14]); // Bottom Pivot
+            // 39-44
+            for (let i = 14; i >= 9; i--) p.push([6, i]);
+            // 45-49
+            for (let i = 5; i >= 1; i--) p.push([i, 8]);
+            // 50-51 (Up to finish entry)
+            p.push([0, 8], [0, 7]); // Left Pivot
+
+            // 52-56 (Home Run Green) -> (1,7) to (5,7)
+            for (let i = 1; i <= 5; i++) p.push([i, 7]);
+            // 57 Goal
+            p.push([7, 7]);
+
+            // Rotate points for PID
+            // 0: No rot. 1: 90deg CW. 2: 180. 3: 270.
+            // Rotate (x,y) around (7,7)
+            // x' = (x-7)cos - (y-7)sin + 7
+            // y' = (x-7)sin + (y-7)cos + 7
+
+            const angle = (Math.PI / 2) * pid;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+
+            return p.map(pt => {
+                const x = pt[0] - 7;
+                const y = pt[1] - 7;
+                const rx = Math.round(x * cos - y * sin + 7);
+                const ry = Math.round(x * sin + y * cos + 7);
+                return [rx, ry];
+            });
+        }
+
+        // --- CHAT & UTILS ---
+        function toast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function copyCode() {
+            navigator.clipboard.writeText(currentRoom);
+            toast("تم نسخ الكود! 📋");
+        }
+
+        function showConfetti() {
+            for (let i = 0; i < 30; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + 'vw';
+                c.style.backgroundColor = ['red', 'yellow', 'green', 'blue'][Math.floor(Math.random() * 4)];
+                c.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 4000);
+            }
+        }
+
+        // Chat
+        function toggleChat() {
+            const b = document.getElementById('chat-box');
+            b.classList.toggle('open');
+            if (b.classList.contains('open')) b.classList.remove('hidden');
+        }
+
+        function sendChat() {
+            const inp = document.getElementById('chat-input');
+            const txt = inp.value.trim();
+            if (!txt) return;
+            // Send
+            if (playMode === 'online') db.ref('ludo_rooms/' + currentRoom + '/chat').push({ n: myName, m: txt });
+            else { // Local Echo
+                addMsg(myName, txt);
+            }
+            inp.value = "";
+        }
+
+        function addMsg(n, m) {
+            const d = document.getElementById('chat-msgs');
+            d.innerHTML += `<div class="msg"><b>${n}:</b> ${m}</div>`;
+            d.scrollTop = d.scrollHeight;
+        }
+
+        // Online Listeners extras
+        // Note: Full sync logic handles most. Chat needs separate listener if online.
+
+    </script>
+</body>
+
+</html>

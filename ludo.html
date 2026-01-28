@@ -778,16 +778,11 @@
                 <rect x="1300" y="800" width="100" height="100" fill="#3b82f6" opacity="0.5" />
                 <rect x="600" y="1300" width="100" height="100" fill="#ef4444" opacity="0.5" />
 
-                <!-- Shared Safe Spots -->
-                <use href="#safe-cell" x="200" y="600" />
-                <use href="#safe-cell" x="600" y="1200" />
-                <use href="#safe-cell" x="1200" y="800" />
-                <use href="#safe-cell" x="800" y="200" />
-
-                <use href="#safe-cell" x="600" y="300" />
-                <use href="#safe-cell" x="1100" y="600" />
-                <use href="#safe-cell" x="800" y="1100" />
-                <use href="#safe-cell" x="300" y="800" />
+                <!-- Shared Safe Spots (Corrected) -->
+                <use href="#safe-cell" x="600" y="200" />
+                <use href="#safe-cell" x="1200" y="600" />
+                <use href="#safe-cell" x="800" y="1200" />
+                <use href="#safe-cell" x="200" y="800" />
             </svg>
 
             <!-- Tokens & Ghosts -->
@@ -1142,6 +1137,7 @@
 
             // Goal Logic
             // If pos + roll > 57 (Goal Index), can't move
+            if (pos === 57) return false; // Already at goal
             if (pos + roll > 57) return false;
 
             return true;
@@ -1175,6 +1171,10 @@
 
         function requestRoll() {
             if (isRolling) return;
+            if (gameState.finished[gameState.turn]) {
+                toast("لقد أنهيت اللعبة! 🏆");
+                return;
+            }
             if (playMode === 'online' && gameState.turn !== myColorIndex) return;
             if (playMode === 'offline' && gameState.turn !== 0) return;
 
@@ -1305,52 +1305,41 @@
                 // Standard Ludo: 6 gives another turn. Capture might depending on variant.
             }
 
-            if (currentLocal === 57) { // Reached Goal
-                sfx.win();
-                showConfetti(20);
-                // Bonus turn for finishing?
+            if (currentLocal >= 57) { // Reached Goal
+                currentLocal = 57; // Cap
+                checkWin(pid);
             }
 
+            gameState.tokens[pid][tid] = currentLocal;
+            renderTokens();
+
             // Next Turn decision
-            // If roll was 6, same player. Else next.
-            if (roll === 6) {
-                toast("لديك لفة إضافية! 🎲");
-                gameState.dice = 0; // Reset dice
+            if (roll === 6 || currentLocal === 57) { // Roll again if 6 OR Finished token (reward)
+                if (currentLocal === 57 && !gameState.finished[pid]) {
+                    toast("وصلت! 🏁 العب مرة أخرى");
+                } else if (roll === 6) {
+                    toast("لديك لفة إضافية! 🎲");
+                }
+
+                if (gameState.finished[pid]) {
+                    nextTurn(); // If finished completely, pass
+                    return;
+                }
+
+                gameState.dice = 0;
                 if (playMode === 'online') updateOnlineState(gameState);
                 else {
                     updateUI();
                     if (playMode === 'offline' && gameState.turn !== 0) {
-                        // AI Rolled 6 -> Roll again
                         setTimeout(() => performRoll(), 1500);
                     }
-                    // Player rolled 6 -> UI remains enabled
                 }
             } else {
                 nextTurn();
             }
         }
 
-        function nextTurn() {
-            gameState.dice = 0;
-            gameState.turn = (gameState.turn + 1) % 4;
-
-            if (playMode === 'online') {
-                updateOnlineState(gameState);
-            } else {
-                updateUI();
-
-                // Offline Logic
-                if (gameState.turn === 0) {
-                    // Player Turn
-                    // UI automatically enables dice via updateDiceState in updateUI
-                } else {
-                    // Bot Turn
-                    setTimeout(() => {
-                        performRoll();
-                    }, 1000);
-                }
-            }
-        }
+        // nextTurn removed from here as it is redefined above in checkWin block context
 
         function toGlobal(pid, localPos) {
             const offset = pid * 13;
@@ -1363,38 +1352,47 @@
             // For Blue (pid=2), local 51 is global (51+26)%52 = 25.
             // For Red (pid=3), local 51 is global (51+39)%52 = 38.
             // This is the cell *before* the home stretch.
-            if (localPos >= 52) return -1; // Already in home stretch, not on common track for collision
-
-            // The actual start position for each player on the global track is:
-            // Green: 0
-            // Yellow: 13
-            // Blue: 26
-            // Red: 39
-            // The path for each player is:
-            // Green: 0 -> 51
-            // Yellow: 13 -> 51 -> 0 -> 12
-            // Blue: 26 -> 51 -> 0 -> 25
-            // Red: 39 -> 51 -> 0 -> 38
-
-            // The `getPathForPlayer` function already handles the rotation for the visual path.
-            // For collision, we need to map a player's local common track position (0-51) to a global 0-51 index.
-            // Player 0 (Green): local 0-51 maps directly to global 0-51.
-            // Player 1 (Yellow): local 0 maps to global 13. local 1 maps to global 14 ... local 38 maps to global 51.
-            // Then local 39 maps to global 0 ... local 51 maps to global 12.
-            // This is a cyclic shift.
-            const globalStartOffset = pid * 13; // Where this player's '0' local position is on the global track
+            if (localPos >= 52) return -1;
+            const globalStartOffset = pid * 13;
             return (globalStartOffset + localPos) % 52;
         }
 
         function isSafe(globalPos) {
-            // Stars at 0, 8, 13, 21, 26, 34, 39, 47 (Global indices for starts and safe spots)
-            // Green start: 0 (Global 0)
-            // Yellow start: 0 (Global 13)
-            // Blue start: 0 (Global 26)
-            // Red start: 0 (Global 39)
-            // Usually star represents safe.
+            // Stars at Logical Safe Spots
+            // Start Spots: 0 (G), 13 (Y), 26 (B), 39 (R)
+            // Star Spots 8 steps from start:
+            // 8 (G), 21 (Y), 34 (B), 47 (R)
             const safes = [0, 8, 13, 21, 26, 34, 39, 47];
             return safes.includes(globalPos);
+        }
+
+        function checkWin(pid) {
+            const allHome = gameState.tokens[pid].every(t => t >= 57);
+            if (allHome && !gameState.finished[pid]) {
+                gameState.finished[pid] = true;
+                toast(`🏆 ${gameState.players[pid].name} Wins!`);
+                sfx.win();
+                showConfetti(50);
+            }
+        }
+
+        function nextTurn() {
+            gameState.dice = 0;
+            let checks = 0;
+            do {
+                gameState.turn = (gameState.turn + 1) % 4;
+                checks++;
+            } while (gameState.finished[gameState.turn] && checks < 4);
+
+            if (playMode === 'online') {
+                updateOnlineState(gameState);
+            } else {
+                updateUI();
+                // Offline Logic
+                if (gameState.turn !== 0 && !gameState.finished[gameState.turn]) {
+                    setTimeout(() => performRoll(), 1000);
+                }
+            }
         }
 
         // --- IMPROVED RENDER TOKENS ---
@@ -1525,9 +1523,21 @@
                 return { x: px * (wrapper / 100), y: py * (wrapper / 100) };
             }
 
-            if (pos >= 57) { // Goal Center
+            if (pos >= 57) { // Goal Center - Visual Offset per Player
                 const wrapper = document.getElementById('game-container').offsetWidth;
-                return { x: wrapper / 2, y: wrapper / 2 };
+                // Offset into their color triangle
+                // Green (0): Left-Top -> Center is (7,7). Triangle points Left? No, Green is Left.
+                // Bases: G(TL), Y(TR), B(BR), R(BL).
+                // Home Triangles: G(Left), Y(Top), B(Right), R(Bottom).
+                const center = wrapper / 2;
+                const offset = wrapper * 0.05;
+
+                // Specific manual offsets for visual clarity
+                if (pid === 0) return { x: center - offset, y: center - offset }; // Green TL-ish
+                if (pid === 1) return { x: center + offset, y: center - offset }; // Yellow TR-ish
+                if (pid === 2) return { x: center + offset, y: center + offset }; // Blue BR-ish
+                if (pid === 3) return { x: center - offset, y: center + offset }; // Red BL-ish
+                return { x: center, y: center };
             }
 
             // Path Logic

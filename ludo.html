@@ -196,15 +196,25 @@
             right: 20px;
             width: 80px;
             height: 80px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.9) !important;
+            /* Force visible bg */
             border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 3px solid #334155;
+            /* Distinct border */
             cursor: pointer;
             transition: transform 0.1s;
+            z-index: 150;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        #dice-panel.disabled {
+            filter: grayscale(1);
+            cursor: not-allowed;
+            opacity: 0.8;
+            /* Kept visible but dimmed so others see the roll */
         }
 
         #dice-panel:active {
@@ -478,6 +488,28 @@
     <div id="screen-online" class="screen hidden">
         <div class="panel">
             <h2>🌍 الأونلاين</h2>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; margin-bottom:5px; color:#cbd5e1">اختر شكلك:</label>
+                <div style="display:flex; justify-content:center; gap:10px;">
+                    <div onclick="selectAvatar('Felix')" class="avatar-opt"
+                        style="cursor:pointer; border:2px solid transparent; border-radius:50%; padding:2px;"><img
+                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" width="40"></div>
+                    <div onclick="selectAvatar('Aneka')" class="avatar-opt"
+                        style="cursor:pointer; border:2px solid transparent; border-radius:50%; padding:2px;"><img
+                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" width="40"></div>
+                    <div onclick="selectAvatar('Bob')" class="avatar-opt"
+                        style="cursor:pointer; border:2px solid transparent; border-radius:50%; padding:2px;"><img
+                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob" width="40"></div>
+                    <div onclick="selectAvatar('Zack')" class="avatar-opt"
+                        style="cursor:pointer; border:2px solid transparent; border-radius:50%; padding:2px;"><img
+                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Zack" width="40"></div>
+                    <div onclick="selectAvatar('Bear')" class="avatar-opt"
+                        style="cursor:pointer; border:2px solid transparent; border-radius:50%; padding:2px;"><img
+                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bear" width="40"></div>
+                </div>
+            </div>
+
             <button onclick="createRoom()">➕ إنشاء غرفة</button>
             <div style="display:flex; gap: 5px; align-items: center;">
                 <input id="room-code-input" placeholder="اكتب كود الغرفة" style="margin: 0;">
@@ -599,7 +631,8 @@
         </div>
 
         <!-- Controls -->
-        <div id="dice-panel" class="hidden" onclick="requestRoll()">
+        <!-- Dice is now always visible but disabled when not your turn -->
+        <div id="dice-panel" class="" onclick="requestRoll()">
             <div id="dice-cube" class="d-6">
                 <div class="dot"></div>
                 <div class="dot"></div>
@@ -611,9 +644,10 @@
                 <div class="dot"></div>
                 <div class="dot"></div>
             </div>
-            <div
-                style="position: absolute; bottom: -25px; font-weight: bold; font-size: 0.8rem; width: 100px; text-align: center;">
-                اضغط للرمي</div>
+            <div id="dice-msg"
+                style="position: absolute; bottom: -30px; font-weight: bold; font-size: 0.8rem; width: 120px; text-align: center; color:var(--accent); text-shadow:0 1px 2px black;">
+                اضغط للرمي
+            </div>
         </div>
 
         <button id="chat-btn" onclick="toggleChat()">💬</button>
@@ -659,10 +693,12 @@
 
         let myName = localStorage.getItem('heka_global_player_name') || "Player";
         let myId = Math.random().toString(36).substr(2, 9);
+        let myAvatar = 'Felix';
         let currentRoom = null;
         let playMode = 'offline'; // offline, online
         let myColorIndex = 0; // if online
         let diceAnimInterval;
+        let isRolling = false;
 
         // --- SOUNDS ---
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -697,13 +733,17 @@
         function startGame(mode) {
             playMode = mode;
             if (mode === 'offline') {
-                myColorIndex = 0; // You are always Green (First)
-                gameState.players = [{ n: myName, id: 'me' }, { n: 'Bot 1', id: 'bot' }, { n: 'Bot 2', id: 'bot' }, { n: 'Bot 3', id: 'bot' }];
+                myColorIndex = 0;
+                gameState.players = [
+                    { n: myName, id: 'me', avatar: myAvatar },
+                    { n: 'Bot 1', id: 'bot', avatar: 'Felix' },
+                    { n: 'Bot 2', id: 'bot', avatar: 'Bear' },
+                    { n: 'Bot 3', id: 'bot', avatar: 'Zack' }
+                ];
                 gameState.turn = 0;
                 resetBoard();
                 showScreen('screen-game');
                 updateUI();
-                setDiceVisible(true);
             }
         }
 
@@ -713,7 +753,7 @@
         function createRoom() {
             const code = Math.floor(1000 + Math.random() * 9000).toString();
             db.ref('ludo_rooms/' + code).set({
-                players: [{ name: myName, id: myId, color: 0 }],
+                players: [{ name: myName, id: myId, color: 0, avatar: myAvatar }],
                 turn: 0,
                 dice: 0,
                 tokens: gameState.tokens,
@@ -731,7 +771,7 @@
                 if (d.players.length >= 4) return toast('الغرفة ممتلئة');
 
                 const color = d.players.length;
-                d.players.push({ name: myName, id: myId, color: color });
+                d.players.push({ name: myName, id: myId, color: color, avatar: myAvatar });
                 db.ref('ludo_rooms/' + code).update({ players: d.players });
                 enterLobby(code, color);
             });
@@ -750,21 +790,29 @@
 
                 // Lobby Update
                 const pList = document.getElementById('lobby-players');
-                pList.innerHTML = val.players.map(p => `<div>${p.color === myColorIndex ? '👤' : '👤'} ${p.name} <span class="d-dot" style="background:${getHexColor(p.color)}">●</span></div>`).join('');
+                pList.innerHTML = val.players.map(p => `
+                    <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; margin:5px 0;">
+                        <span style="font-weight:bold">${p.name}</span>
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${p.avatar || 'Felix'}" width="30" style="border-radius:50%; background:#333;">
+                        <span class="d-dot" style="background:${getHexColor(p.color)}; width:10px; height:10px; display:inline-block; border-radius:50%"></span>
+                    </div>`).join('');
 
                 if (val.players[0].id === myId) document.getElementById('start-btn').classList.remove('hidden');
 
                 // Game Start Trigger
                 if (val.status === 'playing') {
-                    // Sync Game State
-                    gameState = val; // Dangerous overwrite, better merge
+                    gameState = val;
                     if (document.getElementById('screen-game').classList.contains('hidden')) {
                         showScreen('screen-game');
                     }
-                    updateUI();
 
-                    // Check if it's my turn to show dice
-                    setDiceVisible(gameState.turn === myColorIndex && gameState.dice === 0);
+                    // Dice Animation Sync (Optional refinement)
+                    // If server dice changes and it's not 0, show it
+                    if (gameState.dice > 0 && !isRolling) {
+                        renderDice(gameState.dice);
+                    }
+
+                    updateUI();
                 }
             });
         }
@@ -795,55 +843,87 @@
                 c.classList.toggle('active', i === gameState.turn);
                 const p = gameState.players[i] || {};
                 c.querySelector('.p-name').innerText = p.name || '---';
+                if (p.avatar) c.querySelector('img').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.avatar}`;
                 c.style.opacity = p.name ? 1 : 0.5;
             });
+
+            // Update Dice Interaction State
+            const isMyTurn = (playMode === 'online') ? (gameState.turn === myColorIndex) : (gameState.turn === 0);
+            updateDiceState(isMyTurn && gameState.dice === 0 && !isRolling);
 
             // Render Tokens
             renderTokens();
 
             // Dice
-            renderDice(gameState.dice);
+            if (!isRolling) renderDice(gameState.dice || 1);
+        }
+
+        function updateDiceState(canRoll) {
+            const p = document.getElementById('dice-panel');
+            const m = document.getElementById('dice-msg');
+            if (canRoll) {
+                p.classList.remove('disabled');
+                p.style.pointerEvents = 'auto';
+                m.innerText = "دورك! اضغط للرمي";
+            } else {
+                p.classList.add('disabled');
+                p.style.pointerEvents = 'none';
+
+                // Show who is playing
+                const currentP = gameState.players[gameState.turn];
+                if (currentP) {
+                    m.innerText = (gameState.turn === myColorIndex || (playMode === 'offline' && gameState.turn === 0)) ? "جاري الرمي..." : `دور ${currentP.name}`;
+                }
+            }
         }
 
         function renderDice(val) {
+            if (val === 0) val = 1; // Default look
             const d = document.getElementById('dice-cube');
             d.className = 'd-' + val;
             d.classList.remove('rolling');
         }
 
-        function setDiceVisible(v) {
-            const dp = document.getElementById('dice-panel');
-            if (v) dp.classList.remove('hidden');
-            else dp.classList.add('hidden');
+        // Removed setDiceVisible as we now use Disabled class
+
+        function selectAvatar(seed) {
+            myAvatar = seed;
+            document.querySelectorAll('.avatar-opt').forEach(d => d.style.borderColor = 'transparent');
+            event.currentTarget.style.borderColor = 'var(--accent)';
         }
 
         function requestRoll() {
-            if (playMode === 'online' && gameState.dice !== 0) return;
+            if (isRolling) return;
+            // Additional check: valid turn?
+            if (playMode === 'online' && gameState.turn !== myColorIndex) return;
+            if (playMode === 'offline' && gameState.turn !== 0) return;
 
+            performRoll();
+        }
+
+        function performRoll() {
+            isRolling = true;
             const btn = document.getElementById('dice-panel');
-            btn.style.pointerEvents = 'none'; // Lock
             document.getElementById('dice-cube').classList.add('rolling');
+            document.getElementById('dice-msg').innerText = "🎲 ...";
             sfx.dice();
+
+            // Send "Rolling" status online ? Simplified: just local, result syncs
 
             setTimeout(() => {
                 const roll = Math.floor(Math.random() * 6) + 1;
+                isRolling = false;
+
+                gameState.dice = roll;
 
                 if (playMode === 'online') {
-                    // Send to server
-                    // But in online, we usually trust client who rolled or server. Here trust client.
-                    // Ideally we update only dice first.
-                    gameState.dice = roll;
-                    // Only I can click my dice
                     updateOnlineState({ dice: roll });
-                    // Logic continues in listener or here?
-                    // Let's do local optimistic, listener will confirm
                 } else {
-                    gameState.dice = roll;
                     handleRollResult(roll);
                 }
 
                 renderDice(roll);
-                btn.style.pointerEvents = 'auto';
+                updateUI(); // Refresh UI state based on new dice
             }, 600);
         }
 
@@ -972,9 +1052,14 @@
                 toast("لديك لفة إضافية! 🎲");
                 gameState.dice = 0; // Reset dice
                 if (playMode === 'online') updateOnlineState(gameState);
+                if (playMode === 'online') updateOnlineState(gameState);
                 else {
-                    setDiceVisible(true);
-                    if (playMode === 'offline' && gameState.turn !== 0) setTimeout(requestRoll, 1000); // AI rolls again
+                    updateUI();
+                    if (playMode === 'offline' && gameState.turn !== 0) {
+                        // AI Rolled 6 -> Roll again
+                        setTimeout(() => performRoll(), 1500);
+                    }
+                    // Player rolled 6 -> UI remains enabled
                 }
             } else {
                 nextTurn();
@@ -989,11 +1074,16 @@
                 updateOnlineState(gameState);
             } else {
                 updateUI();
+
+                // Offline Logic
                 if (gameState.turn === 0) {
-                    setDiceVisible(true);
+                    // Player Turn
+                    // UI automatically enables dice via updateDiceState in updateUI
                 } else {
-                    setDiceVisible(false);
-                    setTimeout(requestRoll, 1000); // AI
+                    // Bot Turn
+                    setTimeout(() => {
+                        performRoll();
+                    }, 1000);
                 }
             }
         }

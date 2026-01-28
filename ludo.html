@@ -138,6 +138,18 @@
             border-color: var(--accent);
         }
 
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        .safe-spot-marker {
+            position: absolute;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' opacity='0.5'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z'/%3E%3C/svg%3E") no-repeat center;
+            width: 20px;
+            height: 20px;
+            z-index: 5;
+        }
+
         /* Game Area */
         #game-container {
             position: relative;
@@ -601,14 +613,17 @@
     <!-- GAME AREA -->
     <div id="screen-game" class="screen hidden">
         <!-- Player Stats -->
-        <div class="player-card p-green" id="p-card-0"><img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed= Felix"> <span class="p-name">Player 1</span></div>
-        <div class="player-card p-yellow" id="p-card-1"><span class="p-name">Player 2</span> <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka"></div>
-        <div class="player-card p-blue" id="p-card-2"><span class="p-name">Player 3</span> <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob"></div>
-        <div class="player-card p-red" id="p-card-3"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Zack">
-            <span class="p-name">Player 4</span>
+        <div class="player-card" id="p-card-0" style="top:10px; left:10px;">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed= Felix"> <span class="p-name">Player 1</span>
+        </div>
+        <div class="player-card" id="p-card-1" style="top:10px; right:10px;">
+            <span class="p-name">Player 2</span> <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka">
+        </div>
+        <div class="player-card" id="p-card-2" style="bottom:10px; right:10px;">
+            <span class="p-name">Player 3</span> <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob">
+        </div>
+        <div class="player-card" id="p-card-3" style="bottom:10px; left:10px;">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Zack"> <span class="p-name">Player 4</span>
         </div>
 
         <!-- The Board -->
@@ -679,15 +694,30 @@
 
                 <!-- Home Arrows / Triangles -->
 
-                <!-- Safe Spots (Stars) -->
-                <use href="#star" x="200" y="600" width="100" height="100" transform="translate(10,10) scale(0.8)" />
-                <!-- Starting Red -->
-                <use href="#star" x="800" y="200" width="100" height="100" transform="translate(10,10) scale(0.8)" />
-                <!-- Starting Green -->
-                <use href="#star" x="1200" y="800" width="100" height="100" transform="translate(10,10) scale(0.8)" />
-                <!-- Starting Yellow -->
-                <use href="#star" x="600" y="1200" width="100" height="100" transform="translate(10,10) scale(0.8)" />
-                <!-- Starting Blue -->
+                <!-- Safe Spots (Shields) -->
+                <!-- Green Start -->
+                <circle cx="250" cy="650" r="30" fill="rgba(0,0,0,0.1)" stroke="none" />
+                <path d="M235 635 L265 635 L265 665 L235 665 Z" fill="#22c55e" transform="translate(15,15) scale(0.6)"
+                    opacity="0.3" />
+
+                <!-- Yellow Start -->
+                <circle cx="850" cy="250" r="30" fill="rgba(0,0,0,0.1)" stroke="none" />
+
+                <!-- Stars for all safe spots (0,8,13,21,26,34,39,47) -->
+                <!-- We'll programmatically render better markers or use CSS overlay. 
+                     Actually, let's use the 'Safe' text or Shield Icon in CSS. 
+                     For now, let's rely on the colored start squares being obvious.
+                -->
+                <text x="250" y="660" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
+                <text x="850" y="260" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
+                <text x="1250" y="860" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
+                <text x="650" y="1260" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
+
+                <!-- Shared Safe Spots -->
+                <text x="650" y="360" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
+                <text x="1150" y="660" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
+                <text x="850" y="1160" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
+                <text x="350" y="860" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
             </svg>
 
             <!-- Tokens & Ghosts -->
@@ -1107,6 +1137,7 @@
         function handleRollResult(roll) {
             const playerId = gameState.turn;
             const pieces = gameState.tokens[playerId];
+            // Fix: Check move logic
             const moveables = pieces.map((pos, idx) => canMove(playerId, idx, roll) ? idx : -1).filter(i => i !== -1);
 
             if (moveables.length === 0) {
@@ -1114,18 +1145,23 @@
                 setTimeout(nextTurn, 1000);
             } else if (moveables.length === 1 && playMode === 'offline' && gameState.turn === 0) {
                 // Auto move for player if only 1 option (Convenience)
-                setTimeout(() => moveToken(playerId, moveables[0]), 500);
+                const targetIdx = moveables[0];
+                setTimeout(() => moveToken(playerId, targetIdx), 500);
             } else if (playMode === 'offline' && gameState.turn !== 0) {
                 // AI always auto
                 setTimeout(() => runAI(moveables), 800);
             } else {
-                // Highlight
+                // Highlight for Player
+                // Ensure UI is updated so tokens exist
+                renderTokens();
                 moveables.forEach(idx => {
+                    // Try to find element
+                    // We must wait for render completion or use timeout? No renderTokens is sync dom.
                     const el = document.getElementById(`t-${playerId}-${idx}`);
                     if (el) {
                         el.classList.add('glow');
-                        // Add bounce effect
-                        el.style.animation = 'bounce 0.5s infinite alternate';
+                        el.style.animation = 'pulse-glow 0.8s infinite alternate';
+                        // Force re-attach click if needed? renderTokens handles it.
                     }
                 });
             }
@@ -1152,6 +1188,7 @@
         function moveToken(pid, tid) {
             // Clear glows
             document.querySelectorAll('.glow').forEach(e => e.classList.remove('glow'));
+            document.querySelectorAll('.token').forEach(e => e.style.animation = ''); // Clear pulse-glow
 
             const roll = gameState.dice;
             let currentLocal = gameState.tokens[pid][tid];
@@ -1209,7 +1246,6 @@
                 toast("لديك لفة إضافية! 🎲");
                 gameState.dice = 0; // Reset dice
                 if (playMode === 'online') updateOnlineState(gameState);
-                if (playMode === 'online') updateOnlineState(gameState);
                 else {
                     updateUI();
                     if (playMode === 'offline' && gameState.turn !== 0) {
@@ -1247,7 +1283,36 @@
 
         function toGlobal(pid, localPos) {
             const offset = pid * 13;
-            return (localPos + offset) % 52;
+            // Special handling for home stretch entry point (51)
+            // Player 0 (Green) path: 0-51 (common), 52-56 (home), 57 (goal)
+            // Global path: 0-51 (common)
+            // If localPos is 51, it's the entry to home for that player, which is a specific global cell.
+            // For Green (pid=0), local 51 is global 51.
+            // For Yellow (pid=1), local 51 is global (51+13)%52 = 12.
+            // For Blue (pid=2), local 51 is global (51+26)%52 = 25.
+            // For Red (pid=3), local 51 is global (51+39)%52 = 38.
+            // This is the cell *before* the home stretch.
+            if (localPos >= 52) return -1; // Already in home stretch, not on common track for collision
+
+            // The actual start position for each player on the global track is:
+            // Green: 0
+            // Yellow: 13
+            // Blue: 26
+            // Red: 39
+            // The path for each player is:
+            // Green: 0 -> 51
+            // Yellow: 13 -> 51 -> 0 -> 12
+            // Blue: 26 -> 51 -> 0 -> 25
+            // Red: 39 -> 51 -> 0 -> 38
+
+            // The `getPathForPlayer` function already handles the rotation for the visual path.
+            // For collision, we need to map a player's local common track position (0-51) to a global 0-51 index.
+            // Player 0 (Green): local 0-51 maps directly to global 0-51.
+            // Player 1 (Yellow): local 0 maps to global 13. local 1 maps to global 14 ... local 38 maps to global 51.
+            // Then local 39 maps to global 0 ... local 51 maps to global 12.
+            // This is a cyclic shift.
+            const globalStartOffset = pid * 13; // Where this player's '0' local position is on the global track
+            return (globalStartOffset + localPos) % 52;
         }
 
         function isSafe(globalPos) {
@@ -1300,16 +1365,20 @@
                     el.style.transform = `translate(-50%, -50%) scale(${scale})`;
 
                     // Interaction
-                    el.onclick = () => {
-                        // Click handler
-                        if (playMode === 'online' && gameState.turn !== myColorIndex) return;
-                        if (el.classList.contains('glow')) moveToken(d.p, d.tId);
+                    el.onclick = (e) => {
+                        e.stopPropagation(); // Prevent propagation
+                        if (el.classList.contains('glow')) {
+                            moveToken(d.p, d.tId);
+                        }
                     };
 
                     // Hover Ghost
                     if (el.classList.contains('glow')) {
+                        el.style.cursor = "pointer";
                         el.onmouseenter = () => showGhost(d.p, gameState.tokens[d.p][d.tId], gameState.dice);
                         el.onmouseleave = () => ghostLayer.innerHTML = "";
+                    } else {
+                        el.style.cursor = "default";
                     }
 
                     layer.appendChild(el);

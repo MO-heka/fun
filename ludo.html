@@ -282,8 +282,11 @@
         #dice-panel {
             position: absolute;
             bottom: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.9) !important;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.95);
             /* Force visible bg */
             border-radius: 15px;
             display: flex;
@@ -293,10 +296,8 @@
             /* Distinct border */
             cursor: pointer;
             transition: transform 0.1s;
-            z-index: 150;
+            z-index: 2000;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            width: 80px;
-            height: 80px;
         }
 
         #dice-panel.disabled {
@@ -579,19 +580,20 @@
 
             /* Custom Positioning for Mobile to not cover board */
             #dice-panel {
-                bottom: -90px;
-                left: 50%;
-                transform: translateX(-50%);
+                bottom: 20px;
+                right: 20px;
+                left: auto;
+                transform: none;
                 width: 70px;
                 height: 70px;
             }
 
             #dice-panel:active {
-                transform: translateX(-50%) scale(0.95);
+                transform: scale(0.95);
             }
 
             #chat-btn {
-                bottom: -90px;
+                bottom: 100px;
                 right: 20px;
                 width: 45px;
                 height: 45px;

@@ -430,6 +430,40 @@
         let selectedSquare = null;
         let chatOpen = false;
 
+        // --- Sound Manager (Web Audio API) ---
+        const SoundManager = {
+            ctx: null,
+            init: function () {
+                try {
+                    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                } catch (e) { console.log('Web Audio API not supported'); }
+            },
+            playTone: function (freq, type, duration, vol = 0.1) {
+                if (!this.ctx) this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+            playMove: function () { this.playTone(300, 'sine', 0.1, 0.2); },
+            playCapture: function () { this.playTone(150, 'square', 0.15, 0.2); },
+            playGameOver: function () {
+                if (!this.ctx) this.init();
+                // Simple chord
+                this.playTone(400, 'sine', 1.0, 0.2);
+                setTimeout(() => this.playTone(500, 'sine', 1.0, 0.2), 200);
+                setTimeout(() => this.playTone(600, 'sine', 1.5, 0.2), 400);
+            }
+        };
+
         // قيم القطع للتقييم
         const pieceValues = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
 
@@ -565,6 +599,9 @@
             gameMode = (level === 'easy') ? 'beginner' : 'pro'; // إظهار المساعدات في السهل فقط
             boardOrientation = 'white';
 
+            // Initialize Audio Logic
+            SoundManager.init();
+
             game.reset();
             showScreen('screen-game');
             updateOfflineUI();
@@ -591,44 +628,46 @@
             let move = null;
 
             if (aiLevel === 'easy') {
-                // حركة عشوائية تماماً
+                // Easy: Random move
                 move = moves[Math.floor(Math.random() * moves.length)];
             } else if (aiLevel === 'medium') {
-                // التقاط قطع إن أمكن، وإلا عشوائي
-                // نحتاج game.moves({verbose: true}) لنعرف الـ capture
-                const vMoves = game.moves({ verbose: true });
-                const captures = vMoves.filter(m => m.flags.includes('c') || m.flags.includes('e')); // capture or en passant
-                if (captures.length > 0) {
-                    // خذ أفضل أكلة (تقييم بسيط)
-                    // بما أننا لا نعرف القطعة المأكولة بالتفصيل في chess.js 0.10.x بسهولة في الـ move object أحياناً
-                    // سنجرب حركة عشوائية من الأكلات
-                    move = captures[Math.floor(Math.random() * captures.length)];
-                } else {
-                    move = moves[Math.floor(Math.random() * moves.length)];
-                }
+                // Medium: Minimax Depth 2 (Basic material only)
+                move = getBestMove(game, 2, false);
             } else {
-                // Hard: Minimax Depth 2
-                // أفضل حركة باستخدام تقييم بسيط
-                move = getBestMove(game, 2);
+                // Hard: Minimax Depth 3 (Material + Position)
+                move = getBestMove(game, 3, true);
             }
 
             // تنفيذ الحركة
-            // move قد تكون string (SAN) أو object. chess.js .move() يقبل كلاهما
-            game.move(move);
-            renderBoard(game.history({ verbose: true }).pop()); // آخر حركة
-            updateStatus();
+            let result = game.move(move);
+            if (result) {
+                if (result.flags.includes('c') || result.flags.includes('e')) SoundManager.playCapture();
+                else SoundManager.playMove();
+
+                renderBoard(game.history({ verbose: true }).pop()); // آخر حركة
+                updateStatus();
+            }
         }
 
-        // Minimax بسيط للصعب
-        function getBestMove(gameInst, depth) {
-            let possibleMoves = gameInst.moves();
-            let bestMove = -9999;
-            let bestMoveFound;
+        // Minimax AI
+        function getBestMove(gameInst, depth, usePosition) {
+            let possibleMoves = gameInst.moves({ verbose: true }); // Get full move objects for sorting
+
+            // Move ordering: Capture moves first for better pruning
+            possibleMoves.sort((a, b) => {
+                let scoreA = 0, scoreB = 0;
+                if (a.flags.includes('c') || a.flags.includes('e')) scoreA = 10;
+                if (b.flags.includes('c') || b.flags.includes('e')) scoreB = 10;
+                return scoreB - scoreA;
+            });
+
+            let bestMove = -99999;
+            let bestMoveFound = possibleMoves[0]; // Default fallback
 
             for (let i = 0; i < possibleMoves.length; i++) {
                 let move = possibleMoves[i];
                 gameInst.move(move);
-                let value = minimax(gameInst, depth - 1, -10000, 10000, false);
+                let value = minimax(gameInst, depth - 1, -100000, 100000, false, usePosition);
                 gameInst.undo();
                 if (value >= bestMove) {
                     bestMove = value;
@@ -638,25 +677,27 @@
             return bestMoveFound;
         }
 
-        function minimax(gameInst, depth, alpha, beta, isMaximisingPlayer) {
-            if (depth === 0) return -evaluateBoard(gameInst.board()); // تقييم اللوح
+        function minimax(gameInst, depth, alpha, beta, isMaximisingPlayer, usePosition) {
+            if (depth === 0) return -evaluateBoard(gameInst.board(), usePosition);
 
             let possibleMoves = gameInst.moves();
+            // No simple move ordering here for performance, but could add it
+
             if (isMaximisingPlayer) {
-                let bestMove = -9999;
+                let bestMove = -99999;
                 for (let i = 0; i < possibleMoves.length; i++) {
                     gameInst.move(possibleMoves[i]);
-                    bestMove = Math.max(bestMove, minimax(gameInst, depth - 1, alpha, beta, !isMaximisingPlayer));
+                    bestMove = Math.max(bestMove, minimax(gameInst, depth - 1, alpha, beta, !isMaximisingPlayer, usePosition));
                     gameInst.undo();
                     alpha = Math.max(alpha, bestMove);
                     if (beta <= alpha) return bestMove;
                 }
                 return bestMove;
             } else {
-                let bestMove = 9999;
+                let bestMove = 99999;
                 for (let i = 0; i < possibleMoves.length; i++) {
                     gameInst.move(possibleMoves[i]);
-                    bestMove = Math.min(bestMove, minimax(gameInst, depth - 1, alpha, beta, !isMaximisingPlayer));
+                    bestMove = Math.min(bestMove, minimax(gameInst, depth - 1, alpha, beta, !isMaximisingPlayer, usePosition));
                     gameInst.undo();
                     beta = Math.min(beta, bestMove);
                     if (beta <= alpha) return bestMove;
@@ -665,28 +706,107 @@
             }
         }
 
-        function evaluateBoard(board) {
+        // Piece Square Tables (PST) for Position Evaluation
+        const pst_w = {
+            p: [
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [50, 50, 50, 50, 50, 50, 50, 50],
+                [10, 10, 20, 30, 30, 20, 10, 10],
+                [5, 5, 10, 25, 25, 10, 5, 5],
+                [0, 0, 0, 20, 20, 0, 0, 0],
+                [5, -5, -10, 0, 0, -10, -5, 5],
+                [5, 10, 10, -20, -20, 10, 10, 5],
+                [0, 0, 0, 0, 0, 0, 0, 0]
+            ],
+            n: [
+                [-50, -40, -30, -30, -30, -30, -40, -50],
+                [-40, -20, 0, 0, 0, 0, -20, -40],
+                [-30, 0, 10, 15, 15, 10, 0, -30],
+                [-30, 5, 15, 20, 20, 15, 5, -30],
+                [-30, 0, 15, 20, 20, 15, 0, -30],
+                [-30, 5, 10, 15, 15, 10, 5, -30],
+                [-40, -20, 0, 5, 5, 0, -20, -40],
+                [-50, -40, -30, -30, -30, -30, -40, -50]
+            ],
+            b: [
+                [-20, -10, -10, -10, -10, -10, -10, -20],
+                [-10, 0, 0, 0, 0, 0, 0, -10],
+                [-10, 0, 5, 10, 10, 5, 0, -10],
+                [-10, 5, 5, 10, 10, 5, 5, -10],
+                [-10, 0, 10, 10, 10, 10, 0, -10],
+                [-10, 10, 10, 10, 10, 10, 10, -10],
+                [-10, 5, 0, 0, 0, 0, 5, -10],
+                [-20, -10, -10, -10, -10, -10, -10, -20]
+            ],
+            r: [
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [5, 10, 10, 10, 10, 10, 10, 5],
+                [-5, 0, 0, 0, 0, 0, 0, -5],
+                [-5, 0, 0, 0, 0, 0, 0, -5],
+                [-5, 0, 0, 0, 0, 0, 0, -5],
+                [-5, 0, 0, 0, 0, 0, 0, -5],
+                [-5, 0, 0, 0, 0, 0, 0, -5],
+                [0, 0, 0, 5, 5, 0, 0, 0]
+            ],
+            q: [
+                [-20, -10, -10, -5, -5, -10, -10, -20],
+                [-10, 0, 0, 0, 0, 0, 0, -10],
+                [-10, 0, 5, 5, 5, 5, 0, -10],
+                [-5, 0, 5, 5, 5, 5, 0, -5],
+                [0, 0, 5, 5, 5, 5, 0, -5],
+                [-10, 5, 5, 5, 5, 5, 0, -10],
+                [-10, 0, 5, 0, 0, 0, 0, -10],
+                [-20, -10, -10, -5, -5, -10, -10, -20]
+            ],
+            k: [
+                [-30, -40, -40, -50, -50, -40, -40, -30],
+                [-30, -40, -40, -50, -50, -40, -40, -30],
+                [-30, -40, -40, -50, -50, -40, -40, -30],
+                [-30, -40, -40, -50, -50, -40, -40, -30],
+                [-20, -30, -30, -40, -40, -30, -30, -20],
+                [-10, -20, -20, -20, -20, -20, -20, -10],
+                [20, 20, 0, 0, 0, 0, 20, 20],
+                [20, 30, 10, 0, 0, 10, 30, 20]
+            ]
+        };
+
+        // Mirror for black (invert rows)
+        const pst_b = {};
+        Object.keys(pst_w).forEach(k => {
+            pst_b[k] = pst_w[k].slice().reverse();
+        });
+
+        function evaluateBoard(board, usePosition) {
             let totalEvaluation = 0;
             for (let i = 0; i < 8; i++) {
                 for (let j = 0; j < 8; j++) {
-                    totalEvaluation = totalEvaluation + getPieceValue(board[i][j], i, j);
+                    totalEvaluation = totalEvaluation + getPieceValue(board[i][j], i, j, usePosition);
                 }
             }
             return totalEvaluation;
         }
 
-        function getPieceValue(piece, x, y) {
+        function getPieceValue(piece, x, y, usePosition) {
             if (piece === null) return 0;
-            const getAbsoluteValue = (piece) => {
-                if (piece.type === 'p') return 10;
-                if (piece.type === 'r') return 50;
-                if (piece.type === 'n') return 30;
-                if (piece.type === 'b') return 30;
-                if (piece.type === 'q') return 90;
-                if (piece.type === 'k') return 900;
-                return 0;
+            const getAbsoluteValue = (piece, isWhite, x, y) => {
+                let val = 0;
+                if (piece.type === 'p') val = 100;
+                else if (piece.type === 'r') val = 500;
+                else if (piece.type === 'n') val = 320; // Knights slightly more value than bishops usually in engines? or equal: 320
+                else if (piece.type === 'b') val = 330;
+                else if (piece.type === 'q') val = 900;
+                else if (piece.type === 'k') val = 20000;
+
+                if (usePosition) {
+                    const pst = isWhite ? pst_w : pst_b;
+                    if (pst[piece.type]) {
+                        val += pst[piece.type][y][x]; // Note: chess.js board is board[row][col], so pst[y][x] effectively
+                    }
+                }
+                return val;
             };
-            const absoluteValue = getAbsoluteValue(piece);
+
+            const absoluteValue = getAbsoluteValue(piece, piece.color === 'w', x, y);
             return piece.color === 'w' ? absoluteValue : -absoluteValue;
         }
 
@@ -793,13 +913,24 @@
                     promotion: 'q' // دائماً وزير للتبسيط
                 });
 
-                if (!move && gameMode === 'pro') move = tryForceMove(selectedSquare, sq);
+                // Only use force move in Online Pro mode. Offline is strict Chess.
+                if (!move && playMode === 'online' && gameMode === 'pro') move = tryForceMove(selectedSquare, sq);
 
                 // إذا كانت لعبة أوفلاين
                 if (playMode === 'offline') {
                     if (move) {
+                        if (move.flags.includes('c') || move.flags.includes('e')) SoundManager.playCapture();
+                        else SoundManager.playMove();
+
                         selectedSquare = null;
                         renderBoard({ from: move.from, to: move.to });
+
+                        // Check for Game Over immediately after player move
+                        if (game.game_over()) {
+                            updateStatus();
+                            return;
+                        }
+
                         updateStatus();
                         // دور الذكاء الاصطناعي
                         setTimeout(makeAIMove, 500);
@@ -944,8 +1075,8 @@
             }
 
             if (game.game_over()) {
-                if (game.in_checkmate()) s.innerText = "كش مات! 🏁";
-                else if (game.in_draw()) s.innerText = "تعادل 🤝";
+                if (game.in_checkmate()) { s.innerText = "كش مات! 🏁"; SoundManager.playGameOver(); }
+                else if (game.in_draw()) { s.innerText = "تعادل 🤝"; SoundManager.playGameOver(); }
                 else s.innerText = "انتهت اللعبة";
                 // زر إعادة اللعب أيضاً هنا
                 s.innerHTML += ` <button onclick="resetGame()" style="padding:2px 8px; font-size:12px; background:var(--gold); color:black; border:none; border-radius:4px; cursor:pointer;">إعادة ↺</button>`;

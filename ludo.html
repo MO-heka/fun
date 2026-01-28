@@ -538,6 +538,54 @@
                 transform: translateY(100vh) rotate(720deg);
             }
         }
+
+
+        /* Mobile Optimization */
+        @media (max-width: 600px) {
+            #game-container {
+                width: 96vw;
+                height: 96vw;
+                /* Keep square */
+                margin-top: 60px;
+                /* Space for top players */
+            }
+
+            .player-card {
+                padding: 4px 8px;
+                background: rgba(0, 0, 0, 0.8);
+                font-size: 0.75rem;
+            }
+
+            .player-card img {
+                width: 25px;
+                height: 25px;
+            }
+
+            /* Custom Positioning for Mobile to not cover board */
+            #dice-panel {
+                bottom: -90px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 70px;
+                height: 70px;
+            }
+
+            #dice-panel:active {
+                transform: translateX(-50%) scale(0.95);
+            }
+
+            #chat-btn {
+                bottom: -90px;
+                right: 20px;
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
     </style>
 </head>
 
@@ -612,18 +660,22 @@
 
     <!-- GAME AREA -->
     <div id="screen-game" class="screen hidden">
-        <!-- Player Stats -->
-        <div class="player-card" id="p-card-0" style="top:10px; left:10px;">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed= Felix"> <span class="p-name">Player 1</span>
+        <!-- Player Stats (Mobile Optimized) -->
+        <div class="player-card" id="p-card-0" style="top:5px; left:5px;">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed= Felix">
+            <div class="p-info"><span class="p-name">Player 1</span></div>
         </div>
-        <div class="player-card" id="p-card-1" style="top:10px; right:10px;">
-            <span class="p-name">Player 2</span> <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka">
+        <div class="player-card" id="p-card-1" style="top:5px; right:5px; flex-direction: row-reverse;">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka">
+            <div class="p-info"><span class="p-name">Player 2</span></div>
         </div>
-        <div class="player-card" id="p-card-2" style="bottom:10px; right:10px;">
-            <span class="p-name">Player 3</span> <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob">
+        <div class="player-card" id="p-card-2" style="bottom:100px; right:5px; flex-direction: row-reverse;">
+            <div class="p-info"><span class="p-name">Player 3</span></div> <img
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob">
         </div>
-        <div class="player-card" id="p-card-3" style="bottom:10px; left:10px;">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Zack"> <span class="p-name">Player 4</span>
+        <div class="player-card" id="p-card-3" style="bottom:100px; left:5px;">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Zack">
+            <div class="p-info"><span class="p-name">Player 4</span></div>
         </div>
 
         <!-- The Board -->
@@ -694,30 +746,30 @@
 
                 <!-- Home Arrows / Triangles -->
 
-                <!-- Safe Spots (Shields) -->
-                <!-- Green Start -->
-                <circle cx="250" cy="650" r="30" fill="rgba(0,0,0,0.1)" stroke="none" />
-                <path d="M235 635 L265 635 L265 665 L235 665 Z" fill="#22c55e" transform="translate(15,15) scale(0.6)"
-                    opacity="0.3" />
+                <!-- Safe Spots (Darkened Cells) -->
+                <defs>
+                    <g id="safe-cell">
+                        <rect x="0" y="0" width="100" height="100" fill="#334155" opacity="0.9" />
+                        <text x="50" y="70" font-size="50" text-anchor="middle" fill="#94a3b8">🛡️</text>
+                    </g>
+                </defs>
 
-                <!-- Yellow Start -->
-                <circle cx="850" cy="250" r="30" fill="rgba(0,0,0,0.1)" stroke="none" />
-
-                <!-- Stars for all safe spots (0,8,13,21,26,34,39,47) -->
-                <!-- We'll programmatically render better markers or use CSS overlay. 
-                     Actually, let's use the 'Safe' text or Shield Icon in CSS. 
-                     For now, let's rely on the colored start squares being obvious.
-                -->
-                <text x="250" y="660" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
-                <text x="850" y="260" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
-                <text x="1250" y="860" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
-                <text x="650" y="1260" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
+                <!-- Base Safe Exits -->
+                <rect x="100" y="600" width="100" height="100" fill="#22c55e" opacity="0.6" />
+                <rect x="800" y="100" width="100" height="100" fill="#eab308" opacity="0.6" />
+                <rect x="1300" y="800" width="100" height="100" fill="#3b82f6" opacity="0.6" />
+                <rect x="600" y="1300" width="100" height="100" fill="#ef4444" opacity="0.6" />
 
                 <!-- Shared Safe Spots -->
-                <text x="650" y="360" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
-                <text x="1150" y="660" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
-                <text x="850" y="1160" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
-                <text x="350" y="860" font-size="40" text-anchor="middle" fill="rgba(255,255,255,0.5)">🛡️</text>
+                <use href="#safe-cell" x="200" y="600" />
+                <use href="#safe-cell" x="600" y="1200" />
+                <use href="#safe-cell" x="1200" y="800" />
+                <use href="#safe-cell" x="800" y="200" />
+
+                <use href="#safe-cell" x="600" y="300" />
+                <use href="#safe-cell" x="1100" y="600" />
+                <use href="#safe-cell" x="800" y="1100" />
+                <use href="#safe-cell" x="300" y="800" />
             </svg>
 
             <!-- Tokens & Ghosts -->
@@ -1401,40 +1453,28 @@
         }
 
         function getCoordinates(pid, pos, tokenIndex) {
-            // Correct Base Coordinates
+            // Correct Base Coordinates with Separation
+            // We spread tokens in base so they don't overlap perfectly
             // Green(0): Top-Left. Bases at ~150-350 range.
-            // Yellow(1): Top-Right. 
-            // Blue(2): Bottom-Right.
-            // Red(3): Bottom-Left.
-
             const bases = [
-                [[150, 150], [350, 150], [150, 350], [350, 350]], // Green (TL)
-                [[1050, 150], [1250, 150], [1050, 350], [1250, 350]], // Yellow (TR)
-                [[1050, 1050], [1250, 1050], [1050, 1250], [1250, 1250]], // Blue (BR) - Wait, standard Ludo opp? Let's stick to this flow.
-                [[150, 1050], [350, 1050], [150, 1250], [350, 1250]] // Red (BL)
+                // Green Base (Spread positions)
+                [[180, 180], [320, 180], [180, 320], [320, 320]],
+                // Yellow Base (Spread positions)
+                [[1080, 180], [1220, 180], [1080, 320], [1220, 320]],
+                // Blue Base (Spread positions)
+                [[1080, 1080], [1220, 1080], [1080, 1220], [1220, 1220]],
+                // Red Base (Spread positions)
+                [[180, 1080], [320, 1080], [180, 1220], [320, 1220]]
             ];
 
             if (pos === -1) {
-                const b = bases[pid][tokenIndex];
-                // Base coords are in 1500 space.
-                // Token size 6% of 600px wrapper? No, SVG is separate coord system 1500.
-                // Wrapper is 600px.
-                // We need to map 1500 SVG coords -> Pixel Overlay.
-                // Ratio: Wrapper Width / 1500.
+                const b = bases[pid][tokenIndex]; // Use tokenIndex to pick specific slot!
+
                 const wrapper = document.getElementById('game-container').offsetWidth;
-                const ratio = wrapper / 1500;
-
-                // Wait, logic above used exact pixels assuming 1500? No previous logic was mixing relative.
-                // Let's standarize: Return Pixels for Overlay.
-                // If the board scales, we must recalculate on resize or use %?
-                // Using percentages is safer for responsive.
-
-                // % 
                 const px = (b[0] / 1500) * 100; // %
                 const py = (b[1] / 1500) * 100; // %
 
-                // We return actual pixels relative to container for `left/top`
-                return { x: px * (wrapper / 100), y: py * (wrapper / 100), pX: px, pY: py }; // Return % too if needed
+                return { x: px * (wrapper / 100), y: py * (wrapper / 100) };
             }
 
             if (pos >= 57) { // Goal Center

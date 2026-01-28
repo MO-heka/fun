@@ -144,10 +144,26 @@
 
         .safe-spot-marker {
             position: absolute;
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' opacity='0.5'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z'/%3E%3C/svg%3E") no-repeat center;
-            width: 20px;
-            height: 20px;
-            z-index: 5;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* Hit Area Boost */
+        .token::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            border-radius: 50%;
+            z-index: -1;
         }
 
         /* Game Area */
@@ -267,8 +283,6 @@
             position: absolute;
             bottom: 20px;
             right: 20px;
-            width: 80px;
-            height: 80px;
             background: rgba(255, 255, 255, 0.9) !important;
             /* Force visible bg */
             border-radius: 15px;
@@ -281,6 +295,8 @@
             transition: transform 0.1s;
             z-index: 150;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            width: 80px;
+            height: 80px;
         }
 
         #dice-panel.disabled {
@@ -749,16 +765,16 @@
                 <!-- Safe Spots (Darkened Cells) -->
                 <defs>
                     <g id="safe-cell">
-                        <rect x="0" y="0" width="100" height="100" fill="#334155" opacity="0.9" />
-                        <text x="50" y="70" font-size="50" text-anchor="middle" fill="#94a3b8">🛡️</text>
+                        <rect x="0" y="0" width="100" height="100" fill="#0f172a" opacity="0.8" />
+                        <text x="50" y="70" font-size="50" text-anchor="middle" fill="#64748b">🛡️</text>
                     </g>
                 </defs>
 
                 <!-- Base Safe Exits -->
-                <rect x="100" y="600" width="100" height="100" fill="#22c55e" opacity="0.6" />
-                <rect x="800" y="100" width="100" height="100" fill="#eab308" opacity="0.6" />
-                <rect x="1300" y="800" width="100" height="100" fill="#3b82f6" opacity="0.6" />
-                <rect x="600" y="1300" width="100" height="100" fill="#ef4444" opacity="0.6" />
+                <rect x="100" y="600" width="100" height="100" fill="#22c55e" opacity="0.5" />
+                <rect x="800" y="100" width="100" height="100" fill="#eab308" opacity="0.5" />
+                <rect x="1300" y="800" width="100" height="100" fill="#3b82f6" opacity="0.5" />
+                <rect x="600" y="1300" width="100" height="100" fill="#ef4444" opacity="0.5" />
 
                 <!-- Shared Safe Spots -->
                 <use href="#safe-cell" x="200" y="600" />
@@ -1116,15 +1132,16 @@
 
         function canMove(pid, tid, roll) {
             const pos = gameState.tokens[pid][tid];
-            if (pos === -1) return roll === 6; // Needs 6 to start
-            if (pos >= 100) return false; // Already home
-            // Check distance to goal
-            // We use a normalized step count. 0 to 57.
-            // But our pos storage is simple integers.
-            // Let's assume standard path length logic below.
-            const steps = gameState.tokens[pid][tid]; // Fixed: `pos` in logic vs `steps` logic
-            // logic: `pos` is local index. 57 is goal.
-            if (pos + roll > 57) return false; // Overshoot
+            // Base Exit Logic
+            if (pos === -1) {
+                return (roll === 6);
+            }
+            if (pos >= 100) return false;
+
+            // Goal Logic
+            // If pos + roll > 57 (Goal Index), can't move
+            if (pos + roll > 57) return false;
+
             return true;
         }
 
@@ -1233,7 +1250,7 @@
         // State 0-51 = Common Track (absolute index).
         // State 100+ = Home Stretch (100 = First square, 105 = Goal).
         // Wait, overlapping is tricky.
-        // Better State: 
+        // Better State:
         // LOCAL position 0-57. 0 = Start Square. 51 = Entry to home. 52-56 = Home column. 57 = Goal.
         // Convert LOCAL to GLOBAL for collision.
 
@@ -1415,22 +1432,51 @@
                     el.style.left = (parseFloat(xy[0]) + offX) + 'px';
                     el.style.top = (parseFloat(xy[1]) + offY) + 'px';
                     el.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                    el.style.zIndex = 200 + i; // Ensure stacking order and clickability
 
-                    // Interaction
+                    // Interaction - ROBUST HANDLER
                     el.onclick = (e) => {
-                        e.stopPropagation(); // Prevent propagation
-                        if (el.classList.contains('glow')) {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        // Debug info if needed
+                        // console.log("Clicked", d.p, d.tId, gameState.turn, gameState.dice);
+
+                        // 1. Basic Turn Check
+                        if (playMode === 'online' && gameState.turn !== myColorIndex) return toast("ليس دورك!");
+                        if (playMode === 'offline' && gameState.turn !== 0 && d.p !== 0) return;
+
+                        // 2. Dice Check
+                        if (gameState.dice === 0 || isRolling) return toast("ارمِ النرد أولاً!");
+                        if (d.p !== gameState.turn) return toast("هذه ليست قطعتك!");
+
+                        // 3. Move Logic
+                        if (canMove(d.p, d.tId, gameState.dice)) {
+                            // Valid Move
                             moveToken(d.p, d.tId);
+                        } else {
+                            const pos = gameState.tokens[d.p][d.tId];
+                            if (pos === -1 && gameState.dice !== 6) toast("تحتاج 6 للخروج! 🎲");
+                            else toast("حركة غير متاحة!");
                         }
                     };
 
-                    // Hover Ghost
-                    if (el.classList.contains('glow')) {
+                    // Cursor & Hover
+                    const myTurn = (playMode === 'online' ? gameState.turn === myColorIndex : gameState.turn === 0);
+                    // Simplify validation for UI to ensure it matches click logic
+                    const canM = (myTurn && !isRolling && gameState.dice > 0 && d.p === gameState.turn && canMove(d.p, d.tId, gameState.dice));
+
+                    if (canM) {
                         el.style.cursor = "pointer";
+                        el.classList.add('glow');
+                        // High Z-index for active tokens
+                        el.style.zIndex = 999;
+
                         el.onmouseenter = () => showGhost(d.p, gameState.tokens[d.p][d.tId], gameState.dice);
                         el.onmouseleave = () => ghostLayer.innerHTML = "";
                     } else {
                         el.style.cursor = "default";
+                        el.style.zIndex = 200 + i; // Standard stack z
                     }
 
                     layer.appendChild(el);

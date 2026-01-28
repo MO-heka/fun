@@ -632,18 +632,20 @@
 
     <script>
         // --- CONFIG & UTILS ---
+        // --- CONFIG & UTILS ---
         const colors = ['green', 'yellow', 'blue', 'red'];
-        // Path Coords (0-51 Loop, 52-57 Home Run) + Base Coords
-        // Mapping a flattened path index to X,Y percentages on the board
-        // Grid is 15x15. Each cell is 1000/15 = 6.66% approx.
-        // Wait, SVG is 1500x1500. Cell = 100.
 
-        // This mapping follows the standard Ludo path:
-        // Start Green (index 1) at (100,600) -> waits, logic handles offsets.
-        // Let's define the 52 common cells visually.
-        // 0-4: Green safe start straight... 
-        // To save huge array space, I'll program a function `getCellCoord(index, color)`
-
+        // Firebase Configuration (Required for Online/Offline DB calls if any)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCp9_P3K__Sr76iKgaVG1iD4NluUqPtni4",
+            authDomain: "heka-codenames.firebaseapp.com",
+            projectId: "heka-codenames",
+            storageBucket: "heka-codenames.firebasestorage.app",
+            messagingSenderId: "901713932504",
+            appId: "1:901713932504:web:7079662022a501e9c4e7ad",
+            databaseURL: "https://heka-codenames-default-rtdb.firebaseio.com"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let gameState = {

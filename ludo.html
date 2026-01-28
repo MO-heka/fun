@@ -41,6 +41,14 @@
             flex-direction: column;
             overflow: hidden;
             background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+            overflow: hidden;
+            /* Prevent scroll */
+        }
+
+        /* Wood Texture for Board */
+        .wood-texture {
+            background-color: #d4a373;
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v20H0V0zm10 17a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm20 0a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM10 37a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm10-17h20v20H20V20zm10 17a7 7 0 1 0 0-14 7 7 0 0 0 0 14z' fill='%23faedcd' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
         }
 
         /* Screen Management */
@@ -161,10 +169,63 @@
             transition: top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.1s;
             cursor: pointer;
             z-index: 100;
+            /* 3D look */
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), transparent 20%),
+                conic-gradient(from 180deg, rgba(0, 0, 0, 0.2), transparent 50%);
+        }
+
+        .token::after {
+            content: '';
+            position: absolute;
+            top: 20%;
+            left: 20%;
+            right: 20%;
+            bottom: 20%;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.1);
+            filter: blur(2px);
         }
 
         .token.green {
-            background: var(--green);
+            background-color: #00b960;
+            border-color: #008f4c;
+        }
+
+        .token.yellow {
+            background-color: #f1c40f;
+            border-color: #d4ac0d;
+        }
+
+        .token.blue {
+            background-color: #2980b9;
+            border-color: #1f618d;
+        }
+
+        .token.red {
+            background-color: #c0392b;
+            border-color: #922b21;
+        }
+
+        /* Ghost Token for Hover */
+        .ghost-token {
+            position: absolute;
+            width: 6%;
+            height: 6%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px dashed white;
+            z-index: 90;
+            opacity: 0.6;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            animation: pulse-ghost 1s infinite;
+        }
+
+        @keyframes pulse-ghost {
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 0.8;
+            }
         }
 
         .token.yellow {
@@ -560,7 +621,10 @@
                     </pattern>
                 </defs>
                 <!-- Background -->
-                <rect width="1500" height="1500" fill="white" rx="20" />
+                <rect width="1500" height="1500" fill="#f8f9fa" rx="20" /> <!-- Clean White/Grey Base -->
+
+                <!-- Wood Frame -->
+                <rect x="0" y="0" width="1500" height="1500" rx="20" fill="none" stroke="#5d4037" stroke-width="30" />
 
                 <!-- Bases -->
                 <rect x="0" y="0" width="600" height="600" fill="#22c55e" /> <!-- Green Base -->
@@ -626,14 +690,21 @@
                 <!-- Starting Blue -->
             </svg>
 
-            <!-- Tokens Container -->
+            <!-- Tokens & Ghosts -->
+            <div id="ghost-layer"></div>
             <div id="tokens-layer"></div>
+
+            <!-- Turn Indicator Overlay on Center -->
+            <div id="turn-indicator" style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); 
+                 width:100px; height:100px; pointer-events:none; border-radius:50%; 
+                 border: 5px solid transparent; transition:border-color 0.3s; z-index:50;"></div>
         </div>
 
         <!-- Controls -->
         <!-- Dice is now always visible but disabled when not your turn -->
         <div id="dice-panel" class="" onclick="requestRoll()">
             <div id="dice-cube" class="d-6">
+                <!-- 3D Transform faces would be better, but flat for now with polish -->
                 <div class="dot"></div>
                 <div class="dot"></div>
                 <div class="dot"></div>
@@ -969,9 +1040,95 @@
             // We use a normalized step count. 0 to 57.
             // But our pos storage is simple integers.
             // Let's assume standard path length logic below.
-            const steps = getStepsMoved(pos);
-            if (steps + roll > 57) return false; // Overshoot
+            const steps = gameState.tokens[pid][tid]; // Fixed: `pos` in logic vs `steps` logic
+            // logic: `pos` is local index. 57 is goal.
+            if (pos + roll > 57) return false; // Overshoot
             return true;
+        }
+
+        // --- DICE HELPER ---
+        function updateDiceState(canRoll) {
+            const p = document.getElementById('dice-panel');
+            const m = document.getElementById('dice-msg');
+            if (canRoll) {
+                p.classList.remove('disabled');
+                p.style.pointerEvents = 'auto';
+                m.innerText = "دورك! اضغط للرمي";
+            } else {
+                p.classList.add('disabled');
+                p.style.pointerEvents = 'none';
+
+                const currentP = gameState.players[gameState.turn];
+                if (currentP) {
+                    m.innerText = (gameState.turn === myColorIndex || (playMode === 'offline' && gameState.turn === 0)) ? "جاري الرمي..." : `دور ${currentP.name}`;
+                }
+            }
+        }
+
+        function renderDice(val) {
+            if (val === 0) val = 1;
+            const d = document.getElementById('dice-cube');
+            d.className = 'd-' + val;
+            d.classList.remove('rolling');
+        }
+
+        function requestRoll() {
+            if (isRolling) return;
+            if (playMode === 'online' && gameState.turn !== myColorIndex) return;
+            if (playMode === 'offline' && gameState.turn !== 0) return;
+
+            performRoll();
+        }
+
+        function performRoll() {
+            isRolling = true;
+            const btn = document.getElementById('dice-panel');
+            document.getElementById('dice-cube').classList.add('rolling');
+            document.getElementById('dice-msg').innerText = "🎲 ...";
+            sfx.dice();
+
+            setTimeout(() => {
+                const roll = Math.floor(Math.random() * 6) + 1;
+                isRolling = false;
+
+                gameState.dice = roll;
+
+                if (playMode === 'online') {
+                    updateOnlineState({ dice: roll });
+                } else {
+                    handleRollResult(roll);
+                }
+
+                renderDice(roll);
+                updateUI();
+            }, 600);
+        }
+
+        function handleRollResult(roll) {
+            const playerId = gameState.turn;
+            const pieces = gameState.tokens[playerId];
+            const moveables = pieces.map((pos, idx) => canMove(playerId, idx, roll) ? idx : -1).filter(i => i !== -1);
+
+            if (moveables.length === 0) {
+                toast('لا توجد حركات متاحة');
+                setTimeout(nextTurn, 1000);
+            } else if (moveables.length === 1 && playMode === 'offline' && gameState.turn === 0) {
+                // Auto move for player if only 1 option (Convenience)
+                setTimeout(() => moveToken(playerId, moveables[0]), 500);
+            } else if (playMode === 'offline' && gameState.turn !== 0) {
+                // AI always auto
+                setTimeout(() => runAI(moveables), 800);
+            } else {
+                // Highlight
+                moveables.forEach(idx => {
+                    const el = document.getElementById(`t-${playerId}-${idx}`);
+                    if (el) {
+                        el.classList.add('glow');
+                        // Add bounce effect
+                        el.style.animation = 'bounce 0.5s infinite alternate';
+                    }
+                });
+            }
         }
 
         // --- MOVEMENT SYSTEM ---
@@ -1104,10 +1261,12 @@
             return safes.includes(globalPos);
         }
 
-        // --- RENDERING ---
+        // --- IMPROVED RENDER TOKENS ---
         function renderTokens() {
             const layer = document.getElementById('tokens-layer');
+            const ghostLayer = document.getElementById('ghost-layer');
             layer.innerHTML = "";
+            ghostLayer.innerHTML = ""; // Clear ghosts
 
             // To handle stacking, we map coordinates to list of tokens
             const map = {};
@@ -1127,12 +1286,14 @@
                 stack.forEach((d, i) => {
                     const xy = key.split(',');
                     const el = document.createElement('div');
+                    // Ensure color class matches index: 0=green, 1=yellow, 2=blue, 3=red
                     el.className = `token ${colors[d.p]}`;
                     el.id = `t-${d.p}-${d.tId}`;
-                    // Offset for stack
+
+                    // Stack Offset
                     const scale = stack.length > 1 ? 0.8 : 1;
-                    const offX = stack.length > 1 ? (Math.random() * 10 - 5) : 0;
-                    const offY = stack.length > 1 ? (Math.random() * 10 - 5) : 0;
+                    const offX = stack.length > 1 ? (Math.random() * 20 - 10) : 0;
+                    const offY = stack.length > 1 ? (Math.random() * 20 - 10) : 0;
 
                     el.style.left = (parseFloat(xy[0]) + offX) + 'px';
                     el.style.top = (parseFloat(xy[1]) + offY) + 'px';
@@ -1140,78 +1301,91 @@
 
                     // Interaction
                     el.onclick = () => {
-                        if (gameState.turn !== myColorIndex && playMode === 'online') return;
-                        if (gameState.turn !== 0 && playMode === 'offline') return;
-                        if (gameState.dice === 0) return;
+                        // Click handler
+                        if (playMode === 'online' && gameState.turn !== myColorIndex) return;
                         if (el.classList.contains('glow')) moveToken(d.p, d.tId);
                     };
+
+                    // Hover Ghost
+                    if (el.classList.contains('glow')) {
+                        el.onmouseenter = () => showGhost(d.p, gameState.tokens[d.p][d.tId], gameState.dice);
+                        el.onmouseleave = () => ghostLayer.innerHTML = "";
+                    }
 
                     layer.appendChild(el);
                 });
             }
         }
 
+        function showGhost(pid, currentPos, roll) {
+            if (roll === 0) return;
+            // Calculate next pos
+            let nextPos = (currentPos === -1) ? 0 : currentPos + roll;
+            if (nextPos > 57) return;
+
+            const xy = getCoordinates(pid, nextPos, 0); // tId 0 is fine for ghost loc
+            const g = document.createElement('div');
+            g.className = 'ghost-token';
+            g.style.left = xy.x + 'px';
+            g.style.top = xy.y + 'px';
+            document.getElementById('ghost-layer').appendChild(g);
+        }
+
         function getCoordinates(pid, pos, tokenIndex) {
-            // Helpers
+            // Correct Base Coordinates
+            // Green(0): Top-Left. Bases at ~150-350 range.
+            // Yellow(1): Top-Right. 
+            // Blue(2): Bottom-Right.
+            // Red(3): Bottom-Left.
+
             const bases = [
-                [[150, 150], [350, 150], [150, 350], [350, 350]], // Green Base
-                [[1050, 150], [1250, 150], [1050, 350], [1250, 350]], // Yellow
-                [[1050, 1050], [1250, 1050], [1050, 1250], [1250, 1250]], // Blue
-                [[150, 1050], [350, 1050], [150, 1250], [350, 1250]] // Red
+                [[150, 150], [350, 150], [150, 350], [350, 350]], // Green (TL)
+                [[1050, 150], [1250, 150], [1050, 350], [1250, 350]], // Yellow (TR)
+                [[1050, 1050], [1250, 1050], [1050, 1250], [1250, 1250]], // Blue (BR) - Wait, standard Ludo opp? Let's stick to this flow.
+                [[150, 1050], [350, 1050], [150, 1250], [350, 1250]] // Red (BL)
             ];
 
             if (pos === -1) {
                 const b = bases[pid][tokenIndex];
-                return { x: b[0], y: b[1] };
+                // Base coords are in 1500 space.
+                // Token size 6% of 600px wrapper? No, SVG is separate coord system 1500.
+                // Wrapper is 600px.
+                // We need to map 1500 SVG coords -> Pixel Overlay.
+                // Ratio: Wrapper Width / 1500.
+                const wrapper = document.getElementById('game-container').offsetWidth;
+                const ratio = wrapper / 1500;
+
+                // Wait, logic above used exact pixels assuming 1500? No previous logic was mixing relative.
+                // Let's standarize: Return Pixels for Overlay.
+                // If the board scales, we must recalculate on resize or use %?
+                // Using percentages is safer for responsive.
+
+                // % 
+                const px = (b[0] / 1500) * 100; // %
+                const py = (b[1] / 1500) * 100; // %
+
+                // We return actual pixels relative to container for `left/top`
+                return { x: px * (wrapper / 100), y: py * (wrapper / 100), pX: px, pY: py }; // Return % too if needed
             }
 
             if (pos >= 57) { // Goal Center
-                return { x: 750, y: 750 }; // Approximate
+                const wrapper = document.getElementById('game-container').offsetWidth;
+                return { x: wrapper / 2, y: wrapper / 2 };
             }
 
             // Path Logic
-            // We define a path array of 52 {x,y} points around the board
-            // Starting from Green Start (1,6) in terms of 15x15 grid
-            // Grid cell size = 100. Center of cell 0,0 is 50,50.
-
-            // Let's create a lookup or calculate based on segment.
-            // It's tedious to hardcode 52 points.
-            // But path is symmetrical.
-
-            // Path Segments (Green Walker perspective):
-            // 0-4: Right (Start)
-            // 5-10: Up
-            // 11-12: Right 
-            // 13-18: Down
-            // 19-23: Right
-            // 24-25: Down
-            // 26-30: Left
-            // 31-36: Down
-            // 37-38: Left
-            // 39-44: Up
-            // 45-49: Left
-            // 50: Up
-            // 52-56: Right (Home Stretch)
-
-            // Function to get Common Track Coords (0-51) starting from Green Start
-            // Green Start is at Grid col 1, row 6. (x=150, y=650)
-
-            let lx = 0, ly = 0;
-
-            // We need to map global index (0-51) to xy
-            // Let's assume standard starts at 1,6 on grid (600, 100 is top vertical strip)
-            // Actually let's map generic "Tracks"
-
-            // Track definition: 15x15 grid.
-            // G1: (1,6). Y: (8,1). B: (13, 8). R: (6, 13). (Start Pos)
-
-            // Let's calculate local-to-xy directly for the player's path
             const track = getPathForPlayer(pid);
             if (pos < track.length) {
                 const pt = track[pos];
-                return { x: pt[0] * 100 + 50, y: pt[1] * 100 + 50 };
+                // Grid 0-14. 
+                // X = (pt[0] * 100 + 50)
+                const sx = (pt[0] * 100 + 50);
+                const sy = (pt[1] * 100 + 50);
+
+                const wrapper = document.getElementById('game-container').offsetWidth;
+                return { x: (sx / 1500) * wrapper, y: (sy / 1500) * wrapper };
             }
-            return { x: 750, y: 750 };
+            return { x: 0, y: 0 };
         }
 
         function getPathForPlayer(pid) {

@@ -332,42 +332,42 @@
         }
 
         /* Dice Dot Configurations (0=hidden, 1=visible) */
-        .d-1 :nth-child(5) {
+        .d-1> :nth-child(5) {
             opacity: 1;
         }
 
-        .d-2 :nth-child(1),
-        .d-2 :nth-child(9) {
+        .d-2> :nth-child(1),
+        .d-2> :nth-child(9) {
             opacity: 1;
         }
 
-        .d-3 :nth-child(1),
-        .d-3 :nth-child(5),
-        .d-3 :nth-child(9) {
+        .d-3> :nth-child(1),
+        .d-3> :nth-child(5),
+        .d-3> :nth-child(9) {
             opacity: 1;
         }
 
-        .d-4 :nth-child(1),
-        .d-4 :nth-child(3),
-        .d-4 :nth-child(7),
-        .d-4 :nth-child(9) {
+        .d-4> :nth-child(1),
+        .d-4> :nth-child(3),
+        .d-4> :nth-child(7),
+        .d-4> :nth-child(9) {
             opacity: 1;
         }
 
-        .d-5 :nth-child(1),
-        .d-5 :nth-child(3),
-        .d-5 :nth-child(5),
-        .d-5 :nth-child(7),
-        .d-5 :nth-child(9) {
+        .d-5> :nth-child(1),
+        .d-5> :nth-child(3),
+        .d-5> :nth-child(5),
+        .d-5> :nth-child(7),
+        .d-5> :nth-child(9) {
             opacity: 1;
         }
 
-        .d-6 :nth-child(1),
-        .d-6 :nth-child(3),
-        .d-6 :nth-child(4),
-        .d-6 :nth-child(6),
-        .d-6 :nth-child(7),
-        .d-6 :nth-child(9) {
+        .d-6> :nth-child(1),
+        .d-6> :nth-child(3),
+        .d-6> :nth-child(4),
+        .d-6> :nth-child(6),
+        .d-6> :nth-child(7),
+        .d-6> :nth-child(9) {
             opacity: 1;
         }
 
@@ -863,7 +863,9 @@
             tokens: [[-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1]], // 0:green, 1:yellow, 2:blue, 3:red
             lastMove: null,
             finished: [false, false, false, false],
-            players: []
+            players: [],
+            consecutive6s: 0,        // Track consecutive 6s
+            rollsWithout6: [0, 0, 0, 0]  // Track rolls without 6 for each player
         };
 
         let myName = localStorage.getItem('heka_global_player_name') || "Player";
@@ -874,6 +876,7 @@
         let myColorIndex = 0; // if online
         let diceAnimInterval;
         let isRolling = false;
+        let isProcessingMove = false;
 
         // --- SOUNDS ---
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -918,6 +921,11 @@
                 gameState.turn = 0;
                 resetBoard();
                 showScreen('screen-game');
+
+                // Hide chat in offline mode
+                document.getElementById('chat-btn').style.display = 'none';
+                document.getElementById('chat-box').classList.add('hidden');
+
                 updateUI();
             }
         }
@@ -958,6 +966,9 @@
             playMode = 'online';
             showScreen('screen-lobby');
             document.getElementById('lobby-code').innerText = code;
+
+            // Show chat in online mode
+            document.getElementById('chat-btn').style.display = 'block';
 
             db.ref('ludo_rooms/' + currentRoom).on('value', snap => {
                 const val = snap.val();
@@ -1081,56 +1092,103 @@
         function performRoll() {
             isRolling = true;
             const btn = document.getElementById('dice-panel');
-            document.getElementById('dice-cube').classList.add('rolling');
+            const diceCube = document.getElementById('dice-cube');
+            diceCube.classList.add('rolling');
             document.getElementById('dice-msg').innerText = "🎲 ...";
             try { sfx.dice(); } catch (e) { }
 
-            setTimeout(() => {
-                const roll = Math.floor(Math.random() * 6) + 1;
-                isRolling = false;
+            // Animate dice with random numbers
+            let animationCount = 0;
+            const animationInterval = setInterval(() => {
+                const randomFace = Math.floor(Math.random() * 6) + 1;
+                diceCube.className = `d-${randomFace} rolling`;
+                animationCount++;
 
+                if (animationCount >= 8) { // Stop after 8 flips
+                    clearInterval(animationInterval);
+                }
+            }, 75); // Change face every 75ms
+
+            setTimeout(() => {
+                clearInterval(animationInterval);
+
+                // Pure random roll (1-6)
+                const roll = Math.floor(Math.random() * 6) + 1;
+
+                console.log(`[performRoll] Player ${gameState.turn} rolled ${roll}`);
+
+                isRolling = false;
                 gameState.dice = roll;
                 renderDice(roll);
+
+                // Track consecutive 6s
+                if (roll === 6) {
+                    gameState.consecutive6s++;
+
+                    // RULE: 3 consecutive 6s = lose turn
+                    if (gameState.consecutive6s >= 3) {
+                        console.log('[performRoll] 3 consecutive 6s! Passing turn.');
+                        toast('🎲 3 ستات متتالية! الدور للتالي');
+                        gameState.consecutive6s = 0;
+                        gameState.dice = 0;
+                        setTimeout(nextTurn, 1500);
+                        return;
+                    }
+                } else {
+                    gameState.consecutive6s = 0; // Reset on non-6
+                }
 
                 if (playMode === 'online') {
                     updateOnlineState({ dice: roll });
                 } else {
-                    // OFFLINE: Always process roll result
-                    updateUI(); // Update UI first
-                    handleRollResult(roll); // Then handle the result
+                    updateUI();
+                    handleRollResult(roll);
                 }
             }, 600);
         }
 
         function handleRollResult(roll) {
+            console.log(`[handleRollResult] Player ${gameState.turn} rolled ${roll}`);
+
             try {
-                // Check movable tokens
                 const playerId = gameState.turn;
                 const pieces = gameState.tokens[playerId];
                 const moveables = pieces.map((pos, idx) => canMove(playerId, idx, roll) ? idx : -1).filter(i => i !== -1);
 
+                console.log(`[handleRollResult] Pieces: ${pieces.join(',')}, Moveable: ${moveables.join(',')}`);
+
                 if (moveables.length === 0) {
-                    // No move possible
                     toast('لا توجد حركات متاحة');
-                    // Even if 6, if no moves (all finished?), pass turn
-                    setTimeout(nextTurn, 1000);
+                    console.log(`[handleRollResult] No moves. Roll=${roll}, granting bonus? ${roll === 6}`);
+
+                    if (roll === 6) {
+                        console.log('[handleRollResult] GRANTING BONUS for 6 (no moves)');
+                        gameState.dice = 0;
+                        if (playMode === 'offline' && gameState.turn !== 0) {
+                            setTimeout(() => performRoll(), 1000);
+                        } else {
+                            updateUI();
+                        }
+                    } else {
+                        console.log('[handleRollResult] Passing turn (not 6)');
+                        setTimeout(nextTurn, 1000);
+                    }
                 } else if (moveables.length === 1 && playMode !== 'online') {
-                    // Auto move single option
+                    console.log(`[handleRollResult] Auto-moving piece ${moveables[0]}`);
                     setTimeout(() => moveToken(playerId, moveables[0]), 500);
                 } else {
-                    // Highlight options
+                    console.log(`[handleRollResult] Highlighting ${moveables.length} pieces`);
                     moveables.forEach(idx => {
                         const el = document.getElementById(`t-${playerId}-${idx}`);
                         if (el) el.classList.add('glow');
                     });
 
-                    // If offline AI
                     if (playMode === 'offline' && gameState.turn !== 0) {
                         setTimeout(() => runAI(moveables), 800);
                     }
                 }
             } catch (err) {
-                console.error("Roll Error:", err);
+                console.error("[handleRollResult] Error:", err);
                 toast("حدث خطأ، تجاوز الدور");
                 nextTurn();
             }
@@ -1179,16 +1237,19 @@
         }
 
         function moveToken(pid, tid) {
+            console.log(`[moveToken] Player ${pid} moving piece ${tid}, current dice: ${gameState.dice}`);
 
-            // Processing Lock:
-            // We only block HUMAN spam clicks. 
-            // If the system (Bot/Auto) calls this, we ASSUME it's a valid sequential action and force execution.
+            // Processing Lock
             if (isProcessingMove) {
-                if (pid === 0 && playMode === 'offline') return; // Block human spam locally
-                if (pid === myColorIndex && playMode === 'online') return; // Block human spam online
-
-                // If it's a BOT or Auto-Move, we force reset and proceed to prevent game freeze.
-                console.warn("Force releasing processing lock for system move.");
+                if (pid === 0 && playMode === 'offline') {
+                    console.log('[moveToken] Blocking human spam click');
+                    return;
+                }
+                if (pid === myColorIndex && playMode === 'online') {
+                    console.log('[moveToken] Blocking online human spam click');
+                    return;
+                }
+                console.warn("[moveToken] Force releasing lock for bot/auto move");
                 isProcessingMove = false;
             }
             isProcessingMove = true;
@@ -1254,31 +1315,43 @@
                 checkWin(pid);
             }
 
+            // Check if player has finished all pieces
+            const playerFinished = gameState.finished[pid];
+
             renderTokens();
 
             setTimeout(() => isProcessingMove = false, 400);
 
             // 4. Turn Flow
             const bonus = (roll === 6 || currentLocal === 57);
+            console.log(`[moveToken] Bonus turn? ${bonus} (roll=${roll}, pos=${currentLocal})`);
 
             if (bonus) {
-                if (currentLocal === 57 && !gameState.finished[pid]) toast("وصلت! 🏁");
+                console.log('[moveToken] GRANTING BONUS TURN');
+                if (currentLocal === 57 && !playerFinished) toast("وصلت! 🏁");
                 else if (roll === 6) toast("لفة إضافية! 🎲");
 
-                if (gameState.finished[pid]) {
+                if (playerFinished) {
+                    console.log('[moveToken] Player finished, passing turn');
                     nextTurn();
                 } else {
                     // Re-Roll
+                    console.log('[moveToken] Resetting dice for bonus roll');
                     gameState.dice = 0;
-                    if (playMode === 'online') updateOnlineState(gameState);
-                    else {
+                    if (playMode === 'online') {
+                        updateOnlineState(gameState);
+                    } else {
                         updateUI();
                         if (playMode === 'offline' && gameState.turn !== 0) {
+                            console.log('[moveToken] Bot auto-rolling after 800ms');
                             setTimeout(() => performRoll(), 800);
+                        } else {
+                            console.log('[moveToken] Player can roll again manually');
                         }
                     }
                 }
             } else {
+                console.log('[moveToken] NO bonus, passing turn after 200ms');
                 setTimeout(nextTurn, 200);
             }
         }
@@ -1447,53 +1520,98 @@
                 const sx = (pt[0] * 100 + 50);
                 const sy = (pt[1] * 100 + 50);
                 const wrapper = document.getElementById('game-container').offsetWidth;
+
+                // DEBUG: Log start square positions
+                if (pos === 0) {
+                    console.log(`[getCoordinates] Player ${pid} start square: grid[${pt[0]}, ${pt[1]}] => screen[${sx}, ${sy}]`);
+                }
+
                 return { x: (sx / 1500) * wrapper, y: (sy / 1500) * wrapper };
             }
             return { x: 0, y: 0 };
         }
 
         function getPathForPlayer(pid) {
-            // Standard 52-Square Track (6-6-1 per quadrant)
-            const p = [];
+            // Correct 52-square track with proper start positions
+            const track = [];
 
-            // Run 1 (Right): (0,6)..(5,6) [6 steps]
-            for (let i = 0; i <= 5; i++) p.push([i, 6]);
-            // Run 2 (Up): (6,5)..(6,0) [6 steps]
-            for (let i = 5; i >= 0; i--) p.push([6, i]);
-            // Turn Top: (7,0) [1 step]
-            p.push([7, 0]);
+            // GREEN zone (positions 0-12)
+            track.push([1, 6]);   // 0: GREEN START ★
+            track.push([2, 6]);   // 1
+            track.push([3, 6]);   // 2
+            track.push([4, 6]);   // 3
+            track.push([5, 6]);   // 4
+            track.push([6, 5]);   // 5
+            track.push([6, 4]);   // 6
+            track.push([6, 3]);   // 7
+            track.push([6, 2]);   // 8: Safe (Star)
+            track.push([6, 1]);   // 9
+            track.push([6, 0]);   // 10
+            track.push([7, 0]);   // 11
+            track.push([8, 0]);   // 12
 
-            // Q2: (8,0)..(8,5) [6], (9,6)..(14,6) [6], (14,7) [1]
-            for (let i = 0; i <= 5; i++) p.push([8, i]);
-            for (let i = 9; i <= 14; i++) p.push([i, 6]);
-            p.push([14, 7]);
+            // YELLOW zone (positions 13-25)
+            track.push([8, 1]);   // 13: YELLOW START ★
+            track.push([8, 2]);   // 14
+            track.push([8, 3]);   // 15
+            track.push([8, 4]);   // 16
+            track.push([8, 5]);   // 17
+            track.push([9, 6]);   // 18
+            track.push([10, 6]);  // 19
+            track.push([11, 6]);  // 20
+            track.push([12, 6]);  // 21: Safe (Star)
+            track.push([13, 6]);  // 22
+            track.push([14, 6]);  // 23
+            track.push([14, 7]);  // 24
+            track.push([14, 8]);  // 25
 
-            // Q3: (14,8)..(9,8) [6], (8,9)..(8,14) [6], (7,14) [1]
-            for (let i = 14; i >= 9; i--) p.push([i, 8]);
-            for (let i = 9; i <= 14; i++) p.push([8, i]);
-            p.push([7, 14]);
+            // BLUE zone (positions 26-38)  
+            track.push([13, 8]);  // 26: BLUE START ★
+            track.push([12, 8]);  // 27
+            track.push([11, 8]);  // 28
+            track.push([10, 8]);  // 29
+            track.push([9, 8]);   // 30
+            track.push([8, 9]);   // 31
+            track.push([8, 10]);  // 32
+            track.push([8, 11]);  // 33
+            track.push([8, 12]);  // 34: Safe (Star)
+            track.push([8, 13]);  // 35
+            track.push([8, 14]);  // 36
+            track.push([7, 14]);  // 37
+            track.push([6, 14]);  // 38
 
-            // Q4: (6,14)..(6,9) [6], (5,8)..(0,8) [6], (0,7) [1]
-            for (let i = 14; i >= 9; i--) p.push([6, i]);
-            for (let i = 5; i >= 0; i--) p.push([i, 8]);
-            p.push([0, 7]);
+            // RED zone (positions 39-51)
+            track.push([6, 13]);  // 39: RED START ★
+            track.push([6, 12]);  // 40
+            track.push([6, 11]);  // 41
+            track.push([6, 10]);  // 42
+            track.push([6, 9]);   // 43
+            track.push([5, 8]);   // 44
+            track.push([4, 8]);   // 45
+            track.push([3, 8]);   // 46
+            track.push([2, 8]);   // 47: Safe (Star)
+            track.push([1, 8]);   // 48
+            track.push([0, 8]);   // 49
+            track.push([0, 7]);   // 50 (Just before home entry)
 
-            // Home (52-56): (1,7)..(5,7) [5]
-            for (let i = 1; i <= 5; i++) p.push([i, 7]);
-            // Goal (57): (7,7)
-            p.push([7, 7]);
+            // Home stretches
+            const homeStretches = [
+                [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7]],  // GREEN
+                [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6], [7, 7]],  // YELLOW
+                [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7], [7, 7]], // BLUE
+                [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8], [7, 7]]  // RED
+            ];
 
-            const angle = (Math.PI / 2) * pid;
-            const cos = Math.cos(angle);
-            const sin = Math.sin(angle);
+            // Build player-specific path (rotated start)
+            const startOffset = pid * 13;
+            const playerTrack = [];
 
-            return p.map(pt => {
-                const x = pt[0] - 7;
-                const y = pt[1] - 7;
-                const rx = Math.round(x * cos - y * sin + 7);
-                const ry = Math.round(x * sin + y * cos + 7);
-                return [rx, ry];
-            });
+            for (let i = 0; i < 51; i++) {
+                const idx = (startOffset + i) % 51;
+                playerTrack.push(track[idx]);
+            }
+
+            return playerTrack.concat(homeStretches[pid]);
         }
 
 

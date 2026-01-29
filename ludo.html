@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HEKA LUDO MششASTER</title>
+    <title>HEKA LUDaO MASTER</title>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -920,57 +920,8 @@
             finished: [false, false, false, false],
             players: [],
             consecutive6s: 0,        // Track consecutive 6s
-            rollsWithout6: [0, 0, 0, 0],  // Track rolls without 6 for each player
-            availableMoves: [] // Array of token indices that can move [0, 2]
+            rollsWithout6: [0, 0, 0, 0]  // Track rolls without 6 for each player
         };
-
-        // ... existing vars ...
-
-        // --- CHAT FIX ---
-        function sendChat() {
-            const input = document.getElementById('chat-input');
-            const msg = input.value.trim();
-            if (!msg || !currentRoom) return;
-
-            // Log for debugging
-            console.log("Sending chat:", msg, myName);
-
-            db.ref('ludo_rooms/' + currentRoom + '/chat').push({
-                sender: myName || "User", // Fallback
-                text: msg,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-            input.value = "";
-        }
-
-        function initChatListener(code) {
-            const chatRef = db.ref('ludo_rooms/' + code + '/chat');
-            chatRef.off();
-            chatRef.limitToLast(50).on('child_added', (snap) => {
-                const val = snap.val();
-                if (!val) return;
-
-                // DATA VALIDATION
-                const sender = val.sender || "Unknown";
-                const text = val.text || "";
-
-                const msgsDiv = document.getElementById('chat-msgs');
-                const isMe = (sender === myName);
-
-                const msgEl = document.createElement('div');
-                msgEl.className = 'msg';
-                msgEl.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
-                msgEl.style.backgroundColor = isMe ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)';
-                msgEl.innerHTML = `<strong>${sender}</strong>: ${text}`;
-
-                msgsDiv.appendChild(msgEl);
-                msgsDiv.scrollTop = msgsDiv.scrollHeight;
-
-                if (!isMe && document.getElementById('chat-box').classList.contains('hidden')) {
-                    toast(`📩 ${sender}: ${text.substring(0, 10)}...`);
-                }
-            });
-        }
 
         let myName = localStorage.getItem('heka_global_player_name') || "Player";
         let myId = Math.random().toString(36).substr(2, 9);
@@ -1161,21 +1112,10 @@
 
                 // Game Start Trigger
                 if (val.status === 'playing') {
-                    // Preserve local state logic
+                    // Preserve local state
                     const preserved6s = gameState.consecutive6s || 0;
-                    const preservedMoves = gameState.availableMoves || [];
-
-                    // Detect if it's a new turn or just a re-sync
-                    const isSameTurnState = (gameState.turn === val.turn && gameState.dice === val.dice);
-
                     gameState = val;
-                    gameState.consecutive6s = preserved6s;
-
-                    if (isSameTurnState) {
-                        gameState.availableMoves = preservedMoves;
-                    } else {
-                        gameState.availableMoves = [];
-                    }
+                    gameState.consecutive6s = preserved6s; // Keep local
 
                     if (document.getElementById('screen-game').classList.contains('hidden')) {
                         showScreen('screen-game');
@@ -1186,25 +1126,22 @@
                         renderDice(gameState.dice);
                     }
 
-                    // If it's my turn, dice is rolled, but I have no moves calculated (e.g. refresh or first sync)
-                    // Calculate them now!
+                    updateUI();
+
+                    // CRITICAL FIX: Re-apply logic if it's my turn and dice is rolled
                     const isMyTurn = (gameState.turn === myColorIndex);
-                    if (isMyTurn && gameState.dice > 0 && !isRolling && gameState.availableMoves.length === 0) {
+                    if (isMyTurn && gameState.dice > 0 && !isRolling && !isProcessingMove) {
                         handleRollResult(gameState.dice);
                     }
 
-                    updateUI(); // uses gameState.availableMoves to render Glows via renderTokens
-
-                    // Host runs Bots logic
+                    // Host runs Bots
                     const currentPlayer = gameState.players[gameState.turn];
                     if (myColorIndex === 0 && currentPlayer && currentPlayer.isBot && !isProcessingMove) {
                         if (gameState.dice > 0) {
-                            // Only run if moves not calculated yet to avoid loop
-                            if (!gameState.availableMoves || gameState.availableMoves.length === 0) {
-                                handleRollResult(gameState.dice);
-                            }
+                            handleRollResult(gameState.dice);
                         } else if (!isRolling) {
                             setTimeout(() => {
+                                // Check again
                                 if (gameState.players[gameState.turn].isBot && gameState.dice === 0) {
                                     performRoll();
                                 }
@@ -1212,8 +1149,6 @@
                         }
                     }
                 }
-
-            }
             });
         }
 
@@ -1397,7 +1332,6 @@
 
         function handleRollResult(roll) {
             console.log(`[handleRollResult] Player ${gameState.turn} rolled ${roll}`);
-            gameState.availableMoves = []; // Reset
 
             try {
                 const playerId = gameState.turn;
@@ -1405,10 +1339,10 @@
                 const moveables = pieces.map((pos, idx) => canMove(playerId, idx, roll) ? idx : -1).filter(i => i !== -1);
 
                 console.log(`[handleRollResult] Pieces: ${pieces.join(',')}, Moveable: ${moveables.join(',')}`);
-                gameState.availableMoves = moveables; // Sync State
 
                 if (moveables.length === 0) {
                     toast('لا توجد حركات متاحة');
+                    console.log(`[handleRollResult] No moves. Roll=${roll}, granting bonus? ${roll === 6}`);
 
                     if (roll === 6) {
                         console.log('[handleRollResult] GRANTING BONUS for 6 (no moves)');
@@ -1423,21 +1357,19 @@
                         setTimeout(nextTurn, 1000);
                     }
                 } else if (moveables.length === 1 && playMode !== 'online') {
-                    // Auto-move for offline player (if only 1 move) to speed up
-                    // But for online, we want user to click even if 1 move, for engagement
                     console.log(`[handleRollResult] Auto-moving piece ${moveables[0]}`);
                     setTimeout(() => moveToken(playerId, moveables[0]), 500);
                 } else {
-                    // Just Render - renderTokens will see availableMoves and add Glow
-                    updateUI();
+                    console.log(`[handleRollResult] Highlighting ${moveables.length} pieces`);
+                    moveables.forEach(idx => {
+                        const el = document.getElementById(`t-${playerId}-${idx}`);
+                        if (el) el.classList.add('glow');
+                    });
 
                     // Check if current player is a bot (offline mode or online bot)
                     const currentPlayer = gameState.players[gameState.turn];
                     const isBot = (playMode === 'offline' && gameState.turn !== 0) ||
                         (playMode === 'online' && currentPlayer && (currentPlayer.isBot || currentPlayer.id.startsWith('bot-')));
-
-                    // Host runs Bots in Online
-                    if (playMode === 'online' && myColorIndex !== 0 && isBot) return;
 
                     if (isBot) {
                         setTimeout(() => runAI(moveables), 800);
@@ -1711,11 +1643,7 @@
                     };
 
                     const myTurn = (playMode === 'online' ? gameState.turn === myColorIndex : gameState.turn === 0);
-
-                    // Check if this token is marked as moveable in State
-                    const isMoveable = (gameState.availableMoves || []).includes(d.tId) && d.p === gameState.turn;
-                    // Also double check dice > 0 just in case
-                    const canM = (myTurn && !isRolling && gameState.dice > 0 && isMoveable);
+                    const canM = (myTurn && !isRolling && gameState.dice > 0 && d.p === gameState.turn && canMove(d.p, d.tId, gameState.dice));
 
                     if (canM) {
                         el.style.cursor = "pointer";

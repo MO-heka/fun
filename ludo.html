@@ -1191,50 +1191,50 @@
             let currentLocal = gameState.tokens[pid][tid];
             let previousState = currentLocal;
 
+            // 1. Move Physics
             try {
                 if (currentLocal === -1) {
-                    currentLocal = 0;
-                    sfx.move();
+                    currentLocal = 0; // Exit Base
+                    try { sfx.move(); } catch (e) { }
                 } else {
                     currentLocal += roll;
-                    sfx.move();
+                    try { sfx.move(); } catch (e) { }
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Move Error", e); }
 
             gameState.tokens[pid][tid] = currentLocal;
 
             // Check Interactions
-            if (currentLocal < 52) { // Shared Track
+            // 2. Interaction (Kill Checks)
+            // Rules: 
+            // - Safe Spot (Star/Start) -> No Kill (Coexist)
+            // - Protected Stack (>1 opponent) -> No Kill (Coexist)
+            // - Vulnerable (1 opponent) -> Kill
+            if (currentLocal < 52) {
                 const myGlobal = toGlobal(pid, currentLocal);
-                if (myGlobal !== -1) {
-                    if (!isSafe(myGlobal)) {
-                        let killedAny = false;
+                // IF NOT SAFE SPOT
+                if (myGlobal !== -1 && !isSafe(myGlobal)) {
+                    let killedAny = false;
+                    // Check enemies
+                    for (let op = 0; op < 4; op++) {
+                        if (op === pid) continue;
 
-                        for (let op = 0; op < 4; op++) {
-                            if (op === pid) continue;
-
-                            let opTokensOnCell = [];
-                            gameState.tokens[op].forEach((opos, oid) => {
-                                if (opos !== -1 && opos < 52 && toGlobal(op, opos) === myGlobal) {
-                                    opTokensOnCell.push(oid);
-                                }
-                            });
-
-                            if (opTokensOnCell.length === 1) {
-                                // Vulnerable Single Token -> KILL
-                                const targetTid = opTokensOnCell[0];
-                                gameState.tokens[op][targetTid] = -1; // Send to base
-                                killedAny = true;
+                        let opTokens = [];
+                        gameState.tokens[op].forEach((pos, idx) => {
+                            if (pos !== -1 && pos < 52 && toGlobal(op, pos) === myGlobal) {
+                                opTokens.push(idx);
                             }
-                        }
+                        });
 
-                        if (killedAny) {
-                            try {
-                                sfx.kill();
-                                toast(`💥 أكلت المنافس!`);
-                                showConfetti(5);
-                            } catch (e) { }
+                        // KILL ONLY IF SINGLE
+                        if (opTokens.length === 1) {
+                            gameState.tokens[op][opTokens[0]] = -1; // Kill
+                            killedAny = true;
                         }
+                    }
+
+                    if (killedAny) {
+                        try { sfx.kill(); toast("💥 أكلت المنافس!"); showConfetti(5); } catch (e) { }
                     }
                 }
             }
@@ -1247,36 +1247,30 @@
 
             renderTokens();
 
-            setTimeout(() => isProcessingMove = false, 500);
+            setTimeout(() => isProcessingMove = false, 400);
 
-            // Re-roll Logic (6 or Goal)
-            if (roll === 6 || currentLocal === 57) {
-                // Determine message
-                let msg = "";
-                if (currentLocal === 57 && !gameState.finished[pid]) msg = "وصلت! 🏁 العب مرة أخرى";
-                else if (roll === 6) msg = "لديك لفة إضافية! 🎲";
+            // 4. Turn Flow
+            const bonus = (roll === 6 || currentLocal === 57);
 
-                if (msg) toast(msg);
+            if (bonus) {
+                if (currentLocal === 57 && !gameState.finished[pid]) toast("وصلت! 🏁");
+                else if (roll === 6) toast("لفة إضافية! 🎲");
 
-                // If fully won, pass turn
                 if (gameState.finished[pid]) {
                     nextTurn();
-                    return;
-                }
-
-                gameState.dice = 0;
-                if (playMode === 'online') {
-                    updateOnlineState(gameState);
                 } else {
-                    updateUI(); // Render dice 0
-                    // Bot Re-roll
-                    if (playMode === 'offline' && gameState.turn !== 0) {
-                        // Faster re-roll (800ms) to prevent "Stuck" feeling
-                        setTimeout(() => performRoll(), 800);
+                    // Re-Roll
+                    gameState.dice = 0;
+                    if (playMode === 'online') updateOnlineState(gameState);
+                    else {
+                        updateUI();
+                        if (playMode === 'offline' && gameState.turn !== 0) {
+                            setTimeout(() => performRoll(), 800);
+                        }
                     }
                 }
             } else {
-                nextTurn();
+                setTimeout(nextTurn, 200);
             }
         }
 

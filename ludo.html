@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HEKA LUDO MASTER</title>
+    <title>HEKA LUDO شMASTER</title>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -1015,15 +1015,34 @@
             // Show chat in online mode
             document.getElementById('chat-btn').style.display = 'block';
 
+            // Set presence for disconnect detection
+            const myPresenceRef = db.ref(`ludo_rooms/${currentRoom}/presence/${myId}`);
+            myPresenceRef.set(true);
+            myPresenceRef.onDisconnect().remove();
+
             db.ref('ludo_rooms/' + currentRoom).on('value', snap => {
                 const val = snap.val();
                 if (!val) return location.reload();
+
+                // Check for disconnected players and convert to bots
+                if (val.status === 'playing' && val.presence) {
+                    val.players.forEach((player, idx) => {
+                        if (!player.isBot && !val.presence[player.id]) {
+                            // Player disconnected - convert to bot
+                            db.ref(`ludo_rooms/${currentRoom}/players/${idx}`).update({
+                                name: `Bot ${idx + 1}`,
+                                isBot: true,
+                                id: `bot-${idx}`
+                            });
+                        }
+                    });
+                }
 
                 // Lobby Update
                 const pList = document.getElementById('lobby-players');
                 pList.innerHTML = val.players.map(p => `
                     <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; margin:5px 0;">
-                        <span style="font-weight:bold">${p.name}</span>
+                        <span style="font-weight:bold">${p.name}${p.isBot ? ' 🤖' : ''}</span>
                         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${p.avatar || 'Felix'}" width="30" style="border-radius:50%; background:#333;">
                         <span class="d-dot" style="background:${getHexColor(p.color)}; width:10px; height:10px; display:inline-block; border-radius:50%"></span>
                     </div>`).join('');
@@ -1049,7 +1068,41 @@
         }
 
         function startOnlineGame() {
-            db.ref('ludo_rooms/' + currentRoom).update({ status: 'playing' });
+            // Fill empty slots with bots (Player, Bot, Player, Bot pattern)
+            db.ref('ludo_rooms/' + currentRoom).once('value', snap => {
+                const room = snap.val();
+                if (!room) return;
+
+                const players = room.players || [];
+                const filledPlayers = [];
+
+                // Create 4-player array with bots filling gaps
+                for (let i = 0; i < 4; i++) {
+                    // Try to find a real player for this slot
+                    const realPlayer = players.find(p => p.color === i);
+
+                    if (realPlayer) {
+                        filledPlayers.push(realPlayer);
+                    } else {
+                        // Add bot
+                        const botNames = ['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta'];
+                        const botAvatars = ['Felix', 'Bear', 'Zack', 'Max'];
+                        filledPlayers.push({
+                            name: botNames[i] || `Bot ${i + 1}`,
+                            id: 'bot-' + i,
+                            color: i,
+                            avatar: botAvatars[i],
+                            isBot: true
+                        });
+                    }
+                }
+
+                // Update room with filled players
+                db.ref('ludo_rooms/' + currentRoom).update({
+                    status: 'playing',
+                    players: filledPlayers
+                });
+            });
         }
 
         function updateOnlineState(updates) {
@@ -1228,7 +1281,12 @@
                         if (el) el.classList.add('glow');
                     });
 
-                    if (playMode === 'offline' && gameState.turn !== 0) {
+                    // Check if current player is a bot (offline mode or online bot)
+                    const currentPlayer = gameState.players[gameState.turn];
+                    const isBot = (playMode === 'offline' && gameState.turn !== 0) ||
+                        (playMode === 'online' && currentPlayer && (currentPlayer.isBot || currentPlayer.id.startsWith('bot-')));
+
+                    if (isBot) {
                         setTimeout(() => runAI(moveables), 800);
                     }
                 }

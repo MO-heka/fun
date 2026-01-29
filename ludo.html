@@ -1005,6 +1005,8 @@
         // --- GAME LOGIC CORES ---
         function resetBoard() {
             gameState.tokens = [[-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1]];
+            gameState.finished = [false, false, false, false];
+            gameState.dice = 0;
             renderTokens();
         }
 
@@ -1103,37 +1105,51 @@
         }
 
         function handleRollResult(roll) {
-            // Check movable tokens
-            const playerId = gameState.turn;
-            const pieces = gameState.tokens[playerId];
-            const moveables = pieces.map((pos, idx) => canMove(playerId, idx, roll) ? idx : -1).filter(i => i !== -1);
+            try {
+                // Check movable tokens
+                const playerId = gameState.turn;
+                const pieces = gameState.tokens[playerId];
+                const moveables = pieces.map((pos, idx) => canMove(playerId, idx, roll) ? idx : -1).filter(i => i !== -1);
 
-            if (moveables.length === 0) {
-                // No move possible
-                toast('لا توجد حركات متاحة');
-                setTimeout(nextTurn, 1000);
-            } else if (moveables.length === 1 && playMode !== 'online') { // Auto move single option in offline
-                // Wait a bit for visual
-                setTimeout(() => moveToken(playerId, moveables[0]), 500);
-            } else {
-                // Highlight options
-                moveables.forEach(idx => {
-                    const el = document.getElementById(`t-${playerId}-${idx}`);
-                    if (el) el.classList.add('glow');
-                });
+                if (moveables.length === 0) {
+                    // No move possible
+                    toast('لا توجد حركات متاحة');
+                    // Even if 6, if no moves (all finished?), pass turn
+                    setTimeout(nextTurn, 1000);
+                } else if (moveables.length === 1 && playMode !== 'online') {
+                    // Auto move single option
+                    setTimeout(() => moveToken(playerId, moveables[0]), 500);
+                } else {
+                    // Highlight options
+                    moveables.forEach(idx => {
+                        const el = document.getElementById(`t-${playerId}-${idx}`);
+                        if (el) el.classList.add('glow');
+                    });
 
-                // If offline AI
-                if (playMode === 'offline' && gameState.turn !== 0) {
-                    setTimeout(() => runAI(moveables), 800);
+                    // If offline AI
+                    if (playMode === 'offline' && gameState.turn !== 0) {
+                        setTimeout(() => runAI(moveables), 800);
+                    }
                 }
+            } catch (err) {
+                console.error("Roll Error:", err);
+                toast("حدث خطأ، تجاوز الدور");
+                nextTurn();
             }
         }
 
         function runAI(options) {
-            // Simple AI: Prioritize Capture > Home > Start > Advance
-            // Just random for now to keep it simple but functional
-            const pick = options[Math.floor(Math.random() * options.length)];
-            moveToken(gameState.turn, pick);
+            try {
+                if (!options || options.length === 0) {
+                    nextTurn();
+                    return;
+                }
+                const pick = options[Math.floor(Math.random() * options.length)];
+                moveToken(gameState.turn, pick);
+            } catch (err) {
+                console.error("AI Error:", err);
+                nextTurn();
+            }
         }
 
         // --- GAME LOGIC ---
@@ -1175,13 +1191,15 @@
             let currentLocal = gameState.tokens[pid][tid];
             let previousState = currentLocal;
 
-            if (currentLocal === -1) {
-                currentLocal = 0;
-                sfx.move();
-            } else {
-                currentLocal += roll;
-                sfx.move();
-            }
+            try {
+                if (currentLocal === -1) {
+                    currentLocal = 0;
+                    sfx.move();
+                } else {
+                    currentLocal += roll;
+                    sfx.move();
+                }
+            } catch (e) { console.error(e); }
 
             gameState.tokens[pid][tid] = currentLocal;
 
@@ -1189,14 +1207,6 @@
             if (currentLocal < 52) { // Shared Track
                 const myGlobal = toGlobal(pid, currentLocal);
                 if (myGlobal !== -1) {
-                    // Interaction Logic:
-                    // 1. Board Safe Spots (Stars/Start): No killing ever. Coexist.
-                    // 2. Not Safe Spot:
-                    //    - Check each opponent color.
-                    //    - If Opponent has > 1 token: PROTECTED (Safe Stack). Do not kill. Coexist.
-                    //    - If Opponent has 1 token: VULNERABLE. Kill.
-                    //    - This allows killing multiple single tokens (e.g. killing a Green and a Red at once).
-
                     if (!isSafe(myGlobal)) {
                         let killedAny = false;
 
@@ -1216,13 +1226,14 @@
                                 gameState.tokens[op][targetTid] = -1; // Send to base
                                 killedAny = true;
                             }
-                            // If length > 1 -> Protected. Do nothing.
                         }
 
                         if (killedAny) {
-                            sfx.kill();
-                            toast(`💥 أكلت المنافس!`);
-                            showConfetti(5);
+                            try {
+                                sfx.kill();
+                                toast(`💥 أكلت المنافس!`);
+                                showConfetti(5);
+                            } catch (e) { }
                         }
                     }
                 }
@@ -1238,22 +1249,30 @@
 
             setTimeout(() => isProcessingMove = false, 500);
 
+            // Re-roll Logic (6 or Goal)
             if (roll === 6 || currentLocal === 57) {
-                if (currentLocal === 57 && !gameState.finished[pid]) {
-                    toast("وصلت! 🏁 العب مرة أخرى");
-                } else if (roll === 6) {
-                    toast("لديك لفة إضافية! 🎲");
-                }
+                // Determine message
+                let msg = "";
+                if (currentLocal === 57 && !gameState.finished[pid]) msg = "وصلت! 🏁 العب مرة أخرى";
+                else if (roll === 6) msg = "لديك لفة إضافية! 🎲";
+
+                if (msg) toast(msg);
+
+                // If fully won, pass turn
                 if (gameState.finished[pid]) {
                     nextTurn();
                     return;
                 }
+
                 gameState.dice = 0;
-                if (playMode === 'online') updateOnlineState(gameState);
-                else {
-                    updateUI();
+                if (playMode === 'online') {
+                    updateOnlineState(gameState);
+                } else {
+                    updateUI(); // Render dice 0
+                    // Bot Re-roll
                     if (playMode === 'offline' && gameState.turn !== 0) {
-                        setTimeout(() => performRoll(), 1500);
+                        // Faster re-roll (800ms) to prevent "Stuck" feeling
+                        setTimeout(() => performRoll(), 800);
                     }
                 }
             } else {

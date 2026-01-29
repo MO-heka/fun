@@ -910,10 +910,10 @@
             if (mode === 'offline') {
                 myColorIndex = 0;
                 gameState.players = [
-                    { n: myName, id: 'me', avatar: myAvatar },
-                    { n: 'Bot 1', id: 'bot', avatar: 'Felix' },
-                    { n: 'Bot 2', id: 'bot', avatar: 'Bear' },
-                    { n: 'Bot 3', id: 'bot', avatar: 'Zack' }
+                    { name: myName, id: 'me', avatar: myAvatar },
+                    { name: 'Bot 1', id: 'bot', avatar: 'Felix' },
+                    { name: 'Bot 2', id: 'bot', avatar: 'Bear' },
+                    { name: 'Bot 3', id: 'bot', avatar: 'Zack' }
                 ];
                 gameState.turn = 0;
                 resetBoard();
@@ -1328,9 +1328,11 @@
                     el.style.left = (parseFloat(xy[0]) + offX) + 'px';
                     el.style.top = (parseFloat(xy[1]) + offY) + 'px';
 
-                    el.onclick = (e) => {
+                    // Touch/Click Interaction
+                    const handleInteraction = (e) => {
                         e.stopPropagation();
-                        e.preventDefault();
+                        // e.preventDefault(); // CAREFUL: This might block scrolling if not careful. 
+                        // But for a game token, preventing default on touch is usually what we want to stop ghost clicks.
 
                         if (playMode === 'online' && gameState.turn !== myColorIndex) return toast("ليس دورك!");
                         if (playMode === 'offline' && gameState.turn !== 0 && d.p !== 0) return;
@@ -1338,12 +1340,23 @@
                         if (d.p !== gameState.turn) return toast("هذه ليست قطعتك!");
 
                         if (canMove(d.p, d.tId, gameState.dice)) {
+                            // Valid Move
+                            // Hide ghost immediately
+                            ghostLayer.innerHTML = "";
                             moveToken(d.p, d.tId);
                         } else {
                             const pos = gameState.tokens[d.p][d.tId];
                             if (pos === -1 && gameState.dice !== 6) toast("تحتاج 6 للخروج! 🎲");
                             else toast("حركة غير متاحة!");
                         }
+                    };
+
+                    el.onclick = handleInteraction;
+                    // Add touch support for instant reaction
+                    el.ontouchend = (e) => {
+                        // Prevent mouse emulation (double firing)
+                        e.preventDefault();
+                        handleInteraction(e);
                     };
 
                     const myTurn = (playMode === 'online' ? gameState.turn === myColorIndex : gameState.turn === 0);
@@ -1353,6 +1366,7 @@
                         el.style.cursor = "pointer";
                         el.classList.add('glow');
                         el.style.zIndex = 999;
+                        // Desktop Hover only
                         el.onmouseenter = () => showGhost(d.p, gameState.tokens[d.p][d.tId], gameState.dice);
                         el.onmouseleave = () => ghostLayer.innerHTML = "";
                     } else {

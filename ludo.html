@@ -1161,11 +1161,22 @@
                                 if (gameState.players[gameState.turn].isBot && gameState.dice === 0) {
                                     performRoll();
                                 }
-                            }, 1000);
+                            }, 500);
                         }
                     }
                 }
+
             });
+
+            // --- BOT WATCHDOG (ANTIFREEZE) ---
+            setInterval(() => {
+                if (playMode !== 'online' || myColorIndex !== 0 || !gameState || !gameState.players) return;
+                const cp = gameState.players[gameState.turn];
+                if (cp && cp.isBot && gameState.dice === 0 && !isRolling && !isProcessingMove) {
+                    console.log("[Watchdog] Forcing bot roll...");
+                    performRoll();
+                }
+            }, 3000);
         }
 
         function startOnlineGame() {
@@ -1370,17 +1381,18 @@
                         // If I have no moves at all EVEN with 6 (game logic), then simple re-roll?
                         // Assuming standard logic:
                         if (playMode === 'offline' && gameState.turn !== 0) {
-                            setTimeout(() => performRoll(), 1000);
+                            setTimeout(() => performRoll(), 500);
                         } else {
                             // User must roll again
                             updateUI();
                         }
                     } else {
-                        setTimeout(nextTurn, 1000);
+                        setTimeout(nextTurn, 500);
                     }
-                } else if (moveables.length === 1 && playMode !== 'online') {
-                    // Auto move offline
-                    setTimeout(() => moveToken(playerId, moveables[0]), 500);
+                } else if (moveables.length === 1) {
+                    // --- AUTO MOVE ---
+                    updateUI();
+                    setTimeout(() => moveToken(playerId, moveables[0]), 300);
                 } else {
                     // Just Sync UI - renderTokens will glow them based on availableMoves
                     updateUI();
@@ -1393,8 +1405,9 @@
                     // Host runs Bots in Online (Only Host Player 0)
                     if (playMode === 'online' && myColorIndex !== 0 && isBot) return;
 
-                    if (isBot) {
-                        setTimeout(() => runAI(moveables), 800);
+                    if (isBot && !isAIProcessing) {
+                        isAIProcessing = true;
+                        setTimeout(() => runAI(moveables, playerId), 400);
                     }
                 }
             } catch (err) {
@@ -1404,16 +1417,39 @@
             }
         }
 
-        function runAI(options) {
+        let isAIProcessing = false;
+
+        function runAI(options, pid) {
             try {
+                // If processing another move, wait and retry instead of giving up
+                // But if retrying too much, force break the lock
+                if (isProcessingMove && !options._retried) {
+                    console.log("[runAI] Move lock active, retrying in 200ms...");
+                    options._retried = true; // Mark as retried
+                    setTimeout(() => runAI(options, pid), 200);
+                    return;
+                }
+
+                // Force release lock if still stuck after retry
+                if (isProcessingMove) {
+                    console.warn("[runAI] Force releasing lock for Bot Move");
+                    isProcessingMove = false;
+                }
+
                 if (!options || options.length === 0) {
+                    isAIProcessing = false;
                     nextTurn();
                     return;
                 }
+
                 const pick = options[Math.floor(Math.random() * options.length)];
-                moveToken(gameState.turn, pick);
+                console.log(`[runAI] Bot moves token ${pick} (PID: ${pid})`);
+
+                moveToken(pid !== undefined ? pid : gameState.turn, pick);
+                isAIProcessing = false; // RESET immediately after move
             } catch (err) {
                 console.error("AI Error:", err);
+                isAIProcessing = false;
                 nextTurn();
             }
         }
@@ -1424,8 +1460,8 @@
             if (pos === -1) return (roll === 6);
             if (pos >= 100) return false;
             // Goal Logic (Standard 57 limit: 0-51 common, 52-56 home, 57 goal)
-            if (pos === 57) return false;
-            if (pos + roll > 57) return false;
+            if (pos === 56) return false;
+            if (pos + roll > 56) return false;
             return true;
         }
 
@@ -1447,6 +1483,11 @@
         }
 
         function moveToken(pid, tid) {
+            // STRICT TURN CHECK
+            if (pid !== gameState.turn) {
+                console.warn(`[moveToken] REJECTED: Player ${pid} tried to move on Player ${gameState.turn}'s turn.`);
+                return;
+            }
             console.log(`[moveToken] Player ${pid} moving piece ${tid}, current dice: ${gameState.dice}`);
 
             // Processing Lock
@@ -1526,6 +1567,7 @@
             }
 
             // Check if player has finished all pieces
+            if (!gameState.finished) gameState.finished = [false, false, false, false];
             const playerFinished = gameState.finished[pid];
 
             renderTokens();
@@ -1567,7 +1609,7 @@
         }
 
         function checkWin(pid) {
-            const allHome = gameState.tokens[pid].every(t => t >= 57);
+            const allHome = gameState.tokens[pid].every(t => t >= 56);
             if (allHome && !gameState.finished[pid]) {
                 gameState.finished[pid] = true;
                 toast(`🏆 ${gameState.players[pid].name} Wins!`);
@@ -1578,6 +1620,7 @@
 
         function nextTurn() {
             gameState.dice = 0;
+            isAIProcessing = false; // Reset AI Lock
             // Ensure finished array exists to prevent crash
             if (!gameState.finished) gameState.finished = [false, false, false, false];
 
@@ -1694,7 +1737,7 @@
         function showGhost(pid, currentPos, roll) {
             if (roll === 0) return;
             let nextPos = (currentPos === -1) ? 0 : currentPos + roll;
-            if (nextPos > 57) return;
+            if (nextPos > 56) return;
 
             const xy = getCoordinates(pid, nextPos, 0);
             const g = document.createElement('div');
@@ -1720,7 +1763,7 @@
                 return { x: px * (wrapper / 100), y: py * (wrapper / 100) };
             }
 
-            if (pos >= 57) {
+            if (pos >= 56) {
                 const wrapper = document.getElementById('game-container').offsetWidth;
                 const center = wrapper / 2;
                 const offset = wrapper * 0.05;
@@ -1812,11 +1855,12 @@
             track.push([0, 7]);   // 50 (Just before home entry)
 
             // Home stretches
+            // Home stretches (Reduced to 6 steps: 5 Colors + 1 Goal)
             const homeStretches = [
-                [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7]],  // GREEN
-                [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6], [7, 7]],  // YELLOW
-                [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [8, 7], [7, 7]], // BLUE
-                [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 8], [7, 7]]  // RED
+                [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [7, 7]],  // GREEN
+                [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 7]],  // YELLOW
+                [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [7, 7]], // BLUE
+                [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 7]]  // RED
             ];
 
             // Build player-specific path (rotated start)
@@ -1824,7 +1868,7 @@
             const playerTrack = [];
 
             for (let i = 0; i < 51; i++) {
-                const idx = (startOffset + i) % 51;
+                const idx = (startOffset + i) % 52; // CORRECT: Modulo 52 (Track length)
                 playerTrack.push(track[idx]);
             }
 

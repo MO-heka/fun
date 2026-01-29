@@ -281,7 +281,7 @@
         /* Dice */
         #dice-panel {
             position: absolute;
-            bottom: 20px;
+            bottom: 80px;
             left: 50%;
             transform: translateX(-50%);
             width: 80px;
@@ -701,35 +701,69 @@
             <svg id="ludo-board" viewBox="0 0 1500 1500">
                 <!-- Defs -->
                 <defs>
-                    <pattern id="star" x="0" y="0" width="1" height="1">
-                        <polygon points="50,5 20,90 95,30 5,30 80,90" fill="rgba(0,0,0,0.2)" />
-                    </pattern>
+                    <!-- Gradients for Bases -->
+                    <radialGradient id="greenGrad" cx="50%" cy="50%">
+                        <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+                    </radialGradient>
+                    <radialGradient id="yellowGrad" cx="50%" cy="50%">
+                        <stop offset="0%" style="stop-color:#fde047;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#ca8a04;stop-opacity:1" />
+                    </radialGradient>
+                    <radialGradient id="blueGrad" cx="50%" cy="50%">
+                        <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+                    </radialGradient>
+                    <radialGradient id="redGrad" cx="50%" cy="50%">
+                        <stop offset="0%" style="stop-color:#f87171;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#b91c1c;stop-opacity:1" />
+                    </radialGradient>
+
+                    <!-- 3D Shadow Filter -->
+                    <filter id="shadow3d" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                        <feOffset dx="2" dy="2" result="offsetblur" />
+                        <feComponentTransfer>
+                            <feFuncA type="linear" slope="0.5" />
+                        </feComponentTransfer>
+                        <feMerge>
+                            <feMergeNode />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+
+                    <!-- Star pattern for safe spots -->
+                    <polygon id="star-shape" points="50,15 61,45 90,45 68,62 76,90 50,73 24,90 32,62 10,45 39,45"
+                        fill="currentColor" filter="url(#shadow3d)" />
                 </defs>
+
                 <!-- Background -->
-                <rect width="1500" height="1500" fill="#f8f9fa" rx="20" /> <!-- Clean White/Grey Base -->
+                <rect width="1500" height="1500" fill="#f8f9fa" rx="20" />
 
-                <!-- Wood Frame -->
-                <rect x="0" y="0" width="1500" height="1500" rx="20" fill="none" stroke="#5d4037" stroke-width="30" />
+                <!-- Wood Frame with 3D effect -->
+                <rect x="0" y="0" width="1500" height="1500" rx="20" fill="none" stroke="url(#woodGrad)"
+                    stroke-width="30" filter="url(#shadow3d)" />
 
-                <!-- Bases -->
-                <!-- Bases (Colors Adjusted: G=TL, Y=TR, B=BR, R=BL) -->
-                <rect x="0" y="0" width="600" height="600" fill="#22c55e" /> <!-- Green TL -->
-                <rect x="900" y="0" width="600" height="600" fill="#eab308" /> <!-- Yellow TR -->
-                <rect x="900" y="900" width="600" height="600" fill="#3b82f6" /> <!-- Blue BR -->
-                <rect x="0" y="900" width="600" height="600" fill="#ef4444" /> <!-- Red BL -->
+                <!-- Bases with Gradients -->
+                <rect x="0" y="0" width="600" height="600" fill="url(#greenGrad)" filter="url(#shadow3d)" />
+                <rect x="900" y="0" width="600" height="600" fill="url(#yellowGrad)" filter="url(#shadow3d)" />
+                <rect x="900" y="900" width="600" height="600" fill="url(#blueGrad)" filter="url(#shadow3d)" />
+                <rect x="0" y="900" width="600" height="600" fill="url(#redGrad)" filter="url(#shadow3d)" />
 
                 <!-- Inner Whites -->
-                <rect x="100" y="100" width="400" height="400" fill="white" rx="40" />
-                <rect x="1000" y="100" width="400" height="400" fill="white" rx="40" />
-                <rect x="1000" y="1000" width="400" height="400" fill="white" rx="40" />
-                <rect x="100" y="1000" width="400" height="400" fill="white" rx="40" />
+                <rect x="100" y="100" width="400" height="400" fill="white" rx="40" filter="url(#shadow3d)" />
+                <rect x="1000" y="100" width="400" height="400" fill="white" rx="40" filter="url(#shadow3d)" />
+                <rect x="1000" y="1000" width="400" height="400" fill="white" rx="40" filter="url(#shadow3d)" />
+                <rect x="100" y="1000" width="400" height="400" fill="white" rx="40" filter="url(#shadow3d)" />
 
-                <!-- Center Triangle Colors (Match Arms) -->
-                <!-- Top (Yellow), Right (Blue), Bottom (Red), Left (Green) -->
-                <polygon points="600,600 900,600 750,750" fill="#eab308" opacity="0.8" /> <!-- Top -->
-                <polygon points="900,600 900,900 750,750" fill="#3b82f6" opacity="0.8" /> <!-- Right -->
-                <polygon points="900,900 600,900 750,750" fill="#ef4444" opacity="0.8" /> <!-- Bottom -->
-                <polygon points="600,900 600,600 750,750" fill="#22c55e" opacity="0.8" /> <!-- Left -->
+                <!-- Enhanced Center with Glow -->
+                <circle cx="750" cy="750" r="120" fill="#fbbf24" opacity="0.3" filter="url(#shadow3d)" />
+                <polygon points="600,600 900,600 750,750" fill="#eab308" opacity="0.9" filter="url(#shadow3d)" />
+                <polygon points="900,600 900,900 750,750" fill="#3b82f6" opacity="0.9" filter="url(#shadow3d)" />
+                <polygon points="900,900 600,900 750,750" fill="#ef4444" opacity="0.9" filter="url(#shadow3d)" />
+                <polygon points="600,900 600,600 750,750" fill="#22c55e" opacity="0.9" filter="url(#shadow3d)" />
+                <circle cx="750" cy="750" r="80" fill="#fef3c7" stroke="#f59e0b" stroke-width="5" />
+                <text x="750" y="765" text-anchor="middle" font-size="40" font-weight="bold" fill="#92400e">🏆</text>
 
                 <!-- Tracks -->
                 <g id="grid-lines" stroke="#ccc" stroke-width="2">
@@ -780,18 +814,24 @@
                 <!-- Red Start (Bottom): x600 y1300 -->
                 <rect x="600" y="1300" width="100" height="100" fill="#ef4444" opacity="0.5" />
 
-                <!-- Shared Safe Spots (All Shields) -->
-                <!-- Star Positions (Safe) -->
-                <use href="#safe-cell" x="600" y="200" /> <!-- Top L -->
-                <use href="#safe-cell" x="1200" y="600" /> <!-- Right T -->
-                <use href="#safe-cell" x="800" y="1200" /> <!-- Bottom R -->
-                <use href="#safe-cell" x="200" y="800" /> <!-- Left B -->
+                <!-- Safe Spots (Shields) -->
+                <!-- Safe spot cells with shield emoji -->
+                <g id="safe-spot">
+                    <rect width="100" height="100" fill="#0f172a" opacity="0.6" />
+                    <text x="50" y="70" font-size="50" text-anchor="middle" fill="#64748b">🛡️</text>
+                </g>
 
-                <!-- Start Positions (Safe Shields too according to request) -->
-                <use href="#safe-cell" x="100" y="600" /> <!-- Green Start -->
-                <use href="#safe-cell" x="800" y="100" /> <!-- Yellow Start -->
-                <use href="#safe-cell" x="1300" y="800" /> <!-- Blue Start -->
-                <use href="#safe-cell" x="600" y="1300" /> <!-- Red Start -->
+                <!-- Star Positions (Safe) -->
+                <use href="#safe-spot" x="600" y="200" />
+                <use href="#safe-spot" x="1200" y="600" />
+                <use href="#safe-spot" x="800" y="1200" />
+                <use href="#safe-spot" x="200" y="800" />
+
+                <!-- Start Positions (Safe) -->
+                <use href="#safe-spot" x="100" y="600" />
+                <use href="#safe-spot" x="800" y="100" />
+                <use href="#safe-spot" x="1300" y="800" />
+                <use href="#safe-spot" x="600" y="1300" />
             </svg>
 
             <!-- Tokens & Ghosts -->
@@ -837,6 +877,10 @@
                 <button onclick="sendChat()" style="width: auto; padding: 0 15px; margin: 0 5px;">➤</button>
             </div>
         </div>
+
+        <!-- Particles Container -->
+        <div id="particles-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+             pointer-events: none; z-index: 9999;"></div>
     </div>
 
     <script>
@@ -927,6 +971,7 @@
                 document.getElementById('chat-box').classList.add('hidden');
 
                 updateUI();
+                // initEnhancements(); // Disabled per user request
             }
         }
 
@@ -1664,6 +1709,123 @@
             const d = document.getElementById('chat-msgs');
             d.innerHTML += `<div class="msg"><b>${n}:</b> ${m}</div>`;
             d.scrollTop = d.scrollHeight;
+        }
+
+        // ===== 15 ENHANCEMENTS =====
+        // Game Statistics Tracking
+        let gameStats = {
+            moveCount: [0, 0, 0, 0],
+            killCount: [0, 0, 0, 0],
+            sixCount: [0, 0, 0, 0],
+            totalRolls: [0, 0, 0, 0]
+        };
+
+        let moveHistory = [];
+        let turnTimer = null;
+        let turnTimeRemaining = 30;
+
+        // Fullscreen Toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen not supported');
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Turn Timer
+        function startTurnTimer() {
+            turnTimeRemaining = 30;
+            if (turnTimer) clearInterval(turnTimer);
+
+            turnTimer = setInterval(() => {
+                turnTimeRemaining--;
+                document.getElementById('timer-value').innerText = turnTimeRemaining;
+
+                if (turnTimeRemaining === 0) {
+                    clearInterval(turnTimer);
+                    if (playMode === 'offline' && gameState.turn !== 0) {
+                        toast('⏱️ انتهى الوقت!');
+                        nextTurn();
+                    }
+                }
+            }, 1000);
+        }
+
+        // Update Statistics Display
+        function updateStats() {
+            const currentPlayer = gameState.turn;
+            const stats = `🎲 ${gameStats.totalRolls[currentPlayer]} | ⭐ ${gameStats.sixCount[currentPlayer]} | 🚶 ${gameStats.moveCount[currentPlayer]} | 💥 ${gameStats.killCount[currentPlayer]}`;
+            document.getElementById('stats-content').innerHTML = stats;
+        }
+
+        // Add Move to History
+        function addToHistory(playerName, action) {
+            const timestamp = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            moveHistory.unshift({ player: playerName, action, time: timestamp });
+
+            if (moveHistory.length > 5) moveHistory.pop();
+
+            const historyHTML = moveHistory.map(h =>
+                `<div style="margin-bottom: 3px; color: #e2e8f0;">${h.time} - ${h.player}: ${h.action}</div>`
+            ).join('');
+
+            document.getElementById('history-list').innerHTML = historyHTML;
+        }
+
+        // Create Particle Effect
+        function createParticles(x, y, color, count = 15) {
+            const container = document.getElementById('particles-container');
+
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                const angle = (Math.PI * 2 * i) / count;
+                const velocity = 30 + Math.random() * 40;
+                const vx = Math.cos(angle) * velocity;
+                const vy = Math.sin(angle) * velocity;
+
+                particle.style.cssText = `
+                    position: absolute;
+                    left: ${x}px;
+                    top: ${y}px;
+                    width: 6px;
+                    height: 6px;
+                    background: ${color};
+                    border-radius: 50%;
+                    pointer-events: none;
+                    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    opacity: 1;
+                `;
+
+                container.appendChild(particle);
+
+                setTimeout(() => {
+                    particle.style.transform = `translate(${vx}px, ${vy + 50}px)`;
+                    particle.style.opacity = '0';
+                }, 50);
+
+                setTimeout(() => particle.remove(), 900);
+            }
+        }
+
+        // Victory Dance
+        function victoryDance(playerId) {
+            const playerCard = document.getElementById(`p-card-${playerId}`);
+            if (playerCard) {
+                playerCard.style.animation = 'none';
+                setTimeout(() => {
+                    playerCard.style.animation = 'pulse 0.5s ease-in-out 3';
+                }, 10);
+            }
+        }
+
+        // Initialize enhancements on game start
+        function initEnhancements() {
+            updateStats();
+            startTurnTimer();
+            addToHistory('النظام', 'اللعبة بدأت! 🎮');
         }
 
         // Online Listeners extras

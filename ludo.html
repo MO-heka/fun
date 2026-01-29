@@ -1232,8 +1232,7 @@
         }
 
         function getHexColor(i) {
-            // New Order: Green, Yellow, Red, Blue
-            return ['#22c55e', '#eab308', '#ef4444', '#3b82f6'][i];
+            return ['#22c55e', '#eab308', '#3b82f6', '#ef4444'][i];
         }
 
         function updateUI() {
@@ -1750,10 +1749,10 @@
 
         function getCoordinates(pid, pos, tokenIndex) {
             const bases = [
-                [[180, 180], [320, 180], [180, 320], [320, 320]],     // 0: Green (TL)
-                [[1080, 180], [1220, 180], [1080, 320], [1220, 320]], // 1: Yellow (TR)
-                [[180, 1080], [320, 1080], [180, 1220], [320, 1220]], // 2: Red (BL) - Swapped
-                [[1080, 1080], [1220, 1080], [1080, 1220], [1220, 1220]] // 3: Blue (BR) - Swapped
+                [[180, 180], [320, 180], [180, 320], [320, 320]],
+                [[1080, 180], [1220, 180], [1080, 320], [1220, 320]],
+                [[1080, 1080], [1220, 1080], [1080, 1220], [1220, 1220]],
+                [[180, 1080], [320, 1080], [180, 1220], [320, 1220]]
             ];
 
             if (pos === -1) {
@@ -1770,8 +1769,8 @@
                 const offset = wrapper * 0.05;
                 if (pid === 0) return { x: center - offset, y: center - offset };
                 if (pid === 1) return { x: center + offset, y: center - offset };
-                if (pid === 2) return { x: center - offset, y: center + offset }; // BL (Red)
-                if (pid === 3) return { x: center + offset, y: center + offset }; // BR (Blue)
+                if (pid === 2) return { x: center + offset, y: center + offset };
+                if (pid === 3) return { x: center - offset, y: center + offset };
                 return { x: center, y: center };
             }
 
@@ -1858,16 +1857,14 @@
             // Home stretches
             // Home stretches (Reduced to 6 steps: 5 Colors + 1 Goal)
             const homeStretches = [
-                [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [7, 7]],  // 0: Green
-                [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 7]],  // 1: Yellow
-                [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 7]], // 2: Red (Now Player 2)
-                [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [7, 7]]  // 3: Blue (Now Player 3)
+                [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [7, 7]],  // GREEN
+                [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 7]],  // YELLOW
+                [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [7, 7]], // BLUE
+                [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 7]]  // RED
             ];
 
             // Build player-specific path (rotated start)
-            // 0: Green(0), 1: Yellow(13), 2: Red(39), 3: Blue(26)
-            const startOffsets = [0, 13, 39, 26];
-            const startOffset = startOffsets[pid];
+            const startOffset = pid * 13;
             const playerTrack = [];
 
             for (let i = 0; i < 51; i++) {

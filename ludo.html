@@ -1136,20 +1136,328 @@
             moveToken(gameState.turn, pick);
         }
 
+        // --- GAME LOGIC ---
         function canMove(pid, tid, roll) {
             const pos = gameState.tokens[pid][tid];
-            // Base Exit Logic
-            if (pos === -1) {
-                return (roll === 6);
-            }
+            if (pos === -1) return (roll === 6);
             if (pos >= 100) return false;
-
-            // Goal Logic
-            // If pos + roll > 57 (Goal Index), can't move
-            if (pos === 57) return false; // Already at goal
+            // Goal Logic (Standard 57 limit: 0-51 common, 52-56 home, 57 goal)
+            if (pos === 57) return false;
             if (pos + roll > 57) return false;
-
             return true;
+        }
+
+        function toGlobal(pid, localPos) {
+            // 52 Common Steps Logic
+            if (localPos >= 52) return -1;
+            const globalStartOffset = pid * 13;
+            return (globalStartOffset + localPos) % 52;
+        }
+
+        function isSafe(globalPos) {
+            // 52-track Safe Spots (Offsets: Start +0, Star +8)
+            // Green: 0, 8
+            // Yellow: 13, 21
+            // Blue: 26, 34
+            // Red: 39, 47
+            const safes = [0, 8, 13, 21, 26, 34, 39, 47];
+            return safes.includes(globalPos);
+        }
+
+        function moveToken(pid, tid) {
+            if (isProcessingMove) return;
+            isProcessingMove = true;
+
+            document.querySelectorAll('.glow').forEach(e => e.classList.remove('glow'));
+            document.querySelectorAll('.token').forEach(e => e.style.animation = '');
+
+            const roll = gameState.dice;
+            let currentLocal = gameState.tokens[pid][tid];
+            let previousState = currentLocal;
+
+            if (currentLocal === -1) {
+                currentLocal = 0;
+                sfx.move();
+            } else {
+                currentLocal += roll;
+                sfx.move();
+            }
+
+            gameState.tokens[pid][tid] = currentLocal;
+
+            // Check Interactions
+            if (currentLocal < 52) { // Shared Track
+                const myGlobal = toGlobal(pid, currentLocal);
+                if (myGlobal !== -1) {
+                    // Interaction Logic:
+                    // 1. Board Safe Spots (Stars/Start): No killing ever. Coexist.
+                    // 2. Not Safe Spot:
+                    //    - Check each opponent color.
+                    //    - If Opponent has > 1 token: PROTECTED (Safe Stack). Do not kill. Coexist.
+                    //    - If Opponent has 1 token: VULNERABLE. Kill.
+                    //    - This allows killing multiple single tokens (e.g. killing a Green and a Red at once).
+
+                    if (!isSafe(myGlobal)) {
+                        let killedAny = false;
+
+                        for (let op = 0; op < 4; op++) {
+                            if (op === pid) continue;
+
+                            let opTokensOnCell = [];
+                            gameState.tokens[op].forEach((opos, oid) => {
+                                if (opos !== -1 && opos < 52 && toGlobal(op, opos) === myGlobal) {
+                                    opTokensOnCell.push(oid);
+                                }
+                            });
+
+                            if (opTokensOnCell.length === 1) {
+                                // Vulnerable Single Token -> KILL
+                                const targetTid = opTokensOnCell[0];
+                                gameState.tokens[op][targetTid] = -1; // Send to base
+                                killedAny = true;
+                            }
+                            // If length > 1 -> Protected. Do nothing.
+                        }
+
+                        if (killedAny) {
+                            sfx.kill();
+                            toast(`💥 أكلت المنافس!`);
+                            showConfetti(5);
+                        }
+                    }
+                }
+            }
+
+            if (currentLocal >= 57) { // Goal
+                currentLocal = 57;
+                gameState.tokens[pid][tid] = 57;
+                checkWin(pid);
+            }
+
+            renderTokens();
+
+            setTimeout(() => isProcessingMove = false, 500);
+
+            if (roll === 6 || currentLocal === 57) {
+                if (currentLocal === 57 && !gameState.finished[pid]) {
+                    toast("وصلت! 🏁 العب مرة أخرى");
+                } else if (roll === 6) {
+                    toast("لديك لفة إضافية! 🎲");
+                }
+                if (gameState.finished[pid]) {
+                    nextTurn();
+                    return;
+                }
+                gameState.dice = 0;
+                if (playMode === 'online') updateOnlineState(gameState);
+                else {
+                    updateUI();
+                    if (playMode === 'offline' && gameState.turn !== 0) {
+                        setTimeout(() => performRoll(), 1500);
+                    }
+                }
+            } else {
+                nextTurn();
+            }
+        }
+
+        function checkWin(pid) {
+            const allHome = gameState.tokens[pid].every(t => t >= 57);
+            if (allHome && !gameState.finished[pid]) {
+                gameState.finished[pid] = true;
+                toast(`🏆 ${gameState.players[pid].name} Wins!`);
+                sfx.win();
+                showConfetti(50);
+            }
+        }
+
+        function nextTurn() {
+            gameState.dice = 0;
+            let checks = 0;
+            do {
+                gameState.turn = (gameState.turn + 1) % 4;
+                checks++;
+            } while (gameState.finished[gameState.turn] && checks < 4);
+
+            if (playMode === 'online') {
+                updateOnlineState(gameState);
+            } else {
+                updateUI();
+                if (gameState.turn !== 0 && !gameState.finished[gameState.turn]) {
+                    setTimeout(() => performRoll(), 1000);
+                }
+            }
+        }
+
+        // --- RENDER ---
+        function renderTokens() {
+            const layer = document.getElementById('tokens-layer');
+            const ghostLayer = document.getElementById('ghost-layer');
+            layer.innerHTML = "";
+            ghostLayer.innerHTML = "";
+
+            const map = {};
+            for (let p = 0; p < 4; p++) {
+                gameState.tokens[p].forEach((pos, tId) => {
+                    const xy = getCoordinates(p, pos, tId);
+                    const key = Math.round(xy.x) + "," + Math.round(xy.y);
+                    if (!map[key]) map[key] = [];
+                    map[key].push({ p, tId });
+                });
+            }
+
+            // Draw
+            for (let key in map) {
+                const stack = map[key];
+                stack.sort((a, b) => (a.p - b.p) || (a.tId - b.tId));
+
+                stack.forEach((d, i) => {
+                    const xy = key.split(',');
+                    const el = document.createElement('div');
+                    el.className = `token ${colors[d.p]}`;
+                    el.id = `t-${d.p}-${d.tId}`;
+
+                    let offX = 0, offY = 0;
+                    if (stack.length > 1) {
+                        const angle = (i / stack.length) * Math.PI * 2;
+                        const dist = 14;
+                        offX = Math.cos(angle) * dist;
+                        offY = Math.sin(angle) * dist;
+                    }
+
+                    el.style.left = (parseFloat(xy[0]) + offX) + 'px';
+                    el.style.top = (parseFloat(xy[1]) + offY) + 'px';
+
+                    el.onclick = (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        if (playMode === 'online' && gameState.turn !== myColorIndex) return toast("ليس دورك!");
+                        if (playMode === 'offline' && gameState.turn !== 0 && d.p !== 0) return;
+                        if (gameState.dice === 0 || isRolling) return toast("ارمِ النرد أولاً!");
+                        if (d.p !== gameState.turn) return toast("هذه ليست قطعتك!");
+
+                        if (canMove(d.p, d.tId, gameState.dice)) {
+                            moveToken(d.p, d.tId);
+                        } else {
+                            const pos = gameState.tokens[d.p][d.tId];
+                            if (pos === -1 && gameState.dice !== 6) toast("تحتاج 6 للخروج! 🎲");
+                            else toast("حركة غير متاحة!");
+                        }
+                    };
+
+                    const myTurn = (playMode === 'online' ? gameState.turn === myColorIndex : gameState.turn === 0);
+                    const canM = (myTurn && !isRolling && gameState.dice > 0 && d.p === gameState.turn && canMove(d.p, d.tId, gameState.dice));
+
+                    if (canM) {
+                        el.style.cursor = "pointer";
+                        el.classList.add('glow');
+                        el.style.zIndex = 999;
+                        el.onmouseenter = () => showGhost(d.p, gameState.tokens[d.p][d.tId], gameState.dice);
+                        el.onmouseleave = () => ghostLayer.innerHTML = "";
+                    } else {
+                        el.style.cursor = "default";
+                        el.style.zIndex = 200 + i;
+                    }
+
+                    layer.appendChild(el);
+                });
+            }
+        }
+
+        function showGhost(pid, currentPos, roll) {
+            if (roll === 0) return;
+            let nextPos = (currentPos === -1) ? 0 : currentPos + roll;
+            if (nextPos > 57) return;
+
+            const xy = getCoordinates(pid, nextPos, 0);
+            const g = document.createElement('div');
+            g.className = 'ghost-token';
+            g.style.left = xy.x + 'px';
+            g.style.top = xy.y + 'px';
+            document.getElementById('ghost-layer').appendChild(g);
+        }
+
+        function getCoordinates(pid, pos, tokenIndex) {
+            const bases = [
+                [[180, 180], [320, 180], [180, 320], [320, 320]],
+                [[1080, 180], [1220, 180], [1080, 320], [1220, 320]],
+                [[1080, 1080], [1220, 1080], [1080, 1220], [1220, 1220]],
+                [[180, 1080], [320, 1080], [180, 1220], [320, 1220]]
+            ];
+
+            if (pos === -1) {
+                const b = bases[pid][tokenIndex];
+                const wrapper = document.getElementById('game-container').offsetWidth;
+                const px = (b[0] / 1500) * 100;
+                const py = (b[1] / 1500) * 100;
+                return { x: px * (wrapper / 100), y: py * (wrapper / 100) };
+            }
+
+            if (pos >= 57) {
+                const wrapper = document.getElementById('game-container').offsetWidth;
+                const center = wrapper / 2;
+                const offset = wrapper * 0.05;
+                if (pid === 0) return { x: center - offset, y: center - offset };
+                if (pid === 1) return { x: center + offset, y: center - offset };
+                if (pid === 2) return { x: center + offset, y: center + offset };
+                if (pid === 3) return { x: center - offset, y: center + offset };
+                return { x: center, y: center };
+            }
+
+            const track = getPathForPlayer(pid);
+            if (pos < track.length) {
+                const pt = track[pos];
+                const sx = (pt[0] * 100 + 50);
+                const sy = (pt[1] * 100 + 50);
+                const wrapper = document.getElementById('game-container').offsetWidth;
+                return { x: (sx / 1500) * wrapper, y: (sy / 1500) * wrapper };
+            }
+            return { x: 0, y: 0 };
+        }
+
+        function getPathForPlayer(pid) {
+            // Standard 52-Square Track (6-6-1 per quadrant)
+            const p = [];
+
+            // Run 1 (Right): (0,6)..(5,6) [6 steps]
+            for (let i = 0; i <= 5; i++) p.push([i, 6]);
+            // Run 2 (Up): (6,5)..(6,0) [6 steps]
+            for (let i = 5; i >= 0; i--) p.push([6, i]);
+            // Turn Top: (7,0) [1 step]
+            p.push([7, 0]);
+
+            // Q2: (8,0)..(8,5) [6], (9,6)..(14,6) [6], (14,7) [1]
+            for (let i = 0; i <= 5; i++) p.push([8, i]);
+            for (let i = 9; i <= 14; i++) p.push([i, 6]);
+            p.push([14, 7]);
+
+            // Q3: (14,8)..(9,8) [6], (8,9)..(8,14) [6], (7,14) [1]
+            for (let i = 14; i >= 9; i--) p.push([i, 8]);
+            for (let i = 9; i <= 14; i++) p.push([8, i]);
+            p.push([7, 14]);
+
+            // Q4: (6,14)..(6,9) [6], (5,8)..(0,8) [6], (0,7) [1]
+            for (let i = 14; i >= 9; i--) p.push([6, i]);
+            for (let i = 5; i >= 0; i--) p.push([i, 8]);
+            p.push([0, 7]);
+
+            // Home (52-56): (1,7)..(5,7) [5]
+            for (let i = 1; i <= 5; i++) p.push([i, 7]);
+            // Goal (57): (7,7)
+            p.push([7, 7]);
+
+            const angle = (Math.PI / 2) * pid;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+
+            return p.map(pt => {
+                const x = pt[0] - 7;
+                const y = pt[1] - 7;
+                const rx = Math.round(x * cos - y * sin + 7);
+                const ry = Math.round(x * sin + y * cos + 7);
+                return [rx, ry];
+            });
         }
 
         // --- DICE HELPER ---
@@ -1266,12 +1574,16 @@
         // Convert LOCAL to GLOBAL for collision.
 
         function moveToken(pid, tid) {
+            if (isProcessingMove) return;
+            isProcessingMove = true; // Lock
+
             // Clear glows
             document.querySelectorAll('.glow').forEach(e => e.classList.remove('glow'));
             document.querySelectorAll('.token').forEach(e => e.style.animation = ''); // Clear pulse-glow
 
             const roll = gameState.dice;
             let currentLocal = gameState.tokens[pid][tid];
+            let previousState = currentLocal; // Store for rollback
 
             // Logic
             if (currentLocal === -1) {
@@ -1282,70 +1594,53 @@
                 sfx.move();
             }
 
-            // Update State
+            // Update State Tentatively
             gameState.tokens[pid][tid] = currentLocal;
-
-            // Animations handled by CSS via renderTokens()
-            renderTokens();
+            // renderTokens(); // Don't render yet if we might rollback? Actually we need to calculate global.
+            // Let's render after verification.
 
             // Check Collision / Capture
             // Need Global Coordinates
+            let collisionDetected = false;
+
             if (currentLocal < 52) { // Only on shared tracks
                 const myGlobal = toGlobal(pid, currentLocal);
                 // Check against others - STACK PROTECTION
-                let captured = false;
-                for (let op = 0; op < 4; op++) {
-                    if (op === pid) continue;
 
-                    // Count opponents on this cell
-                    let stackedOpponents = 0;
-                    gameState.tokens[op].forEach((opos) => {
-                        if (opos !== -1 && opos < 52 && toGlobal(op, opos) === myGlobal) {
-                            stackedOpponents++;
-                        }
-                    });
+                if (myGlobal !== -1) {
+                    for (let op = 0; op < 4; op++) {
+                        if (op === pid) continue;
 
-                    // If stack > 1, PROTECTED. Cannot land/kill.
-                    if (stackedOpponents > 1) {
-                        // Move Invalid! Rollback.
-                        gameState.tokens[pid][tid] = currentLocal - roll; // Revert
-                        renderTokens();
-                        toast("محمية! لا يمكن القتل 🛡️");
-                        // Reset turn as if invalid
-                        // But dice was used? In Ludo invalid move means lose turn or pick another.
-                        // We handled "canMove" loosely. Better to check this in canMove.
-                        // But canMove is complex global check.
-                        // Let's just "Lose Turn" or "Stay".
-                        // Logic: bounce back?
-                        // Simple: Stay put, lose turn. 
-                        sfx.kill(); // Error tone ideally
-                        // Force next turn
-                        // Wait, we need to handle "canMove" check pre-click preferably.
-                        // But since we are here, let's just abort.
-                        if (roll === 6) { /* handled below */ }
-                        nextTurn();
-                        return;
-                    }
-
-                    gameState.tokens[op].forEach((opos, oid) => {
-                        if (opos !== -1 && opos < 52) {
-                            if (toGlobal(op, opos) === myGlobal) {
-                                if (!isSafe(myGlobal)) {
-                                    // Kill!
-                                    gameState.tokens[op][oid] = -1; // Send back
-                                    sfx.kill();
-                                    toast(`💥 ${gameState.players[pid].name || 'Player'} Killed!`);
-                                    showConfetti(5);
-                                    captured = true;
-                                }
+                        // Count opponents on this cell
+                        let stackedOpponents = 0;
+                        gameState.tokens[op].forEach((opos) => {
+                            if (opos !== -1 && opos < 52 && toGlobal(op, opos) === myGlobal) {
+                                stackedOpponents++;
                             }
-                        }
-                    });
-                }
+                        });
 
-                // Bonus throw for 6 or capture?
-                // Standard Ludo: 6 gives another turn. Capture might depending on variant.
+                        // If stack > 1, PROTECTED. Cannot land/kill.
+                        if (stackedOpponents > 1) {
+                            collisionDetected = true;
+                            break;
+                        }
+                    }
+                }
             }
+
+            if (collisionDetected) {
+                // Rollback
+                gameState.tokens[pid][tid] = previousState;
+                renderTokens();
+                toast("محمية! لا يمكن القتل 🛡️");
+                sfx.kill();
+                isProcessingMove = false;
+                nextTurn();
+                return;
+            }
+
+            // Bonus throw for 6 or capture?
+            // Standard Ludo: 6 gives another turn. 
 
             if (currentLocal >= 57) { // Reached Goal
                 currentLocal = 57; // Cap
@@ -1384,32 +1679,24 @@
         // nextTurn removed from here as it is redefined above in checkWin block context
 
         function toGlobal(pid, localPos) {
-            const offset = pid * 13;
-            // Special handling for home stretch entry point (51)
-            // Player 0 (Green) path: 0-51 (common), 52-56 (home), 57 (goal)
-            // Global path: 0-51 (common)
-            // If localPos is 51, it's the entry to home for that player, which is a specific global cell.
-            // For Green (pid=0), local 51 is global 51.
-            // For Yellow (pid=1), local 51 is global (51+13)%52 = 12.
-            // For Blue (pid=2), local 51 is global (51+26)%52 = 25.
-            // For Red (pid=3), local 51 is global (51+39)%52 = 38.
-            // This is the cell *before* the home stretch.
-            if (localPos >= 52) return -1;
-            const globalStartOffset = pid * 13;
-            return (globalStartOffset + localPos) % 52;
+            // 56 Common Steps Logic
+            if (localPos >= 56) return -1;
+            const globalStartOffset = pid * 14; // 56 / 4 = 14 steps per quadrant
+            return (globalStartOffset + localPos) % 56;
         }
 
         function isSafe(globalPos) {
-            // Stars at Logical Safe Spots
-            // Start Spots: 0 (G), 13 (Y), 26 (B), 39 (R)
-            // Star Spots 8 steps from start:
-            // 8 (G), 21 (Y), 34 (B), 47 (R)
-            const safes = [0, 8, 13, 21, 26, 34, 39, 47];
+            // New 56-track Safe Spots (Offsets: Start, +8)
+            // Green: Start 0 (Global 0), +8 (Global 8)
+            // Yellow: Start 0 (Global 14), +8 (Global 22)
+            // Blue: Start 0 (Global 28), +8 (Global 36)
+            // Red: Start 0 (Global 42), +8 (Global 50)
+            const safes = [0, 8, 14, 22, 28, 36, 42, 50];
             return safes.includes(globalPos);
         }
 
         function checkWin(pid) {
-            const allHome = gameState.tokens[pid].every(t => t >= 57);
+            const allHome = gameState.tokens[pid].every(t => t >= 61);
             if (allHome && !gameState.finished[pid]) {
                 gameState.finished[pid] = true;
                 toast(`🏆 ${gameState.players[pid].name} Wins!`);

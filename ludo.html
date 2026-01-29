@@ -1042,10 +1042,10 @@
             chatRef.off();
             chatRef.limitToLast(50).on('child_added', (snap) => {
                 const val = snap.val();
-                if (!val) return;
+                if (!val || !val.sender || !val.text) return; // Ignore broken messages
 
-                const sender = val.sender || "Unknown";
-                const text = val.text || "";
+                const sender = val.sender;
+                const text = val.text;
 
                 const msgsDiv = document.getElementById('chat-msgs');
                 const isMe = sender === myName;
@@ -1751,10 +1751,10 @@
 
         function getCoordinates(pid, pos, tokenIndex) {
             const bases = [
-                [[180, 180], [320, 180], [180, 320], [320, 320]],     // 0: Green
-                [[1080, 180], [1220, 180], [1080, 320], [1220, 320]], // 1: Yellow
-                [[180, 1080], [320, 1080], [180, 1220], [320, 1220]], // 2: Red
-                [[1080, 1080], [1220, 1080], [1080, 1220], [1220, 1220]] // 3: Blue
+                [[180, 180], [320, 180], [180, 320], [320, 320]],     // 0: Green (TL)
+                [[1080, 180], [1220, 180], [1080, 320], [1220, 320]], // 1: Yellow (TR)
+                [[1080, 1080], [1220, 1080], [1080, 1220], [1220, 1220]], // 2: Red (Now BR)
+                [[180, 1080], [320, 1080], [180, 1220], [320, 1220]] // 3: Blue (Now BL)
             ];
 
             if (pos === -1) {
@@ -1769,10 +1769,10 @@
                 const wrapper = document.getElementById('game-container').offsetWidth;
                 const center = wrapper / 2;
                 const offset = wrapper * 0.05;
-                if (pid === 0) return { x: center - offset, y: center - offset };
-                if (pid === 1) return { x: center + offset, y: center - offset };
-                if (pid === 2) return { x: center + offset, y: center + offset };
-                if (pid === 3) return { x: center - offset, y: center + offset };
+                if (pid === 0) return { x: center - offset, y: center - offset }; // TL (Green)
+                if (pid === 1) return { x: center + offset, y: center - offset }; // TR (Yellow)
+                if (pid === 2) return { x: center + offset, y: center + offset }; // BR (Red - Right)
+                if (pid === 3) return { x: center - offset, y: center + offset }; // BL (Blue - Left)
                 return { x: center, y: center };
             }
 
@@ -1861,13 +1861,13 @@
             const homeStretches = [
                 [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7], [7, 7]],  // 0: Green
                 [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 7]],  // 1: Yellow
-                [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 7]], // 2: Red
-                [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [7, 7]]  // 3: Blue
+                [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7], [7, 7]], // 2: Red (Right Side)
+                [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9], [7, 7]]  // 3: Blue (Bottom Side)
             ];
 
             // Build player-specific path (rotated start)
-            // 0: Green(0), 1: Yellow(13), 2: Red(39), 3: Blue(26)
-            const startOffsets = [0, 13, 39, 26];
+            // 0: Green(0), 1: Yellow(13), 2: Red(26 - Right), 3: Blue(39 - Bottom)
+            const startOffsets = [0, 13, 26, 39];
             const startOffset = startOffsets[pid];
             const playerTrack = [];
 

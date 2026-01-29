@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HEKA LUDO شMASTER</title>
+    <title>HEKA LUDaO MASTER</title>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -598,6 +598,16 @@
                 width: 45px;
                 height: 45px;
                 font-size: 20px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            }
+
+            #chat-box {
+                bottom: 80px;
+                left: 20px;
+                right: auto;
+                width: 80vw;
+                height: 40vh;
+                transform-origin: bottom left;
             }
 
             h1 {
@@ -1006,6 +1016,53 @@
             });
         }
 
+        // --- CHAT LOGIC ---
+        function toggleChat() {
+            const box = document.getElementById('chat-box');
+            box.classList.toggle('hidden');
+            box.classList.toggle('open');
+            // Clear unread indicator if any needed
+        }
+
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg || !currentRoom) return;
+
+            db.ref(`ludo_rooms/${currentRoom}/chat`).push({
+                sender: myName,
+                text: msg,
+                time: Date.now()
+            });
+            input.value = "";
+        }
+
+        function initChatListener(code) {
+            const chatRef = db.ref(`ludo_rooms/${code}/chat`);
+            chatRef.off(); // Remove previous listeners
+            chatRef.limitToLast(50).on('child_added', (snap) => {
+                const val = snap.val();
+                if (!val) return;
+
+                const msgsDiv = document.getElementById('chat-msgs');
+                const isMe = val.sender === myName;
+
+                const msgEl = document.createElement('div');
+                msgEl.className = 'msg';
+                msgEl.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
+                msgEl.style.backgroundColor = isMe ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)';
+                msgEl.innerHTML = `<strong>${val.sender}</strong>: ${val.text}`;
+
+                msgsDiv.appendChild(msgEl);
+                msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+                // Show toast if chat is closed and not me
+                if (!isMe && document.getElementById('chat-box').classList.contains('hidden')) {
+                    toast(`📩 ${val.sender}: ${val.text.substring(0, 15)}...`);
+                }
+            });
+        }
+
         function enterLobby(code, color) {
             currentRoom = code;
             myColorIndex = color;
@@ -1013,8 +1070,8 @@
             showScreen('screen-lobby');
             document.getElementById('lobby-code').innerText = code;
 
-            // Show chat in online mode
             document.getElementById('chat-btn').style.display = 'block';
+            initChatListener(code);
 
             // Set presence for disconnect detection
             const myPresenceRef = db.ref(`ludo_rooms/${currentRoom}/presence/${myId}`);
@@ -1025,18 +1082,21 @@
                 const val = snap.val();
                 if (!val) return location.reload();
 
-                // Check for disconnected players and convert to bots
-                if (val.status === 'playing' && val.presence) {
+                // 1. Manage Bots (Host Only - Player 0)
+                if (myColorIndex === 0 && val.status === 'playing' && val.presence) {
+                    let dirty = false;
                     val.players.forEach((player, idx) => {
                         if (!player.isBot && !val.presence[player.id]) {
-                            // Player disconnected - convert to bot
-                            db.ref(`ludo_rooms/${currentRoom}/players/${idx}`).update({
-                                name: `Bot ${idx + 1}`,
-                                isBot: true,
-                                id: `bot-${idx}`
-                            });
+                            // Convert to bot
+                            val.players[idx].name = `Bot ${idx + 1}`;
+                            val.players[idx].isBot = true;
+                            val.players[idx].id = `bot-${idx}`;
+                            dirty = true;
                         }
                     });
+                    if (dirty) {
+                        db.ref(`ludo_rooms/${currentRoom}/players`).set(val.players);
+                    }
                 }
 
                 // Lobby Update
@@ -1052,19 +1112,16 @@
 
                 // Game Start Trigger
                 if (val.status === 'playing') {
-                    // Preserve local state (consecutive6s, etc)
+                    // Preserve local state
                     const preserved6s = gameState.consecutive6s || 0;
-                    const preservedRolls = gameState.rollsWithout6 || [0, 0, 0, 0];
-
                     gameState = val;
-                    gameState.consecutive6s = preserved6s;
-                    gameState.rollsWithout6 = preservedRolls;
+                    gameState.consecutive6s = preserved6s; // Keep local
 
                     if (document.getElementById('screen-game').classList.contains('hidden')) {
                         showScreen('screen-game');
                     }
 
-                    // Dice Animation Sync
+                    // Sync Dice Visuals
                     if (gameState.dice > 0 && !isRolling) {
                         renderDice(gameState.dice);
                     }
@@ -1072,9 +1129,24 @@
                     updateUI();
 
                     // CRITICAL FIX: Re-apply logic if it's my turn and dice is rolled
-                    // This creates the glow effect again if it was wiped by updateUI
-                    if (gameState.turn === myColorIndex && gameState.dice > 0 && !isRolling) {
+                    const isMyTurn = (gameState.turn === myColorIndex);
+                    if (isMyTurn && gameState.dice > 0 && !isRolling && !isProcessingMove) {
                         handleRollResult(gameState.dice);
+                    }
+
+                    // Host runs Bots
+                    const currentPlayer = gameState.players[gameState.turn];
+                    if (myColorIndex === 0 && currentPlayer && currentPlayer.isBot && !isProcessingMove) {
+                        if (gameState.dice > 0) {
+                            handleRollResult(gameState.dice);
+                        } else if (!isRolling) {
+                            setTimeout(() => {
+                                // Check again
+                                if (gameState.players[gameState.turn].isBot && gameState.dice === 0) {
+                                    performRoll();
+                                }
+                            }, 1000);
+                        }
                     }
                 }
             });

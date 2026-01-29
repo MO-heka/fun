@@ -1377,24 +1377,25 @@
                     if (roll === 6) {
                         // Wait for re-roll (logic is in moveToken or nextTurn usually, but here checking moves)
                         // If I just rolled 6 and have no moves (e.g. all out but blocked?), I should roll again.
-                        // But usually 6 allows getting out. 
+                        // But usually 6 allows getting out.
                         // If I have no moves at all EVEN with 6 (game logic), then simple re-roll?
                         // Assuming standard logic:
                         if (playMode === 'offline' && gameState.turn !== 0) {
-                            setTimeout(() => performRoll(), 500);
+                            setTimeout(() => performRoll(), 1200); // Slow down bot re-roll
                         } else {
                             // User must roll again
                             updateUI();
                         }
                     } else {
-                        setTimeout(nextTurn, 500);
+                        setTimeout(nextTurn, 1200); // Slow down turn switch
                     }
                 } else if (moveables.length === 1) {
                     // --- AUTO MOVE ---
                     updateUI();
-                    setTimeout(() => moveToken(playerId, moveables[0]), 300);
+                    // Slow down auto-move for visual clarity
+                    setTimeout(() => moveToken(playerId, moveables[0]), 1000);
                 } else {
-                    // Just Sync UI - renderTokens will glow them based on availableMoves
+                    // Multiple Options
                     updateUI();
 
                     // Check if current player is a bot
@@ -1407,7 +1408,7 @@
 
                     if (isBot && !isAIProcessing) {
                         isAIProcessing = true;
-                        setTimeout(() => runAI(moveables, playerId), 400);
+                        setTimeout(() => runAI(moveables, playerId), 1200); // Slow down AI thinking
                     }
                 }
             } catch (err) {
@@ -1595,8 +1596,8 @@
                     } else {
                         updateUI();
                         if (playMode === 'offline' && gameState.turn !== 0) {
-                            console.log('[moveToken] Bot auto-rolling after 800ms');
-                            setTimeout(() => performRoll(), 800);
+                            console.log('[moveToken] Bot auto-rolling after 1500ms');
+                            setTimeout(() => performRoll(), 1500);
                         } else {
                             console.log('[moveToken] Player can roll again manually');
                         }

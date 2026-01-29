@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HEKA LUDO </title>
+    <title>HEKA LUDO MASTER</title>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -1083,24 +1083,22 @@
             const btn = document.getElementById('dice-panel');
             document.getElementById('dice-cube').classList.add('rolling');
             document.getElementById('dice-msg').innerText = "🎲 ...";
-            sfx.dice();
-
-            // Send "Rolling" status online ? Simplified: just local, result syncs
+            try { sfx.dice(); } catch (e) { }
 
             setTimeout(() => {
                 const roll = Math.floor(Math.random() * 6) + 1;
                 isRolling = false;
 
                 gameState.dice = roll;
+                renderDice(roll);
 
                 if (playMode === 'online') {
                     updateOnlineState({ dice: roll });
                 } else {
-                    handleRollResult(roll);
+                    // OFFLINE: Always process roll result
+                    updateUI(); // Update UI first
+                    handleRollResult(roll); // Then handle the result
                 }
-
-                renderDice(roll);
-                updateUI(); // Refresh UI state based on new dice
             }, 600);
         }
 
@@ -1557,4 +1555,3 @@
 </body>
 
 </html>
-

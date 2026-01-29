@@ -1030,35 +1030,37 @@
             if (!msg || !currentRoom) return;
 
             db.ref(`ludo_rooms/${currentRoom}/chat`).push({
-                sender: myName,
+                sender: myName || "Unknown",
                 text: msg,
-                time: Date.now()
+                time: firebase.database.ServerValue.TIMESTAMP
             });
             input.value = "";
         }
 
         function initChatListener(code) {
             const chatRef = db.ref(`ludo_rooms/${code}/chat`);
-            chatRef.off(); // Remove previous listeners
+            chatRef.off();
             chatRef.limitToLast(50).on('child_added', (snap) => {
                 const val = snap.val();
                 if (!val) return;
 
+                const sender = val.sender || "Unknown";
+                const text = val.text || "";
+
                 const msgsDiv = document.getElementById('chat-msgs');
-                const isMe = val.sender === myName;
+                const isMe = sender === myName;
 
                 const msgEl = document.createElement('div');
                 msgEl.className = 'msg';
                 msgEl.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
                 msgEl.style.backgroundColor = isMe ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)';
-                msgEl.innerHTML = `<strong>${val.sender}</strong>: ${val.text}`;
+                msgEl.innerHTML = `<strong>${sender}</strong>: ${text}`;
 
                 msgsDiv.appendChild(msgEl);
                 msgsDiv.scrollTop = msgsDiv.scrollHeight;
 
-                // Show toast if chat is closed and not me
                 if (!isMe && document.getElementById('chat-box').classList.contains('hidden')) {
-                    toast(`📩 ${val.sender}: ${val.text.substring(0, 15)}...`);
+                    toast(`📩 ${sender}: ${text.substring(0, 15)}...`);
                 }
             });
         }
@@ -1112,10 +1114,21 @@
 
                 // Game Start Trigger
                 if (val.status === 'playing') {
-                    // Preserve local state
+                    // Preserve local state logic
                     const preserved6s = gameState.consecutive6s || 0;
+                    const preservedMoves = gameState.availableMoves || [];
+
+                    // Detect if it's a new turn or just a re-sync
+                    const isSameTurnState = (gameState.turn === val.turn && gameState.dice === val.dice);
+
                     gameState = val;
-                    gameState.consecutive6s = preserved6s; // Keep local
+                    gameState.consecutive6s = preserved6s;
+
+                    if (isSameTurnState) {
+                        gameState.availableMoves = preservedMoves;
+                    } else {
+                        gameState.availableMoves = [];
+                    }
 
                     if (document.getElementById('screen-game').classList.contains('hidden')) {
                         showScreen('screen-game');
@@ -1126,22 +1139,25 @@
                         renderDice(gameState.dice);
                     }
 
-                    updateUI();
-
-                    // CRITICAL FIX: Re-apply logic if it's my turn and dice is rolled
+                    // If it's my turn, dice is rolled, but I have no moves calculated (e.g. refresh or first sync)
+                    // Calculate them now!
                     const isMyTurn = (gameState.turn === myColorIndex);
-                    if (isMyTurn && gameState.dice > 0 && !isRolling && !isProcessingMove) {
+                    if (isMyTurn && gameState.dice > 0 && !isRolling && gameState.availableMoves.length === 0) {
                         handleRollResult(gameState.dice);
                     }
 
-                    // Host runs Bots
+                    updateUI(); // uses gameState.availableMoves to render Glows via renderTokens
+
+                    // Host runs Bots logic
                     const currentPlayer = gameState.players[gameState.turn];
                     if (myColorIndex === 0 && currentPlayer && currentPlayer.isBot && !isProcessingMove) {
                         if (gameState.dice > 0) {
-                            handleRollResult(gameState.dice);
+                            // Only run if moves not calculated yet to avoid loop
+                            if (!gameState.availableMoves || gameState.availableMoves.length === 0) {
+                                handleRollResult(gameState.dice);
+                            }
                         } else if (!isRolling) {
                             setTimeout(() => {
-                                // Check again
                                 if (gameState.players[gameState.turn].isBot && gameState.dice === 0) {
                                     performRoll();
                                 }
@@ -1332,6 +1348,7 @@
 
         function handleRollResult(roll) {
             console.log(`[handleRollResult] Player ${gameState.turn} rolled ${roll}`);
+            gameState.availableMoves = []; // Reset on new roll processing
 
             try {
                 const playerId = gameState.turn;
@@ -1339,37 +1356,42 @@
                 const moveables = pieces.map((pos, idx) => canMove(playerId, idx, roll) ? idx : -1).filter(i => i !== -1);
 
                 console.log(`[handleRollResult] Pieces: ${pieces.join(',')}, Moveable: ${moveables.join(',')}`);
+                gameState.availableMoves = moveables; // UPDATE STATE
 
                 if (moveables.length === 0) {
                     toast('لا توجد حركات متاحة');
-                    console.log(`[handleRollResult] No moves. Roll=${roll}, granting bonus? ${roll === 6}`);
+                    // Bonus handling if applicable (removed here, handled in moveToken or dedicated logic)
+                    // But in Ludo, if no moves, you just lose turn unless it's a 6.
 
                     if (roll === 6) {
-                        console.log('[handleRollResult] GRANTING BONUS for 6 (no moves)');
-                        gameState.dice = 0;
+                        // Wait for re-roll (logic is in moveToken or nextTurn usually, but here checking moves)
+                        // If I just rolled 6 and have no moves (e.g. all out but blocked?), I should roll again.
+                        // But usually 6 allows getting out. 
+                        // If I have no moves at all EVEN with 6 (game logic), then simple re-roll?
+                        // Assuming standard logic:
                         if (playMode === 'offline' && gameState.turn !== 0) {
                             setTimeout(() => performRoll(), 1000);
                         } else {
+                            // User must roll again
                             updateUI();
                         }
                     } else {
-                        console.log('[handleRollResult] Passing turn (not 6)');
                         setTimeout(nextTurn, 1000);
                     }
                 } else if (moveables.length === 1 && playMode !== 'online') {
-                    console.log(`[handleRollResult] Auto-moving piece ${moveables[0]}`);
+                    // Auto move offline
                     setTimeout(() => moveToken(playerId, moveables[0]), 500);
                 } else {
-                    console.log(`[handleRollResult] Highlighting ${moveables.length} pieces`);
-                    moveables.forEach(idx => {
-                        const el = document.getElementById(`t-${playerId}-${idx}`);
-                        if (el) el.classList.add('glow');
-                    });
+                    // Just Sync UI - renderTokens will glow them based on availableMoves
+                    updateUI();
 
-                    // Check if current player is a bot (offline mode or online bot)
+                    // Check if current player is a bot
                     const currentPlayer = gameState.players[gameState.turn];
                     const isBot = (playMode === 'offline' && gameState.turn !== 0) ||
                         (playMode === 'online' && currentPlayer && (currentPlayer.isBot || currentPlayer.id.startsWith('bot-')));
+
+                    // Host runs Bots in Online (Only Host Player 0)
+                    if (playMode === 'online' && myColorIndex !== 0 && isBot) return;
 
                     if (isBot) {
                         setTimeout(() => runAI(moveables), 800);
@@ -1556,6 +1578,9 @@
 
         function nextTurn() {
             gameState.dice = 0;
+            // Ensure finished array exists to prevent crash
+            if (!gameState.finished) gameState.finished = [false, false, false, false];
+
             let checks = 0;
             do {
                 gameState.turn = (gameState.turn + 1) % 4;
@@ -1643,7 +1668,11 @@
                     };
 
                     const myTurn = (playMode === 'online' ? gameState.turn === myColorIndex : gameState.turn === 0);
-                    const canM = (myTurn && !isRolling && gameState.dice > 0 && d.p === gameState.turn && canMove(d.p, d.tId, gameState.dice));
+
+                    // NEW: Check state for moveability instead of ad-hoc checks
+                    // This ensures highlights survive Firebase updates
+                    const isMoveable = (gameState.availableMoves || []).includes(d.tId) && d.p === gameState.turn;
+                    const canM = (myTurn && !isRolling && gameState.dice > 0 && isMoveable);
 
                     if (canM) {
                         el.style.cursor = "pointer";

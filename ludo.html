@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HEKA LUDO MASTER</title>
+    <title>HEKA LUDO شMASTER</title>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -1052,18 +1052,30 @@
 
                 // Game Start Trigger
                 if (val.status === 'playing') {
+                    // Preserve local state (consecutive6s, etc)
+                    const preserved6s = gameState.consecutive6s || 0;
+                    const preservedRolls = gameState.rollsWithout6 || [0, 0, 0, 0];
+
                     gameState = val;
+                    gameState.consecutive6s = preserved6s;
+                    gameState.rollsWithout6 = preservedRolls;
+
                     if (document.getElementById('screen-game').classList.contains('hidden')) {
                         showScreen('screen-game');
                     }
 
-                    // Dice Animation Sync (Optional refinement)
-                    // If server dice changes and it's not 0, show it
+                    // Dice Animation Sync
                     if (gameState.dice > 0 && !isRolling) {
                         renderDice(gameState.dice);
                     }
 
                     updateUI();
+
+                    // CRITICAL FIX: Re-apply logic if it's my turn and dice is rolled
+                    // This creates the glow effect again if it was wiped by updateUI
+                    if (gameState.turn === myColorIndex && gameState.dice > 0 && !isRolling) {
+                        handleRollResult(gameState.dice);
+                    }
                 }
             });
         }

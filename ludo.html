@@ -1181,7 +1181,18 @@
         }
 
         function moveToken(pid, tid) {
-            if (isProcessingMove) return;
+
+            // Processing Lock:
+            // We only block HUMAN spam clicks. 
+            // If the system (Bot/Auto) calls this, we ASSUME it's a valid sequential action and force execution.
+            if (isProcessingMove) {
+                if (pid === 0 && playMode === 'offline') return; // Block human spam locally
+                if (pid === myColorIndex && playMode === 'online') return; // Block human spam online
+
+                // If it's a BOT or Auto-Move, we force reset and proceed to prevent game freeze.
+                console.warn("Force releasing processing lock for system move.");
+                isProcessingMove = false;
+            }
             isProcessingMove = true;
 
             document.querySelectorAll('.glow').forEach(e => e.classList.remove('glow'));

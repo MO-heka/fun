@@ -403,7 +403,8 @@
 
             <!-- Image Card -->
             <div class="image-container animate__animated animate__zoomIn" id="img-card">
-                <img id="player-image" src="" alt="Player" class="player-img">
+                <img id="player-image" src="" alt="Player" class="player-img"
+                    onerror="this.onerror=null; console.log('Error loading:', this.src); this.src='https://placehold.co/400x400?text=Image+Not+Found';">
 
             </div>
 
@@ -983,8 +984,8 @@
             // 3. Image
             const currentPlayerName = state.shuffledImages[state.currentImgIndex];
             // Format: player/Name.png 
-            // Note: Assuming png conversion. If space in name, encode? Browser handles spaces in src usually, but better safe.
-            document.getElementById('player-image').src = `player/${currentPlayerName}.png`;
+            // Format: player/Name.png - Use encodeURIComponent to handle spaces and accents
+            document.getElementById('player-image').src = `player/${encodeURIComponent(currentPlayerName)}.png`;
 
             // 4. Controls & Reveal Logic
             const controlsArea = document.getElementById('controls-area');

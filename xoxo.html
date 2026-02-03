@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>⚽ XOXO Battle</title>
+    <title>⚔️ XOXO Battle - تحدي الخطف</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,27 +14,31 @@
 
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-color: #1e293b;
-            --primary-color: #3b82f6;
-            --accent-color: #f59e0b;
-            /* Gold for trophies */
+            --bg-color: #0a0e1a;
+            --card-color: #1a1f2e;
+            --primary-color: #f97316;
+            /* Orange for battle theme */
+            --secondary-color: #ef4444;
+            /* Red accent */
+            --accent-color: #fbbf24;
+            /* Gold for winners */
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --player-x: #3b82f6;
             --player-o: #ef4444;
-            --grid-border: #334155;
+            --grid-border: #374151;
+            --battle-glow: rgba(249, 115, 22, 0.3);
         }
 
         * {
             box-sizing: border-box;
             user-select: none;
-            /* Prevent accidental selection */
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
             font-family: 'Cairo', 'Tajawal', sans-serif;
-            background-color: var(--bg-color);
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 100%);
             color: var(--text-main);
             margin: 0;
             padding: 10px;
@@ -42,11 +46,28 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Battle Background Animation */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(249, 115, 22, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
         }
 
         .container {
             width: 100%;
             max-width: 600px;
+            position: relative;
+            z-index: 1;
         }
 
         /* Screens */
@@ -61,62 +82,96 @@
             opacity: 1;
         }
 
-        /* Card Style */
+        /* Card Style with Battle Theme */
         .card {
-            background-color: var(--card-color);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: linear-gradient(145deg, #1a1f2e, #0f1419);
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 20px var(--battle-glow);
+            border: 2px solid rgba(249, 115, 22, 0.2);
             margin-bottom: 20px;
             text-align: center;
         }
 
         h1 {
-            color: var(--primary-color);
+            background: linear-gradient(135deg, #f97316, #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             font-size: 2.5rem;
             margin: 10px 0;
             font-weight: 900;
+            text-shadow: 0 0 30px var(--battle-glow);
+            filter: drop-shadow(0 4px 8px rgba(249, 115, 22, 0.4));
         }
 
         .btn {
             width: 100%;
-            padding: 15px;
+            padding: 16px;
             margin: 10px 0;
             border: none;
-            border-radius: 12px;
+            border-radius: 14px;
             font-size: 1.1rem;
             font-weight: bold;
             font-family: 'Tajawal', sans-serif;
             cursor: pointer;
-            transition: transform 0.1s;
+            transition: all 0.2s ease;
             color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
         }
 
         .btn:active {
-            transform: scale(0.97);
+            transform: scale(0.96);
         }
 
         .btn-blue {
             background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
         }
 
         .btn-green {
             background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
         }
 
         .btn-red {
             background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
         }
 
         .btn-gold {
             background: linear-gradient(135deg, #f59e0b, #d97706);
             color: #000;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5);
+        }
+
+        .btn-battle {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            box-shadow: 0 4px 20px rgba(249, 115, 22, 0.5);
         }
 
         .btn-secondary {
-            background: transparent;
-            border: 2px solid #334155;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #374151;
             color: var(--text-muted);
         }
 
@@ -131,11 +186,10 @@
             display: grid;
             grid-template-columns: 80px 1fr 1fr 1fr;
             grid-template-rows: 80px 1fr 1fr 1fr;
-            gap: 5px;
+            gap: 6px;
             width: 100%;
             max-width: 500px;
             aspect-ratio: 1/1;
-            /* Square board */
         }
 
         .cell {

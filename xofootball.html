@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
 <head>
@@ -513,7 +513,7 @@
                 { id: 'morocco', text: 'مغربي', img: 'https://cdn.jsdelivr.net/gh/MO-heka/apk@main/morocco.png' },
                 { id: 'egypt', text: 'مصري', img: 'https://cdn.jsdelivr.net/gh/MO-heka/apk@main/egypt.png' },
                 { id: 'senegal', text: 'سنغالي', img: 'https://cdn.jsdelivr.net/gh/MO-heka/apk@main/senegal.png' },
-                { id: 'nigeria', text: 'نيجيري', img: 'https://cdn.jsdelivr.net/gh/MO-heka/apk@main/nigeria.png' },
+                { id: 'nigeria', text: 'افريقي', img: 'https://cdn.jsdelivr.net/gh/MO-heka/apk@main/africa.png' },
                 { id: 'ivory_coast', text: 'إيفواري', img: 'https://cdn.jsdelivr.net/gh/MO-heka/apk@main/ivory_coast.png' },
                 { id: 'algeria', text: 'جزائري', img: 'https://cdn.jsdelivr.net/gh/MO-heka/apk@main/algeria.png' },
                 { id: 'japan', text: 'ياباني', img: 'https://cdn.jsdelivr.net/gh/MO-heka/apk@main/japan.png' },
@@ -924,57 +924,66 @@
         };
 
         window.submitMove = (overrideName = null, isOfflineSimple = false) => {
-            let name = overrideName;
+            try {
+                let name = overrideName;
 
-            if (!isOfflineSimple && !name) {
-                name = document.getElementById('player-input').value.trim();
-                // If online and empty, maybe allow? Let's require something or allow empty if they just want to mark.
-                // "Say it with voice" -> maybe they chat it?
-                // Let's default to "---" if empty to allow mark.
-                if (!name) name = "---";
+                if (!isOfflineSimple && !name) {
+                    name = document.getElementById('player-input').value.trim();
+                    if (!name) name = "---";
+                }
+
+                if (selectedCellIdx === null) {
+                    console.error("No cell selected");
+                    closeModal();
+                    return;
+                }
+
+                // Capture state for Undo
+                const snapshot = {
+                    board: [...localState.board],
+                    cells: [...localState.cells],
+                    turn: localState.turn,
+                    timer: localState.timer
+                };
+                localState.history.push(snapshot);
+
+
+                // Update Local (Optimistic)
+                localState.cells[selectedCellIdx] = { p: localState.turn, name: name };
+                localState.board[selectedCellIdx] = localState.turn;
+
+                // Push to Firebase if online
+                if (window.isOnline) {
+                    if (!window.myRoomId) {
+                        alert("خطأ: لا يوجد معرف غرفة!");
+                        return;
+                    }
+
+                    const nextTurn = localState.turn === 'X' ? 'O' : 'X';
+                    const roomUpdates = {};
+                    roomUpdates[`cells/${selectedCellIdx}`] = { p: localState.turn, name: name };
+                    roomUpdates[`board/${selectedCellIdx}`] = localState.turn;
+                    roomUpdates[`turn`] = nextTurn;
+
+                    update(ref(db, `football_rooms/${window.myRoomId}`), roomUpdates)
+                        .catch(err => {
+                            alert("خطأ في الإرسال: " + err.message);
+                            console.error(err);
+                        });
+                } else {
+                    // Offline Logic
+                    localState.turn = localState.turn === 'X' ? 'O' : 'X';
+                    resetTimer(30);
+                    renderGrid();
+                    updateTurnUI();
+                }
+
+                closeModal();
+                checkWin();
+            } catch (e) {
+                alert("حدث خطأ في تقديم الإجابة: " + e.message);
+                console.error(e);
             }
-
-            // Capture state for Undo (Online needs this too now)
-            const snapshot = {
-                board: [...localState.board],
-                cells: [...localState.cells],
-                turn: localState.turn,
-                timer: localState.timer // Snap timer?
-            };
-
-            // Should we push to history? 
-            // In Online, we only push history if WE make the move, to allow Undo.
-            // Actually, if we want to Undo online, we need to revert Firebase.
-            // So we need the PREVIOUS state of the board.
-            localState.history.push(snapshot);
-
-
-            // Update Local
-            localState.cells[selectedCellIdx] = { p: localState.turn, name: name };
-            localState.board[selectedCellIdx] = localState.turn;
-
-            // Push to Firebase if online
-            if (window.isOnline) {
-                const updates = {};
-                updates[`football_rooms/${window.myRoomId}/cells/${selectedCellIdx}`] = { p: localState.turn, name: name };
-                updates[`football_rooms/${window.myRoomId}/board/${selectedCellIdx}`] = localState.turn;
-                updates[`football_rooms/${window.myRoomId}/turn`] = (localState.turn === 'X' ? 'O' : 'X');
-                update(ref(db), updates);
-
-                // Note: Timer sync is loose. We rely on 'turn' change to reset timer on other side.
-                // But for us, we switch immediately logically.
-                // Actually, render waits for Firebase update? No, we update local too for responsiveness.
-                // But 'onValue' will come back and confirm.
-            } else {
-                // Offline Logic
-                localState.turn = localState.turn === 'X' ? 'O' : 'X';
-                resetTimer(30);
-                renderGrid();
-                updateTurnUI();
-            }
-
-            closeModal();
-            checkWin();
         };
 
         window.undoMove = () => {

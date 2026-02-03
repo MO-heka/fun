@@ -389,31 +389,7 @@
             <p id="lobby-status">في انتظار اللاعب الثاني...</p>
         </div>
 
-        <!-- Chat Widget (Floating) -->
-        <div id="chat-widget" class="hidden" style="position:fixed; bottom:10px; right:10px; width:300px; z-index:200;">
-            <button id="chat-toggle" class="btn btn-blue"
-                style="width:auto; border-radius:50%; width:50px; height:50px; display:flex; align-items:center; justify-content:center; box-shadow:0 5px 15px rgba(0,0,0,0.5);"
-                onclick="toggleChat()">💬</button>
-
-            <div id="chat-box"
-                style="display:none; background:var(--card-color); border:1px solid var(--primary-color); border-radius:15px; height:350px; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
-                <div
-                    style="padding:10px; background:var(--primary-color); font-weight:bold; display:flex; justify-content:space-between;">
-                    <span>💬 المحادثة</span>
-                    <span style="cursor:pointer;" onclick="toggleChat()">❌</span>
-                </div>
-                <div id="chat-messages"
-                    style="flex:1; padding:10px; overflow-y:auto; font-size:0.9rem; text-align:right;">
-                    <!-- Messages -->
-                </div>
-                <div style="padding:5px; background:#0f172a; display:flex;">
-                    <input type="text" id="chat-input" style="width:100%; padding:8px; border-radius:5px; border:none;"
-                        placeholder="اكتب رسالة...">
-                    <button onclick="sendChatMessage()"
-                        style="background:var(--primary-color); border:none; color:white; padding:0 10px; border-radius:5px; margin-right:5px;">➤</button>
-                </div>
-            </div>
-        </div>
+        <!-- Chat Widget Removed -->
 
         <!-- Game Board -->
         <div id="screen-game" class="screen">
@@ -422,24 +398,9 @@
                 <div id="badge-x" class="player-badge bg-x active">❌ <span id="disp-p1">Player 1</span></div>
                 <div id="badge-o" class="player-badge bg-o">⭕ <span id="disp-p2">Player 2</span></div>
             </div>
-            <!-- Timer & Controls -->
-            <div
-                style="background:#0f172a; padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid #334155;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:1.2rem; display:flex; gap:10px;">
-                        ⏳ <span id="timer-val"
-                            style="font-weight:bold; color:var(--accent-color); font-size:1.5rem; width:40px; text-align:center;">30</span>
-                    </span>
-                    <div style="display:flex; gap:5px;">
-                        <button class="btn" style="padding:5px 10px; font-size:1rem;" onclick="toggleTimer()"
-                            title="إيقاف/تشغيل المؤقت">⏯️</button>
-                        <button class="btn" style="padding:5px 10px; font-size:1rem;" onclick="resetTimerManual()"
-                            title="إعادة المؤقت">🔄</button>
-                    </div>
-                </div>
-                <div class="timer-bar">
-                    <div id="timer-fill" class="timer-fill"></div>
-                </div>
+            <!-- Timer Removed. Host Controls -->
+            <div id="host-controls" style="display:none; margin-bottom:15px; text-align:center;">
+                <button class="btn btn-secondary" onclick="forceSkipTurn()">⏭️ تخطي الدور (مشرف)</button>
             </div>
 
             <div class="card" style="padding: 10px;">
@@ -636,7 +597,12 @@
 
             initGameConfig();
             renderGrid();
-            resetTimer(30);
+            initGameConfig();
+            renderGrid();
+            // resetTimer(30);
+            updateTurnUI();
+
+            document.getElementById('host-controls').style.display = 'block'; // Offline always has controls
             updateTurnUI();
 
             window.showScreen('screen-game');
@@ -652,7 +618,12 @@
 
             initGameConfig(); // Pick random rows
             renderGrid();
-            resetTimer(45);
+            initGameConfig(); // Pick random rows
+            renderGrid();
+            // resetTimer(45);
+            updateTurnUI();
+
+            document.getElementById('host-controls').style.display = 'block'; // Offline always has controls
             updateTurnUI();
 
             window.showScreen('screen-game');
@@ -678,8 +649,8 @@
                 activeCols: startCols,
                 board: Array(9).fill(null),
                 cells: Array(9).fill(null),
-                turn: 'X',
-                timer: 45
+                turn: 'X'
+                // timer: 45 Removed
             });
 
             enterOnlineLobby(roomId);
@@ -750,61 +721,21 @@
                     // If I am not active screen yet, go there
                     if (!document.getElementById('screen-game').classList.contains('active')) {
                         window.showScreen('screen-game');
-                        resetTimer(45); // Start fresh on game start
+
+                        // Show controls if Host
+                        if (window.myPlayerId === 'host') {
+                            document.getElementById('host-controls').style.display = 'block';
+                        } else {
+                            document.getElementById('host-controls').style.display = 'none';
+                        }
                     }
 
-                    // Handle Chat (Subscribe)
-                    subscribeToChat(roomId);
-                    document.getElementById('chat-widget').classList.remove('hidden');
+                    // Handle Chat Removed
                 }
             });
         }
 
-        // --- Chat System ---
-        function subscribeToChat(roomId) {
-            // Use Child Added for efficiency or onValue for simplicity (list is small)
-            // Let's use onValue and render all for simplicity
-            onValue(ref(db, `football_rooms/${roomId}/chat`), (snap) => {
-                const msgs = snap.val();
-                const container = document.getElementById('chat-messages');
-                container.innerHTML = '';
 
-                if (msgs) {
-                    Object.values(msgs).forEach(msg => {
-                        const div = document.createElement('div');
-                        const isMe = msg.sender === window.myName;
-                        div.style.padding = '5px 10px';
-                        div.style.margin = '5px 0';
-                        div.style.borderRadius = '10px';
-                        div.style.background = isMe ? '#3b82f6' : '#334155';
-                        div.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
-                        div.style.width = 'fit-content';
-                        div.style.maxWidth = '80%';
-                        div.innerText = `${msg.sender}: ${msg.text}`;
-                        container.appendChild(div);
-                    });
-                    container.scrollTop = container.scrollHeight;
-                }
-            });
-        }
-
-        window.toggleChat = () => {
-            const box = document.getElementById('chat-box');
-            box.style.display = box.style.display === 'none' ? 'flex' : 'none';
-        };
-
-        window.sendChatMessage = () => {
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (!text || !window.myRoomId) return;
-
-            const msgId = "msg_" + Date.now();
-            update(ref(db, `football_rooms/${window.myRoomId}/chat/${msgId}`), {
-                sender: window.myName,
-                text: text
-            });
-            input.value = '';
-        };
 
         // --- Core Game Logic (Mixed) ---
         function initGameConfig() {
@@ -973,7 +904,7 @@
                 } else {
                     // Offline Logic
                     localState.turn = localState.turn === 'X' ? 'O' : 'X';
-                    resetTimer(30);
+                    // resetTimer(30);
                     renderGrid();
                     updateTurnUI();
                 }
@@ -1018,7 +949,7 @@
                 localState.board = last.board;
                 localState.cells = last.cells;
                 localState.turn = last.turn;
-                resetTimer(30); // Reset timer on undo
+                // resetTimer(30); // Reset timer on undo
                 renderGrid();
                 updateTurnUI();
             }
@@ -1035,62 +966,24 @@
             }
         }
 
-        let isPaused = false;
-
-        window.toggleTimer = () => {
-            isPaused = !isPaused;
+        window.forceSkipTurn = () => {
+            const nextTurn = localState.turn === 'X' ? 'O' : 'X';
+            if (window.isOnline) {
+                if (window.myPlayerId !== 'host') return;
+                const updates = {};
+                updates[`football_rooms/${window.myRoomId}/turn`] = nextTurn;
+                update(ref(db), updates);
+            } else {
+                localState.turn = nextTurn;
+                renderGrid();
+                updateTurnUI();
+            }
         };
 
-        window.resetTimerManual = () => {
-            resetTimer(30);
-            isPaused = true; // Pause on manual reset? Or run? Let's run.
-            isPaused = false;
-        };
-
-        function resetTimer(secs) {
-            if (timerInterval) clearInterval(timerInterval);
-            localState.timer = secs;
-            updateTimerDisp();
-            isPaused = false;
-
-            timerInterval = setInterval(() => {
-                if (isPaused) return;
-
-                localState.timer--;
-                updateTimerDisp();
-
-                if (localState.timer <= 0) {
-                    // Timeout -> Switch Turn
-                    localState.timer = 0;
-                    // Switch
-                    const nextTurn = localState.turn === 'X' ? 'O' : 'X';
-
-                    if (window.isOnline) {
-                        // Only the player whose turn it CANCELLED (or host?) should update? 
-                        // To avoid double writes.
-                        // Let's say: If it is MY turn and I time out -> I update.
-                        if (localState.turn === localState.myRole) {
-                            const updates = {};
-                            updates[`football_rooms/${window.myRoomId}/turn`] = nextTurn;
-                            update(ref(db), updates);
-                            // Note: We don't push history on timeout switch?
-                        }
-                    } else {
-                        localState.turn = nextTurn;
-                        renderGrid(); // Redraw check interactivity
-                        updateTurnUI();
-                        resetTimer(30);
-                    }
-                }
-            }, 1000);
-        }
-
-        function updateTimerDisp() {
-            const el = document.getElementById('timer-val');
-            const fill = document.getElementById('timer-fill');
-            if (el) el.innerText = localState.timer;
-            if (fill) fill.style.width = `${(localState.timer / 30) * 100}%`; // Based on 30s
-        }
+        // window.toggleTimer ... REMOVED
+        // window.resetTimerManual ... REMOVED
+        // function resetTimer(secs) ... REMOVED
+        // function updateTimerDisp() ... REMOVED
 
         window.resetGame = () => {
             if (window.isOnline) {

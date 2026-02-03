@@ -437,6 +437,31 @@
 
     </div>
 
+    <!-- Chat Widget -->
+    <div id="chat-widget" style="display:none; position:fixed; bottom:10px; right:10px; width:300px; z-index:200;">
+        <button id="chat-toggle" class="btn btn-blue"
+            style="width:50px; height:50px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 5px 15px rgba(0,0,0,0.5);"
+            onclick="toggleChat()">💬</button>
+
+        <div id="chat-box"
+            style="display:none; background:var(--card-color); border:1px solid var(--primary-color); border-radius:15px; height:350px; flex-direction:column; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+            <div
+                style="padding:10px; background:var(--primary-color); font-weight:bold; display:flex; justify-content:space-between;">
+                <span>💬 المحادثة</span>
+                <span style="cursor:pointer;" onclick="toggleChat()">❌</span>
+            </div>
+            <div id="chat-messages" style="flex:1; padding:10px; overflow-y:auto; font-size:0.9rem; text-align:right;">
+                <!-- Messages -->
+            </div>
+            <div style="padding:5px; background:#0f172a; display:flex;">
+                <input type="text" id="chat-input" style="width:100%; padding:8px; border-radius:5px; border:none;"
+                    placeholder="اكتب رسالة...">
+                <button onclick="sendChatMessage()"
+                    style="background:var(--primary-color); border:none; color:white; padding:0 10px; border-radius:5px; margin-right:5px;">➤</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Audio FX -->
     <script>
         // Simple Audio Synth/Beeps for polish without external files
@@ -901,6 +926,8 @@
             window.showScreen('screen-online-lobby');
             document.getElementById('lobby-code').innerText = code;
 
+            subscribeToChat(code);
+
             onValue(ref(db, `who_rooms/${code}`), (snap) => {
                 const data = snap.val();
                 if (!data) return;
@@ -1056,6 +1083,54 @@
                 setTimeout(() => c.remove(), 3000);
             }
         }
+
+        // --- Chat System ---
+        function subscribeToChat(roomId) {
+            document.getElementById('chat-widget').style.display = 'block';
+
+            onValue(ref(db, `who_rooms/${roomId}/chat`), (snap) => {
+                const msgs = snap.val();
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = '';
+
+                if (msgs) {
+                    const myName = localStorage.getItem('heka_global_player_name') || (state.myRole === 'host' ? "المضيف" : "الضيف");
+                    Object.values(msgs).forEach(msg => {
+                        const div = document.createElement('div');
+                        const isMe = msg.sender === myName;
+                        div.style.padding = '5px 10px';
+                        div.style.margin = '5px 0';
+                        div.style.borderRadius = '10px';
+                        div.style.background = isMe ? '#3b82f6' : '#334155';
+                        div.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
+                        div.style.width = 'fit-content';
+                        div.style.maxWidth = '80%';
+                        div.innerText = `${msg.sender}: ${msg.text}`;
+                        container.appendChild(div);
+                    });
+                    container.scrollTop = container.scrollHeight;
+                }
+            });
+        }
+
+        window.toggleChat = () => {
+            const box = document.getElementById('chat-box');
+            box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+        };
+
+        window.sendChatMessage = () => {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !state.roomId) return;
+
+            const myName = localStorage.getItem('heka_global_player_name') || (state.myRole === 'host' ? "المضيف" : "الضيف");
+            const msgId = "msg_" + Date.now();
+            update(ref(db, `who_rooms/${state.roomId}/chat/${msgId}`), {
+                sender: myName,
+                text: text
+            });
+            input.value = '';
+        };
 
     </script>
 </body>

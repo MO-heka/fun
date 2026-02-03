@@ -732,8 +732,8 @@
 
                 if (data.status === 'playing') {
                     // Sync State
-                    localState.board = data.board || Array(9).fill(null);
-                    localState.cells = data.cells || Array(9).fill(null);
+                    localState.board = data.board ? (Array.isArray(data.board) ? data.board : Object.assign(Array(9).fill(null), data.board)) : Array(9).fill(null);
+                    localState.cells = data.cells ? (Array.isArray(data.cells) ? data.cells : Object.assign(Array(9).fill(null), data.cells)) : Array(9).fill(null);
                     localState.turn = data.turn;
                     localState.activeRows = data.activeRows;
                     localState.activeCols = data.activeCols;

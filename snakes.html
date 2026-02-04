@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🐍⚽ سلم وتعبان كرة القدم</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-color: #1e293b;
+            --primary-color: #3b82f6;
+            --yellow-card: #fbbf24;
+            --red-card: #ef4444;
+            --success: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .card {
+            background: var(--card-color);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 15px;
+                border-radius: 12px;
+            }
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--primary-color);
+            text-align: center;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            font-family: 'Cairo', sans-serif;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+            touch-action: manipulation;
+        }
+
+        @media (max-width: 480px) {
+            .btn {
+                padding: 12px;
+                font-size: 1rem;
+            }
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-blue {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .btn-yellow {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #000;
+        }
+
+        .btn-red {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .btn-green {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+
+        .game-input {
+            width: 100%;
+            padding: 12px;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            text-align: center;
+            margin: 8px 0;
+        }
+
+        .board-wrapper {
+            overflow-x: auto;
+            margin: 15px -10px;
+            padding: 10px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 70px);
+            gap: 6px;
+            margin: 0 auto;
+            width: fit-content;
+        }
+
+        @media (max-width: 768px) {
+            .board {
+                grid-template-columns: repeat(8, 60px);
+                gap: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .board {
+                grid-template-columns: repeat(8, 42px);
+                gap: 4px;
+            }
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border: 2px solid #334155;
+            transition: 0.2s;
+            padding: 3px;
+            min-height: 42px;
+        }
+
+        .cell.yellow {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-color: #fbbf24;
+        }
+
+        .cell.red {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: #ef4444;
+        }
+
+        .cell-number {
+            font-size: 0.75rem;
+            font-weight: 900;
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2px 5px;
+            border-radius: 4px;
+            color: white;
+            z-index: 2;
+        }
+
+        .cell-icons {
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            max-width: 100%;
+        }
+
+        .cell-icon {
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+        }
+
+        @media (max-width: 480px) {
+            .cell-icon {
+                width: 16px;
+                height: 16px;
+            }
+
+            .cell-number {
+                font-size: 0.6rem;
+                padding: 1px 3px;
+            }
+        }
+
+        .players-here {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            display: flex;
+            gap: 2px;
+            z-index: 3;
+        }
+
+        .player-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid white;
+        }
+
+        .players-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        @media (max-width: 480px) {
+            .players-panel {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+        }
+
+        .player-card {
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            transition: 0.3s;
+        }
+
+        .player-card.active {
+            border-color: var(--success);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .player-name {
+            font-size: 1rem;
+            font-weight: 900;
+            margin-bottom: 5px;
+        }
+
+        .player-pos {
+            color: var(--yellow-card);
+            font-size: 0.85rem;
+        }
+
+        .dice-area {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .dice {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 15px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 900;
+            color: #000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+            transition: 0.2s;
+            touch-action: manipulation;
+        }
+
+        @media (max-width: 480px) {
+            .dice-area {
+                margin: 10px 0;
+            }
+
+            .dice {
+                width: 70px;
+                height: 70px;
+                font-size: 2.2rem;
+                border-radius: 12px;
+            }
+        }
+
+        .dice:active {
+            transform: scale(0.9);
+        }
+
+        @keyframes rollDice {
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            25% {
+                transform: rotate(90deg);
+            }
+
+            50% {
+                transform: rotate(180deg);
+            }
+
+            75% {
+                transform: rotate(270deg);
+            }
+        }
+
+        .dice.rolling {
+            animation: rollDice 0.5s;
+        }
+
+        .question-panel {
+            background: var(--card-color);
+            padding: 20px;
+            border-radius: 15px;
+            border: 3px solid var(--yellow-card);
+            margin: 15px 0;
+        }
+
+        .question-panel.red {
+            border-color: var(--red-card);
+        }
+
+        .question-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .question-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 8px;
+        }
+
+        @media (max-width: 480px) {
+            .question-img {
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        .question-text {
+            font-size: 1.2rem;
+            text-align: center;
+            margin: 15px 0;
+            font-weight: 700;
+        }
+
+        @media (max-width: 480px) {
+            .question-text {
+                font-size: 1rem;
+            }
+        }
+
+        .required-answers {
+            font-size: 1.5rem;
+            text-align: center;
+            color: var(--yellow-card);
+            font-weight: 900;
+            margin: 10px 0;
+        }
+
+        .timer-display {
+            font-size: 2.5rem;
+            text-align: center;
+            font-weight: 900;
+            color: var(--success);
+            margin: 10px 0;
+        }
+
+        @media (max-width: 480px) {
+            .timer-display {
+                font-size: 2rem;
+            }
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .info-text {
+            text-align: center;
+            color: var(--text-muted);
+            margin: 8px 0;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 480px) {
+            .info-text {
+                font-size: 0.75rem;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Menu -->
+        <div id="screen-menu" class="screen active card">
+            <h1 style="font-size: 2.5rem;">🐍⚽🎲</h1>
+            <h1>سلم وتعبان كرة القدم</h1>
+            <p class="info-text">30 خانة • تحديات كروية</p>
+            <button class="btn btn-green" onclick="showScreen('screen-setup')">🚀 ابدأ اللعب</button>
+            <button class="btn btn-secondary" onclick="window.location.href='foot index.html'">خروج</button>
+        </div>
+
+        <!-- Setup -->
+        <div id="screen-setup" class="screen card">
+            <h2 style="text-align:center; margin-bottom:15px;">⚙️ إعدادات اللعبة</h2>
+            <label style="display:block; text-align:right; margin:10px 0 5px;">عدد اللاعبين (2-8)</label>
+            <input type="number" id="num-players" class="game-input" value="2" min="2" max="8">
+            <div id="names-container"></div>
+            <button class="btn btn-green" onclick="startGame()">✅ ابدأ اللعبة</button>
+            <button class="btn btn-secondary" onclick="showScreen('screen-menu')">رجوع</button>
+        </div>
+
+        <!-- Game -->
+        <div id="screen-game" class="screen">
+            <div class="card">
+                <h2 style="text-align:center; font-size:1.3rem;">🎮 اللاعبين</h2>
+                <div id="players-panel" class="players-panel"></div>
+            </div>
+
+            <div class="card" style="padding:10px;">
+                <div id="game-board-container" class="board-wrapper">
+                    <div id="game-board" class="board"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 style="text-align:center; font-size:1.2rem;">دور: <span id="current-name"
+                        style="color:var(--yellow-card);">...</span></h2>
+
+                <div id="timer-container" style="display:none; text-align:center;">
+                    <div class="timer-display" id="timer-display">⏳</div>
+                    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                        <button class="btn btn-green" style="width:auto; padding:10px 25px;" onclick="startTimer()">▶️
+                            START</button>
+                        <button class="btn btn-red" style="width:auto; padding:10px 25px;" onclick="stopTimer()">⏸️
+                            STOP</button>
+                    </div>
+                </div>
+
+                <div id="dice-container" class="dice-area">
+                    <div class="dice" id="dice" onclick="rollDice()">🎲</div>
+                    <p class="info-text">اضغط لرمي الزهر</p>
+                </div>
+
+                <div id="question-container" style="display:none;" class="question-panel">
+                    <div class="question-images" id="question-images"></div>
+                    <div class="question-text" id="question-text"></div>
+                    <div class="required-answers" id="required-answers"></div>
+
+                    <div class="controls">
+                        <button class="btn btn-green" onclick="answerCorrect()">✅ صح</button>
+                        <button class="btn btn-red" onclick="answerWrong()">❌ غلط</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align:center; margin-top:15px;">
+                <button class="btn btn-secondary" onclick="resetGame()">🔄 لعبة جديدة</button>
+            </div>
+        </div>
+
+        <!-- Winner -->
+        <div id="screen-winner" class="screen card" style="text-align:center;">
+            <h1 style="font-size:3rem;">🏆</h1>
+            <h1 id="winner-name" style="color:var(--success);">...</h1>
+            <h2 style="font-size:1.5rem;">فاز باللعبة!</h2>
+            <button class="btn btn-green" style="margin-top:25px;" onclick="resetGame()">🔄 العب تاني</button>
+            <button class="btn btn-secondary" onclick="showScreen('screen-menu')">🏠 القائمة الرئيسية</button>
+        </div>
+    </div>
+
+    <script src="snakes_questions.js"></script>
+    <script>
+        let game = {
+            players: [],
+            currentIndex: 0,
+            board: [],
+            diceValue: 0,
+            currentQuestion: null,
+            timerInterval: null,
+            boardQuestions: []
+        };
+
+        const YELLOW_POS = [6, 18, 21];
+        const RED_POS = [13, 25, 29];
+
+        document.getElementById('num-players').addEventListener('input', function () {
+            const num = parseInt(this.value) || 2;
+            const container = document.getElementById('names-container');
+            container.innerHTML = '';
+            for (let i = 1; i <= num; i++) {
+                container.innerHTML += `
+                    <label style="display:block; text-align:right; margin:8px 0 3px; font-size:0.9rem;">لاعب ${i}</label>
+                    <input type="text" id="name-${i}" class="game-input" value="لاعب ${i}">
+                `;
+            }
+        });
+        document.getElementById('num-players').dispatchEvent(new Event('input'));
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function getPlayerColor(i) {
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+            return colors[i % colors.length];
+        }
+
+        function startGame() {
+            const num = parseInt(document.getElementById('num-players').value);
+            game.players = [];
+            for (let i = 1; i <= num; i++) {
+                game.players.push({
+                    name: document.getElementById(`name-${i}`).value || `لاعب ${i}`,
+                    position: -1, // البداية من -1 عشان أول رمية توصل لخانة 0
+                    blocked: false,
+                    color: getPlayerColor(i - 1)
+                });
+            }
+
+            // Generate board
+            game.board = [];
+            for (let i = 0; i < 30; i++) {
+                let type = 'normal';
+                if (YELLOW_POS.includes(i)) type = 'yellow';
+                else if (RED_POS.includes(i)) type = 'red';
+                game.board.push({ number: i + 1, type });
+            }
+
+            // Assign questions to ALL 30 cells
+            const shuffled = [...window.snakesQuestions].sort(() => Math.random() - 0.5);
+            game.boardQuestions = [];
+            for (let i = 0; i < 30; i++) {
+                game.boardQuestions[i] = shuffled[i % shuffled.length];
+            }
+
+            game.currentIndex = 0;
+            renderBoard();
+            updatePlayers();
+            showScreen('screen-game');
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('game-board');
+            board.innerHTML = '';
+            game.board.forEach((cell, i) => {
+                const div = document.createElement('div');
+                div.className = 'cell ' + cell.type;
+                div.innerHTML = `<div class="cell-number">${cell.number}</div>`;
+
+                // Show question icons in colored cells
+                const q = game.boardQuestions[i];
+                if (q && q.images) {
+                    const iconsDiv = document.createElement('div');
+                    iconsDiv.className = 'cell-icons';
+                    q.images.slice(0, 2).forEach(img => {
+                        const icon = document.createElement('img');
+                        icon.src = img;
+                        icon.className = 'cell-icon';
+                        icon.onerror = () => icon.style.display = 'none';
+                        iconsDiv.appendChild(icon);
+                    });
+                    div.appendChild(iconsDiv);
+                }
+
+                // Show players
+                const here = game.players.filter(p => p.position === i);
+                if (here.length > 0) {
+                    const dots = document.createElement('div');
+                    dots.className = 'players-here';
+                    here.slice(0, 4).forEach(p => {
+                        const dot = document.createElement('div');
+                        dot.className = 'player-dot';
+                        dot.style.background = p.color;
+                        dots.appendChild(dot);
+                    });
+                    div.appendChild(dots);
+                }
+                board.appendChild(div);
+            });
+        }
+
+        function updatePlayers() {
+            const panel = document.getElementById('players-panel');
+            panel.innerHTML = '';
+            game.players.forEach((p, i) => {
+                const card = document.createElement('div');
+                card.className = 'player-card' + (i === game.currentIndex ? ' active' : '');
+                const posText = p.position === -1 ? 'START' : `خانة ${p.position + 1}`;
+                card.innerHTML = `
+                    <div class="player-name" style="color:${p.color}">${p.name}</div>
+                    <div class="player-pos">${posText}</div>
+                    ${p.blocked ? '<div style="color:var(--red-card); font-size:0.85rem;">⛔ ممنوع</div>' : ''}
+                `;
+                panel.appendChild(card);
+            });
+
+            const current = game.players[game.currentIndex];
+            document.getElementById('current-name').textContent = current.name;
+
+            if (current.blocked) {
+                setTimeout(() => {
+                    current.blocked = false;
+                    nextTurn();
+                }, 1500);
+            }
+        }
+
+        function rollDice() {
+            game.diceValue = Math.floor(Math.random() * 6) + 1;
+            const dice = document.getElementById('dice');
+            dice.classList.add('rolling');
+            dice.textContent = game.diceValue;
+
+            setTimeout(() => {
+                dice.classList.remove('rolling');
+                movePlayer();
+            }, 500);
+        }
+
+        function movePlayer() {
+            const player = game.players[game.currentIndex];
+            player.position = Math.min(player.position + game.diceValue, 29);
+            renderBoard();
+
+            setTimeout(() => {
+                if (player.position === 29) {
+                    showWinner(player);
+                } else if (game.boardQuestions[player.position]) {
+                    showQuestion();
+                } else {
+                    nextTurn();
+                }
+            }, 600);
+        }
+
+        function showQuestion() {
+            const player = game.players[game.currentIndex];
+            const cell = game.board[player.position];
+            const q = game.boardQuestions[player.position];
+
+            if (!q) {
+                nextTurn();
+                return;
+            }
+
+            game.currentQuestion = q;
+
+            document.getElementById('dice-container').style.display = 'none';
+            document.getElementById('question-container').style.display = 'block';
+            document.getElementById('timer-container').style.display = 'block';
+
+            const panel = document.getElementById('question-container');
+            panel.className = 'question-panel ' + (cell.type === 'red' ? 'red' : '');
+
+            const images = document.getElementById('question-images');
+            images.innerHTML = '';
+            q.images.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'question-img';
+                img.onerror = () => img.style.display = 'none';
+                images.appendChild(img);
+            });
+
+            document.getElementById('question-text').textContent = q.text;
+            document.getElementById('required-answers').textContent = `مطلوب ${game.diceValue} أسماء`;
+        }
+
+        let timerSeconds = 0;
+        function startTimer() {
+            if (game.timerInterval) return;
+            timerSeconds = 0;
+            game.timerInterval = setInterval(() => {
+                timerSeconds++;
+                const mins = Math.floor(timerSeconds / 60);
+                const secs = timerSeconds % 60;
+                document.getElementById('timer-display').textContent =
+                    `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (game.timerInterval) {
+                clearInterval(game.timerInterval);
+                game.timerInterval = null;
+            }
+        }
+
+
+        function answerCorrect() {
+            stopTimer();
+            const player = game.players[game.currentIndex];
+            const cell = game.board[player.position];
+
+            if (cell.type === 'yellow') {
+                // كارت أصفر: العب تاني أوتوماتيكياً
+                document.getElementById('question-container').style.display = 'none';
+                document.getElementById('dice-container').style.display = 'block';
+                document.getElementById('timer-container').style.display = 'none';
+                updatePlayers();
+            } else if (cell.type === 'red') {
+                player.position = Math.min(player.position + 3, 29);
+                renderBoard();
+                if (player.position === 29) {
+                    showWinner(player);
+                } else {
+                    setTimeout(() => nextTurn(), 1200);
+                }
+            } else {
+                nextTurn();
+            }
+        }
+
+
+        function answerWrong() {
+            stopTimer();
+            const player = game.players[game.currentIndex];
+            const cell = game.board[player.position];
+
+            if (cell.type === 'yellow') {
+                player.blocked = true;
+            } else if (cell.type === 'red') {
+                player.position = Math.max(player.position - 3, 0);
+                renderBoard();
+            }
+
+            setTimeout(() => nextTurn(), 1200);
+        }
+
+
+        function nextTurn() {
+            document.getElementById('question-container').style.display = 'none';
+            document.getElementById('dice-container').style.display = 'block';
+            document.getElementById('timer-container').style.display = 'none';
+            stopTimer();
+
+            game.currentIndex = (game.currentIndex + 1) % game.players.length;
+            updatePlayers();
+        }
+
+
+        function showWinner(player) {
+            stopTimer();
+            document.getElementById('winner-name').textContent = player.name;
+            showScreen('screen-winner');
+        }
+
+        function resetGame() {
+            stopTimer();
+            showScreen('screen-setup');
+        }
+    </script>
+</body>
+
+</html>

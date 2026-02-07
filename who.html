@@ -744,7 +744,10 @@
             const judgeDiv = document.getElementById('ctrl-judge');
             const nameDisplay = document.getElementById('player-name-display');
 
-            nameDisplay.innerText = currentPlayerName;
+            // Only set name when revealed
+            if (state.revealed) {
+                nameDisplay.innerText = currentPlayerName;
+            }
 
             // Visibility based on state.revealed
             if (state.revealed) {

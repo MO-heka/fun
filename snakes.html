@@ -543,7 +543,8 @@
             diceValue: 0,
             currentQuestion: null,
             timerInterval: null,
-            boardQuestions: []
+            boardQuestions: [],
+            previousPosition: -1  // حفظ المكان السابق للاعب
         };
 
         const YELLOW_POS = [6, 18, 21];
@@ -686,12 +687,19 @@
 
         function movePlayer() {
             const player = game.players[game.currentIndex];
+            // حفظ المكان السابق قبل الحركة
+            game.previousPosition = player.position;
             player.position = Math.min(player.position + game.diceValue, 29);
             renderBoard();
 
             setTimeout(() => {
+                // الخانة الأخيرة (29) لازم يجاوب على السؤال
                 if (player.position === 29) {
-                    showWinner(player);
+                    if (game.boardQuestions[player.position]) {
+                        showQuestion();
+                    } else {
+                        showWinner(player);
+                    }
                 } else if (game.boardQuestions[player.position]) {
                     showQuestion();
                 } else {
@@ -784,11 +792,13 @@
             const player = game.players[game.currentIndex];
             const cell = game.board[player.position];
 
+            // الرجوع للمكان السابق عند الإجابة الخاطئة
+            player.position = game.previousPosition;
+            renderBoard();
+
+            // إذا كانت خانة صفراء، اللاعب يتعاقب
             if (cell.type === 'yellow') {
                 player.blocked = true;
-            } else if (cell.type === 'red') {
-                player.position = Math.max(player.position - 3, 0);
-                renderBoard();
             }
 
             setTimeout(() => nextTurn(), 1200);

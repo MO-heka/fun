@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎬 لعبة الأفلام المصرية</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* متغيرات الألوان */
+        :root {
+            color-scheme: dark;
+            --bg-color: #0f172a;
+            --card-color: #1e293b;
+            --primary-color: #3b82f6;
+            --create-btn: #8b5cf6;
+            --accent-color: #f43f5e;
+            --success-color: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* تنسيقات الصفحة العامة */
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 18px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+        }
+
+        /* تنسيق الكارت */
+        .card {
+            background-color: var(--card-color);
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid #334155;
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+
+        /* العناوين */
+        h1 {
+            color: #60a5fa;
+            margin: 0 0 10px 0;
+            font-size: 32px;
+            font-weight: 900;
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            font-weight: 700;
+            font-size: 24px;
+        }
+
+        p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        /* الأزرار */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            margin: 12px 0;
+            font-family: 'Tajawal', sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+            color: rgb(241, 236, 236);
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-blue {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .btn-green {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .btn-red {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #334155;
+            color: var(--text-muted);
+        }
+
+        /* حقول الإدخال */
+        input {
+            width: 100%;
+            padding: 16px;
+            margin: 10px 0;
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 14px;
+            color: white;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 18px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        /* إخفاء وإظهار الشاشات */
+        .screen {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* صورة الفيلم */
+        .film-image-container {
+            width: 100%;
+            max-width: 350px;
+            aspect-ratio: 2/3;
+            margin: 20px auto;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 3px solid #fbbf24;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .film-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* المؤقت */
+        .timer-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid #334155;
+            text-align: center;
+        }
+
+        .timer-display {
+            font-size: 45px;
+            font-weight: 900;
+            color: #f8fafc;
+            letter-spacing: 3px;
+            line-height: 1;
+            margin: 10px 0;
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        .timer-display.warning {
+            color: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* لوحة النقاط */
+        .score-board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .team-card {
+            background: #334155;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            border: 2px solid transparent;
+        }
+
+        .team-card.active {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+        }
+
+        .team-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .team-score {
+            font-size: 36px;
+            font-weight: 900;
+            color: var(--success-color);
+        }
+
+        /* حركة الإيموجي */
+        .big-emoji {
+            font-size: 60px;
+            display: block;
+            margin: 10px 0;
+            animation: float 3s infinite ease-in-out;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <!-- القائمة الرئيسية -->
+        <div id="main-menu" class="screen active card" style="text-align: center;">
+            <div style="font-size: 60px;">🎬</div>
+            <h1>الأفلام المصرية</h1>
+            <p>اختبر معرفتك بالسينما المصرية</p>
+
+            <button class="btn btn-blue" onclick="window.showSetupScreen()">🎮 ابدأ اللعب</button>
+            <button class="btn btn-secondary" onclick="showRules()">❓ طريقة اللعب</button>
+        </div>
+
+        <!-- شاشة الإعدادات -->
+        <div id="setup-screen" class="screen card">
+            <h2>⚙️ إعدادات اللعبة</h2>
+
+            <label style="display:block; text-align:right; margin-bottom:5px;">اسم الفريق الأول:</label>
+            <input type="text" id="team1-name" value="الفريق الأول" maxlength="15">
+
+            <label style="display:block; text-align:right; margin-bottom:5px; margin-top:15px;">اسم الفريق
+                الثاني:</label>
+            <input type="text" id="team2-name" value="الفريق الثاني" maxlength="15">
+
+            <button class="btn btn-blue" onclick="window.startGame()">🚀 ابدأ اللعبة</button>
+            <button class="btn btn-secondary" onclick="window.showScreen('main-menu')">رجوع</button>
+        </div>
+
+        <!-- شاشة اللعب -->
+        <div id="game-screen" class="screen">
+
+            <!-- لوحة النقاط -->
+            <div class="card">
+                <div class="score-board">
+                    <div class="team-card" id="team1-card">
+                        <div class="team-name" id="team1-display">الفريق الأول</div>
+                        <div class="team-score" id="team1-score">0</div>
+                    </div>
+                    <div class="team-card" id="team2-card">
+                        <div class="team-name" id="team2-display">الفريق الثاني</div>
+                        <div class="team-score" id="team2-score">0</div>
+                    </div>
+                </div>
+
+                <div style="text-align:center; margin-top:15px;">
+                    <span
+                        style="background:rgba(255,255,255,0.1); padding:8px 20px; border-radius:20px; font-size:18px; font-weight:bold;">
+                        الدور: <span id="current-team-name" style="color:#fbbf24;">...</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- المؤقت -->
+            <div class="card">
+                <div class="timer-container">
+                    <span style="color:#fbbf24; font-size:18px;">⏳ الوقت المتبقي</span>
+                    <div id="timer-box" class="timer-display">60</div>
+                </div>
+            </div>
+
+            <!-- اسم الفيلم وزر البحث -->
+            <div class="card" style="text-align:center; padding: 40px 20px;">
+                <h1 id="film-name-display"
+                    style="font-size:48px; color:var(--primary-color); margin-bottom: 30px; line-height: 1.4;"></h1>
+
+                <a id="google-search-btn" href="#" target="_blank" class="btn btn-gold"
+                    style="width: auto; display: inline-block; padding: 15px 40px; text-decoration: none; font-size: 24px; border-radius: 50px;">
+                    🔍 بحث عن الفيلم في جوجل
+                </a>
+            </div>
+
+            <!-- أزرار التحكم -->
+            <div class="card">
+                <div id="answer-btns">
+                    <button class="btn btn-green" onclick="window.correctAnswer()">✅ الإجابة صحيحة (+1 نقطة)</button>
+                    <button class="btn btn-red" onclick="window.wrongAnswer()">❌ الإجابة خاطئة (تخطي)</button>
+                </div>
+
+                <div id="steal-mode" style="display:none;">
+                    <p style="text-align:center; color:#fbbf24; font-weight:bold; font-size:20px;">فرصة السرقة! 🔥</p>
+                    <div class="timer-container">
+                        <div id="steal-timer" class="timer-display">10</div>
+                    </div>
+                    <button class="btn btn-green" onclick="window.stealSuccess()">✅ عرف الفريق الثاني (+1 نقطة)</button>
+                    <button class="btn btn-red" onclick="window.stealFailed()">❌ معرفش برضه</button>
+                </div>
+
+                <button class="btn btn-secondary" onclick="window.showScreen('main-menu')" style="margin-top:20px;">🏠
+                    القائمة الرئيسية</button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- تحميل قاعدة بيانات الأفلام -->
+    <script src="films.js"></script>
+
+    <script>
+        // متغيرات اللعبة
+        let gameState = {
+            team1: { name: "الفريق الأول", score: 0 },
+            team2: { name: "الفريق الثاني", score: 0 },
+            currentTurn: 1, // 1 أو 2
+            currentFilm: null,
+            usedFilms: [],
+            mainTimer: null,
+            stealTimer: null,
+            mainTimeLeft: 60,
+            stealTimeLeft: 10
+        };
+
+        // دالة عرض شاشة معينة
+        window.showScreen = (id) => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            setTimeout(() => document.getElementById(id).classList.add('active'), 100);
+        };
+
+        // دالة عرض شاشة الإعدادات
+        window.showSetupScreen = () => {
+            window.showScreen('setup-screen');
+        };
+
+        // دالة عرض قواعد اللعب
+        window.showRules = () => {
+            alert(`📋 طريقة اللعب:
+
+1️⃣ يظهر اسم فيلم مصري
+2️⃣ الفريق الأول عنده 60 ثانية يمثل الفيلم أو يشرحه بدون ذكر الاسم
+3️⃣ تقدر تدوس على "بحث في جوجل" عشان تفتكر قصة الفيلم أو أبطاله
+4️⃣ لو عرفوا الاسم → يكسبوا نقطة
+5️⃣ لو معرفوش → الفريق الثاني يحاول في 10 ثواني (سرقة)
+
+يلا نبدأ! 🎬🍿`);
+        };
+
+        // دالة بدء اللعبة
+        window.startGame = () => {
+            // حفظ أسماء الفرق
+            gameState.team1.name = document.getElementById('team1-name').value.trim() || "الفريق الأول";
+            gameState.team2.name = document.getElementById('team2-name').value.trim() || "الفريق الثاني";
+
+            // تصفير النقاط
+            gameState.team1.score = 0;
+            gameState.team2.score = 0;
+            gameState.currentTurn = 1;
+            gameState.usedFilms = [];
+
+            // تحديث الواجهة
+            document.getElementById('team1-display').innerText = gameState.team1.name;
+            document.getElementById('team2-display').innerText = gameState.team2.name;
+
+            window.showScreen('game-screen');
+            loadNewFilm();
+        };
+
+        // دالة تحميل فيلم جديد
+        function loadNewFilm() {
+            // التأكد من وجود أفلام متاحة
+            if (gameState.usedFilms.length >= egyptianFilms.length) {
+                gameFinished();
+                return;
+            }
+
+            // اختيار فيلم عشوائي لم يُستخدم من قبل
+            let film;
+            do {
+                film = getRandomFilm();
+            } while (gameState.usedFilms.includes(film.name));
+
+            gameState.currentFilm = film;
+            gameState.usedFilms.push(film.name);
+
+            // عرض اسم الفيلم
+            const nameDisplay = document.getElementById('film-name-display');
+            nameDisplay.innerText = film.name;
+            nameDisplay.style.animation = 'none';
+            nameDisplay.offsetHeight; /* trigger reflow */
+            nameDisplay.style.animation = 'float 3s infinite ease-in-out';
+
+            // تحديث رابط البحث
+            const searchBtn = document.getElementById('google-search-btn');
+            searchBtn.href = `https://www.google.com/search?q=${encodeURIComponent(film.name + ' فيلم مصر')}`;
+
+            // تحديث لوحة النقاط
+            updateScoreBoard();
+
+            // بدء المؤقت الرئيسي
+            startMainTimer();
+
+            // إخفاء وضع السرقة
+            document.getElementById('answer-btns').style.display = 'block';
+            document.getElementById('steal-mode').style.display = 'none';
+        }
+
+        // دالة تحديث لوحة النقاط
+        function updateScoreBoard() {
+            document.getElementById('team1-score').innerText = gameState.team1.score;
+            document.getElementById('team2-score').innerText = gameState.team2.score;
+
+            // تحديد الفريق النشط
+            const team1Card = document.getElementById('team1-card');
+            const team2Card = document.getElementById('team2-card');
+
+            if (gameState.currentTurn === 1) {
+                team1Card.classList.add('active');
+                team2Card.classList.remove('active');
+                document.getElementById('current-team-name').innerText = gameState.team1.name;
+            } else {
+                team2Card.classList.add('active');
+                team1Card.classList.remove('active');
+                document.getElementById('current-team-name').innerText = gameState.team2.name;
+            }
+        }
+
+        // دالة بدء المؤقت الرئيسي (60 ثانية)
+        function startMainTimer() {
+            if (gameState.mainTimer) clearInterval(gameState.mainTimer);
+
+            gameState.mainTimeLeft = 60;
+            const timerBox = document.getElementById('timer-box');
+            timerBox.classList.remove('warning');
+            timerBox.innerText = gameState.mainTimeLeft;
+
+            gameState.mainTimer = setInterval(() => {
+                gameState.mainTimeLeft--;
+                timerBox.innerText = gameState.mainTimeLeft;
+
+                // تحذير عند آخر 10 ثواني
+                if (gameState.mainTimeLeft <= 10) {
+                    timerBox.classList.add('warning');
+                }
+
+                // انتهاء الوقت
+                if (gameState.mainTimeLeft <= 0) {
+                    clearInterval(gameState.mainTimer);
+                    wrongAnswer(); // نفس تأثير الإجابة الخاطئة
+                }
+            }, 1000);
+        }
+
+        // دالة بدء مؤقت السرقة (10 ثواني)
+        function startStealTimer() {
+            if (gameState.stealTimer) clearInterval(gameState.stealTimer);
+
+            gameState.stealTimeLeft = 10;
+            const stealBox = document.getElementById('steal-timer');
+            stealBox.innerText = gameState.stealTimeLeft;
+
+            gameState.stealTimer = setInterval(() => {
+                gameState.stealTimeLeft--;
+                stealBox.innerText = gameState.stealTimeLeft;
+
+                // انتهاء وقت السرقة
+                if (gameState.stealTimeLeft <= 0) {
+                    clearInterval(gameState.stealTimer);
+                    stealFailed(); // الفريق الثاني معرفش
+                }
+            }, 1000);
+        }
+
+        // دالة عند الإجابة الصحيحة
+        window.correctAnswer = () => {
+            playSound('correct');
+
+            // إيقاف المؤقت
+            if (gameState.mainTimer) clearInterval(gameState.mainTimer);
+
+            // إضافة نقطة للفريق الحالي
+            if (gameState.currentTurn === 1) {
+                gameState.team1.score++;
+            } else {
+                gameState.team2.score++;
+            }
+
+            // عرض رسالة نجاح
+            showFilmName('✅ إجابة صحيحة!', '#10b981');
+
+            // الانتقال للفيلم التالي بعد ثانيتين
+            setTimeout(() => {
+                switchTurn();
+                loadNewFilm();
+            }, 2000);
+        };
+
+        // دالة عند الإجابة الخاطئة
+        window.wrongAnswer = () => {
+            playSound('wrong');
+
+            // إيقاف المؤقت
+            if (gameState.mainTimer) clearInterval(gameState.mainTimer);
+
+            // التبديل لوضع السرقة
+            document.getElementById('answer-btns').style.display = 'none';
+            document.getElementById('steal-mode').style.display = 'block';
+
+            // بدء مؤقت السرقة
+            startStealTimer();
+        };
+
+        // دالة عند نجاح السرقة
+        window.stealSuccess = () => {
+            playSound('correct');
+
+            // إيقاف مؤقت السرقة
+            if (gameState.stealTimer) clearInterval(gameState.stealTimer);
+
+            // إضافة نقطة للفريق الآخر
+            if (gameState.currentTurn === 1) {
+                gameState.team2.score++;
+            } else {
+                gameState.team1.score++;
+            }
+
+            // عرض رسالة نجاح السرقة
+            showFilmName('🔥 سرقة ناجحة!', '#f59e0b');
+
+            // الانتقال للفيلم التالي
+            setTimeout(() => {
+                switchTurn();
+                loadNewFilm();
+            }, 2000);
+        };
+
+        // دالة عند فشل السرقة
+        window.stealFailed = () => {
+            playSound('wrong');
+
+            // إيقاف مؤقت السرقة
+            if (gameState.stealTimer) clearInterval(gameState.stealTimer);
+
+            // عرض اسم الفيلم
+            showFilmName(`الفيلم: ${gameState.currentFilm.name}`, '#ef4444');
+
+            // الانتقال للفيلم التالي
+            setTimeout(() => {
+                switchTurn();
+                loadNewFilm();
+            }, 3000);
+        };
+
+        // دالة عرض اسم الفيلم
+        function showFilmName(message, color) {
+            const hintEl = document.getElementById('film-hint');
+            hintEl.innerHTML = `<strong>${message}</strong><br>الفيلم: <span style="color:${color}; font-size:20px;">${gameState.currentFilm.name}</span>`;
+        }
+
+        // دالة تبديل الدور
+        function switchTurn() {
+            gameState.currentTurn = gameState.currentTurn === 1 ? 2 : 1;
+        }
+
+        // دالة انتهاء اللعبة
+        function gameFinished() {
+            const winner = gameState.team1.score > gameState.team2.score ? gameState.team1.name :
+                gameState.team2.score > gameState.team1.score ? gameState.team2.name :
+                    "تعادل";
+
+            alert(`🎉 انتهت اللعبة!
+
+${gameState.team1.name}: ${gameState.team1.score} نقطة
+${gameState.team2.name}: ${gameState.team2.score} نقطة
+
+الفائز: ${winner === "تعادل" ? "تعادل! 🤝" : winner + " 🏆"}`);
+
+            window.showScreen('main-menu');
+        }
+
+        // دالة الأصوات البسيطة
+        function playSound(type) {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            const now = ctx.currentTime;
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+
+
+
+    </script>
+</body>
+
+</html>

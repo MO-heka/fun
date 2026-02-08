@@ -744,9 +744,11 @@
             const judgeDiv = document.getElementById('ctrl-judge');
             const nameDisplay = document.getElementById('player-name-display');
 
-            // Only set name when revealed
+            // Set or clear name based on revealed state
             if (state.revealed) {
                 nameDisplay.innerText = currentPlayerName;
+            } else {
+                nameDisplay.innerText = ''; // Clear the name when not revealed
             }
 
             // Visibility based on state.revealed
@@ -822,6 +824,7 @@
                     revealed: false
                 });
             } else {
+                state.revealed = false; // Reset revealed state for next player
                 updateGameUI();
             }
         };

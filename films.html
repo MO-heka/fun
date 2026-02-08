@@ -590,14 +590,15 @@
         };
 
         // دالة عند فشل السرقة
+        // دالة عند فشل السرقة
         window.stealFailed = () => {
             playSound('wrong');
 
             // إيقاف مؤقت السرقة
             if (gameState.stealTimer) clearInterval(gameState.stealTimer);
 
-            // عرض اسم الفيلم
-            showFilmName(`الفيلم: ${gameState.currentFilm.name}`, '#ef4444');
+            // عرض رسالة
+            showFilmName('❌ للأسف غلط!', '#ef4444');
 
             // الانتقال للفيلم التالي
             setTimeout(() => {
@@ -606,10 +607,12 @@
             }, 3000);
         };
 
-        // دالة عرض اسم الفيلم
+        // دالة عرض رسالة الحالة (بدلاً من اسم الفيلم)
         function showFilmName(message, color) {
-            const hintEl = document.getElementById('film-hint');
-            hintEl.innerHTML = `<strong>${message}</strong><br>الفيلم: <span style="color:${color}; font-size:20px;">${gameState.currentFilm.name}</span>`;
+            const displayEl = document.getElementById('film-name-display');
+            if (displayEl) {
+                displayEl.innerHTML = `<span style="color:${color}; font-size: 40px;">${message}</span>`;
+            }
         }
 
         // دالة تبديل الدور

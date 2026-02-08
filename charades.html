@@ -281,12 +281,28 @@
             <div class="card">
                 <div id="timer-display" class="timer-big">70</div>
 
+                <!-- Timer Controls -->
+                <div style="display:flex; justify-content:center; gap:10px; margin-bottom:15px;">
+                    <button class="btn btn-secondary" onclick="toggleTimer()" id="btn-pause"
+                        style="width:auto; padding:10px 20px; font-size:1rem;">⏸️ إيقاف مؤقت</button>
+                    <button class="btn btn-secondary" onclick="adjustTimer(10)"
+                        style="width:auto; padding:10px 20px; font-size:1rem;">+10 ث</button>
+                    <button class="btn btn-secondary" onclick="adjustTimer(-10)"
+                        style="width:auto; padding:10px 20px; font-size:1rem;">-10 ث</button>
+                </div>
+
                 <div class="player-img-container">
                     <img id="p-img" src="" class="player-img"
                         onerror="this.src='https://via.placeholder.com/200?text=No+Image'">
                 </div>
 
                 <h2 id="p-name" style="font-size:2rem; margin-bottom:5px;">...</h2>
+
+                <!-- Search Button -->
+                <a id="search-btn" href="#" target="_blank" class="btn btn-secondary"
+                    style="margin:10px 0; background:rgba(245, 158, 11, 0.1); border-color:var(--accent-color); color:var(--accent-color);">
+                    🔍 بحث عن اللاعب في جوجل
+                </a>
 
                 <div style="display:flex; gap:10px; margin-top:20px;">
                     <button class="btn btn-green" onclick="handleSuccess()">✅ عرفوه!</button>
@@ -415,7 +431,8 @@
             data: [],
             currentCard: null,
             timer: null,
-            timeLeft: 0
+            timeLeft: 0,
+            isPaused: false
         };
 
         window.showScreen = (id) => {
@@ -480,25 +497,56 @@
             document.getElementById('p-name').innerText = game.currentCard.name;
             document.getElementById('p-img').src = game.currentCard.img;
 
+            // Setup Search Link
+            document.getElementById('search-btn').href = `https://www.google.com/search?q=${encodeURIComponent(game.currentCard.name + " لاعب كرة قدم")}`;
+
             // Timer
             game.timeLeft = 70;
+            game.isPaused = false;
+            updatePauseButton();
             updateTimerDisplay();
             showScreen('screen-acting');
 
             if (game.timer) clearInterval(game.timer);
             game.timer = setInterval(() => {
-                game.timeLeft--;
-                updateTimerDisplay();
-                if (game.timeLeft <= 10) playSound('tick');
+                if (!game.isPaused) {
+                    game.timeLeft--;
+                    updateTimerDisplay();
+                    if (game.timeLeft <= 10) playSound('tick');
 
-                if (game.timeLeft <= 0) {
-                    clearInterval(game.timer);
-                    playSound('end');
-                    // Time Up -> Go to Steal Phase
-                    startStealPhase();
+                    if (game.timeLeft <= 0) {
+                        clearInterval(game.timer);
+                        playSound('end');
+                        // Time Up -> Go to Steal Phase
+                        startStealPhase();
+                    }
                 }
             }, 1000);
         };
+
+        window.toggleTimer = () => {
+            game.isPaused = !game.isPaused;
+            updatePauseButton();
+        };
+
+        window.adjustTimer = (amount) => {
+            game.timeLeft += amount;
+            if (game.timeLeft < 0) game.timeLeft = 0;
+            updateTimerDisplay();
+        };
+
+        function updatePauseButton() {
+            const btn = document.getElementById('btn-pause');
+            if (game.isPaused) {
+                btn.innerText = "▶️ استئناف";
+                btn.classList.add('btn-violet');
+                btn.classList.remove('btn-secondary');
+            } else {
+                btn.innerText = "⏸️ إيقاف مؤقت";
+                btn.classList.add('btn-secondary');
+                btn.classList.remove('btn-violet');
+            }
+        }
 
         function updateTimerDisplay() {
             const el = document.getElementById('timer-display');

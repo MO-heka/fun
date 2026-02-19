@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
     <title>ألعاب 4fun 🎮 - الرئيسية</title>
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
@@ -217,6 +218,69 @@
             margin-top: 40px;
             font-size: 0.8rem;
             color: #64748b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .contact-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 30px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1.5px solid rgba(139, 92, 246, 0.4);
+            color: #c4b5fd;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+
+        .contact-btn:hover {
+            border-color: transparent;
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .contact-btn:hover::before {
+            opacity: 1;
+        }
+
+        .contact-btn:active {
+            transform: scale(0.97);
+        }
+
+        .contact-btn .btn-icon {
+            font-size: 1.1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .contact-btn:hover .btn-icon {
+            transform: scale(1.2);
+        }
+
+        .contact-hint {
+            font-size: 0.7rem;
+            color: #475569;
+            margin-top: -8px;
         }
 
         @keyframes fadeIn {
@@ -306,23 +370,6 @@
                 <span class="arrow">⬅</span>
             </a>
 
-
-            
-  <a href="films.html" class="game-card">
-                <div class="game-info">
-                    <span class="game-icon">🎬</span>
-                    <div class="game-text">
-                        <span class="game-title">أفلام مصرية</span>
-                        <span class="game-desc">مثل الفيلم وعرف صحابك</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
-
-
-
-
-            
             <!-- Football Challenges (Moved Here) -->
             <a href="footindex.html" class="game-card"
                 style="border-color: #fbbf24; background: linear-gradient(145deg, #1e293b, #422006);">
@@ -336,7 +383,16 @@
                 <span class="arrow">⬅</span>
             </a>
 
-          
+            <a href="films.html" class="game-card">
+                <div class="game-info">
+                    <span class="game-icon">🎬</span>
+                    <div class="game-text">
+                        <span class="game-title">أفلام مصرية</span>
+                        <span class="game-desc">مثل الفيلم وعرف صحابك</span>
+                    </div>
+                </div>
+                <span class="arrow">⬅</span>
+            </a>
 
             <!-- Ludo (1Moved to Bottom) -->
 
@@ -344,7 +400,11 @@
 
 
             <footer>
-                Developed by Heka 👨🏻‍💻 <br>
+                Developed by Heka 👨🏻‍💻
+                <a href="contact.html" class="contact-btn">
+                    <span class="btn-icon">📬</span>
+                    Contact Us
+                </a>
 
             </footer>
         </div>
@@ -402,4 +462,3 @@
 
 
 </html>
-

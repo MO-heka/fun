@@ -208,6 +208,11 @@
             cursor: pointer;
             border: 2px solid transparent;
             position: relative;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .vote-card:hover {
+            background: #3e4f66;
         }
 
         .vote-card.selected {
@@ -243,15 +248,8 @@
         }
 
         @keyframes popIn {
-            from {
-                transform: scale(0.8);
-                opacity: 0;
-            }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
+            from { transform: scale(0.8); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
         }
 
         /* المؤقت */
@@ -262,7 +260,6 @@
             margin: 15px 0;
             border: 1px solid #334155;
             text-align: center;
-            /* توسيط المحتوى */
         }
 
         .timer-display {
@@ -284,15 +281,109 @@
         }
 
         @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-10px); }
+        }
 
-            0%,
-            100% {
-                transform: translateY(0);
-            }
+        /* ---- حقول الأسماء ---- */
+        .name-input-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 6px 0;
+        }
+        .name-input-row label {
+            min-width: 80px;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+        .name-input-row input {
+            margin: 0;
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+        }
 
-            50% {
-                transform: translateY(-10px);
-            }
+        /* ---- بطاقة الدور (كشف الأدوار) ---- */
+        .role-reveal-card {
+            background: #0f172a;
+            border-radius: 18px;
+            padding: 20px;
+            margin-top: 15px;
+            border: 2px solid #334155;
+            text-align: center;
+        }
+
+        /* ---- بطاقة السؤال ---- */
+        .question-pair {
+            background: #0f172a;
+            border: 2px solid #3b82f6;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .question-pair .asker   { color: #60a5fa; font-size: 20px; font-weight: 700; }
+        .question-pair .arrow   { font-size: 28px; margin: 5px 0; }
+        .question-pair .askee   { color: #34d399;  font-size: 20px; font-weight: 700; }
+
+        /* ---- لوحة النقاط ---- */
+        .score-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .score-table th {
+            background: #334155;
+            color: #fbbf24;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .score-table td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #334155;
+            font-size: 17px;
+        }
+        .score-table tr:last-child td { border-bottom: none; }
+        .score-table .top-score td   { color: #fbbf24; font-size: 19px; font-weight: 900; }
+
+        /* ---- خيارات تخمين الجاسوس ---- */
+        .guess-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .guess-btn {
+            background: #334155;
+            border: 2px solid transparent;
+            border-radius: 14px;
+            padding: 15px 10px;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, transform 0.1s;
+        }
+        .guess-btn:hover  { background: #3e4f66; }
+        .guess-btn:active { transform: scale(0.95); }
+        .guess-btn.correct { background: #064e3b; border-color: #34d399; }
+        .guess-btn.wrong   { background: #450a0a; border-color: #f43f5e; }
+
+        /* phase indicator */
+        .phase-badge {
+            display: inline-block;
+            background: #334155;
+            color: #fbbf24;
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            letter-spacing: 1px;
         }
     </style>
 </head>
@@ -401,10 +492,18 @@
             </div>
         </div>
 
+        <!-- إعدادات اللعبة المحلية -->
         <div id="local-setup" class="screen card">
-            <h2>إعدادات المحلي</h2>
-            <input type="number" id="local-players-count" value="4" min="3">
+            <h2>⚙️ إعدادات اللعبة</h2>
+
+            <label style="color:var(--text-muted); font-size:15px;">👥 عدد اللاعبين</label>
+            <input type="number" id="local-players-count" value="4" min="3" max="12"
+                   oninput="window.updateNameFields()">
+
+            <label style="color:var(--text-muted); font-size:15px;">🕵️ عدد الجواسيس</label>
             <input type="number" id="local-spies-count" value="1" min="1">
+
+            <label style="color:var(--text-muted); font-size:15px;">🔤 تصنيف الكلمات</label>
             <select id="local-category">
                 <option value="random">🎲 كوكتيل</option>
                 <option value="animals">🦁 حيوانات</option>
@@ -413,19 +512,107 @@
                 <option value="tools">🔧 أدوات</option>
                 <option value="jobs">💼 وظائف</option>
             </select>
-            <button class="btn btn-blue" onclick="window.startLocalGame()">ابدأ</button>
+
+            <button class="btn btn-blue" onclick="window.goToNameEntry()" style="margin-top:16px;">التالي ←</button>
             <button class="btn btn-secondary" onclick="window.showScreen('main-menu')">رجوع</button>
         </div>
 
+        <!-- إدخال الأسماء -->
+        <div id="local-names" class="screen card">
+            <h2>✏️ أدخلوا أسماءكم</h2>
+            <div id="names-fields-container"></div>
+            <button class="btn btn-blue" onclick="window.startLocalGame()" style="margin-top:12px;">🚀 ابدأ اللعبة</button>
+            <button class="btn btn-secondary" onclick="window.showScreen('local-setup')">رجوع</button>
+        </div>
+
+        <!-- كشف الأدوار -->
         <div id="local-reveal" class="screen card" style="text-align:center;">
+            <span class="phase-badge">1️⃣ كشف الأدوار</span>
             <h2 id="player-turn-text">اللاعب 1</h2>
-            <p>اضغط للكشف</p>
-            <button class="btn btn-blue" onclick="window.revealRole()" id="reveal-btn">👁️ اكشف</button>
-            <div id="role-content" style="display:none;">
+            <p style="color:var(--text-muted);">اضغط للكشف عن دورك</p>
+            <button class="btn btn-reveal" onclick="window.revealRole()" id="reveal-btn">👁️ اكشف دوري</button>
+            <div id="role-content" class="role-reveal-card" style="display:none;">
                 <span id="local-emoji" class="big-emoji"></span>
                 <p id="role-text" style="font-size:24px; font-weight:bold;"></p>
                 <p id="secret-word-display" style="font-size:20px; color:#fbbf24;"></p>
-                <button class="btn btn-blue" onclick="window.nextPlayer()">التالي</button>
+                <button class="btn btn-blue" onclick="window.nextPlayer()">التالي ←</button>
+            </div>
+        </div>
+
+        <!-- دور الأسئلة -->
+        <div id="local-questions" class="screen card">
+            <span class="phase-badge">2️⃣ دور الأسئلة</span>
+            <h2 style="margin-bottom:6px;">🎤 دور الأسئلة</h2>
+            <p style="color:var(--text-muted); font-size:14px; margin-bottom:16px;">
+                كل لاعب يسأل لاعب عشوائي سؤالاً واحداً
+            </p>
+            <div id="questions-pairs-container"></div>
+            <button class="btn btn-create" onclick="window.goToVoting()" style="margin-top:8px;">التالي: التصويت →</button>
+        </div>
+
+        <!-- دور التصويت -->
+        <div id="local-voting" class="screen card" style="text-align:center;">
+            <span class="phase-badge">3️⃣ دور التصويت</span>
+            <h2 id="voting-player-name">اللاعب 1</h2>
+            <p style="color:var(--text-muted); font-size:14px;">اختر من تظنه الجاسوس 🕵️</p>
+            <div id="local-voting-grid" class="voting-grid"></div>
+            <button class="btn btn-blue" id="vote-confirm-btn"
+                    onclick="window.confirmVote()" style="margin-top:16px; display:none;">تأكيد التصويت</button>
+        </div>
+
+        <!-- كشف الجاسوس قبل التخمين -->
+        <div id="local-spy-reveal" class="screen card" style="text-align:center;">
+            <span class="phase-badge">4️⃣ الجاسوس يخمن</span>
+            <div style="font-size:70px; margin:10px 0; animation:float 2s infinite ease-in-out;">🕵️</div>
+            <p style="color:var(--text-muted); font-size:15px; margin-bottom:4px;">الجاسوس هو...</p>
+            <h2 id="spy-reveal-name" style="font-size:36px; color:#f43f5e;
+                text-shadow:0 0 20px rgba(244,63,94,0.5); margin:10px 0;"></h2>
+            <p style="color:var(--text-muted); font-size:14px; margin-top:8px;">
+                الآن عليه أن يخمن الكلمة السرية!
+            </p>
+            <div id="spy-reveal-countdown"
+                 style="font-size:48px; font-weight:900; color:#fbbf24;
+                        margin:15px 0; min-height:60px;"></div>
+            <button class="btn btn-reveal" onclick="window.proceedToSpyGuess()" id="spy-reveal-go-btn">
+                🎯 ابدأ التخمين
+            </button>
+        </div>
+
+        <!-- تخمين الجاسوس -->
+        <div id="local-spy-guess" class="screen card" style="text-align:center;">
+            <span class="phase-badge">4️⃣ الجاسوس يخمن</span>
+            <h2>🕵️ هل تعرف الكلمة؟</h2>
+            <p style="color:var(--text-muted); font-size:14px;">
+                اختر الكلمة الصح من بين الاختيارات دي
+            </p>
+            <div id="spy-guess-grid" class="guess-grid"></div>
+            <div id="spy-guess-result" style="display:none; margin-top:16px;"></div>
+        </div>
+
+        <!-- لوحة النقاط -->
+        <div id="local-scoreboard" class="screen card">
+            <h2 style="text-align:center;">🏆 لوحة النقاط</h2>
+            <div id="scoreboard-reveal" style="background:#0f172a; border:2px solid #fbbf24;
+                border-radius:14px; padding:14px; margin-bottom:16px; text-align:center;">
+                <p id="scoreboard-spy-reveal" style="font-size:17px; color:#f43f5e; font-weight:bold; margin:4px 0;"></p>
+                <p id="scoreboard-word-reveal" style="font-size:17px; color:#fbbf24; font-weight:bold; margin:4px 0;"></p>
+            </div>
+            <table class="score-table">
+                <thead>
+                    <tr>
+                        <th>اللاعب</th>
+                        <th>الجولة</th>
+                        <th>المجموع</th>
+                    </tr>
+                </thead>
+                <tbody id="scoreboard-body"></tbody>
+            </table>
+
+            <!-- أزرار الجولة الجديدة -->
+            <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+                <button class="btn btn-restart" onclick="window.newRound()">🔄 جولة جديدة (نفس النقاط)</button>
+                <button class="btn btn-danger"  onclick="window.resetAllScores()">🗑️ إعادة النقاط من الصفر</button>
+                <button class="btn btn-secondary" onclick="window.showScreen('main-menu')">القائمة الرئيسية</button>
             </div>
         </div>
 
@@ -532,31 +719,37 @@
             }
         };
 
-        // متغيرات للعب المحلي
-        let localPlayers = [];
+        // ============ متغيرات اللعبة المحلية ============
+        let localPlayers = [];          // [{name, role, word, emoji, vote, score, scoreReason}]
         let currentPlayerIndex = 0;
+        let localQuestionsOrder = [];   // [{askerIdx, askeeIdx}]
+        let localVotingIndex = 0;       // فهرس اللاعب الذي يصوت الآن
+        let localVotingChoices = {};    // {playerIdx: targetIdx}
+        let localSecretWord = null;     // {t, e}
+        let localSpyIndices = [];
+        let localCurrentVoteChoice = null; // الاختيار المؤقت للتصويت
+
+        // النقاط المتراكمة عبر الجولات: { "اسم اللاعب": مجموع النقاط }
+        let persistentScores = {};
 
         // --- دوال مساعدة ---
 
-        // دالة لعرض شاشة محددة وإخفاء الباقي
         window.showScreen = (id) => {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             setTimeout(() => document.getElementById(id).classList.add('active'), 100);
         };
 
-        // دالة لاختيار كلمة عشوائية من التصنيف
         function getRandomWord(cat) {
             let keys = cat === 'random' ? Object.keys(wordsData) : [cat];
             let list = wordsData[keys[Math.floor(Math.random() * keys.length)]];
             return list[Math.floor(Math.random() * list.length)];
         }
 
-        // دالة حفظ اسم اللاعب
         window.submitName = () => {
             const name = document.getElementById('player-name').value.trim();
             if (!name) return alert("اكتب اسمك الأول على الأقل");
             myName = name;
-            localStorage.setItem('heka_global_player_name', name); // Persist
+            localStorage.setItem('heka_global_player_name', name);
             document.getElementById('display-player-name').innerText = name;
             window.showScreen('online-menu');
         };
@@ -564,29 +757,115 @@
         // ============================================
         // الجزء الأول: اللعب المحلي (جهاز واحد)
         // ============================================
-        window.startLocalGame = () => {
-            const count = parseInt(document.getElementById('local-players-count').value);
-            const spies = parseInt(document.getElementById('local-spies-count').value);
-            const cat = document.getElementById('local-category').value;
 
-            if (spies >= count) return alert("عدد الجواسيس لازم يكون أقل!");
-
-            const w = getRandomWord(cat);
-            // إنشاء مصفوفة اللاعبين
-            let roles = Array(count).fill({ role: "citizen", w: w.t, e: w.e });
-            // تعيين الجواسيس
-            for (let i = 0; i < spies; i++) roles[i] = { role: "spy", w: "؟؟؟", e: "🕵️" };
-            // خلط الأدوار
-            roles.sort(() => Math.random() - 0.5);
-
-            localPlayers = roles;
-            currentPlayerIndex = 0;
-            window.showScreen('local-reveal');
-            updateLocalUI();
+        // تحديث حقول الأسماء عند تغيير عدد اللاعبين
+        window.updateNameFields = () => {
+            const count = parseInt(document.getElementById('local-players-count').value) || 4;
+            const container = document.getElementById('names-fields-container');
+            if (!container) return;
+            // احتفظ بالقيم الموجودة
+            const existing = Array.from(container.querySelectorAll('input')).map(i => i.value);
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const row = document.createElement('div');
+                row.className = 'name-input-row';
+                row.innerHTML = `
+                    <label>اللاعب ${i + 1}</label>
+                    <input type="text" id="name-field-${i}"
+                           placeholder="اللاعب ${i + 1}"
+                           value="${existing[i] || ''}"
+                           maxlength="12">
+                `;
+                container.appendChild(row);
+            }
         };
 
-        function updateLocalUI() {
-            document.getElementById('player-turn-text').innerText = `اللاعب ${currentPlayerIndex + 1}`;
+        // الضغط على التالي في الإعدادات → صفحة الأسماء
+        window.goToNameEntry = () => {
+            window.updateNameFields();
+            window.showScreen('local-names');
+        };
+
+        // بدء اللعبة بعد إدخال الأسماء
+        window.startLocalGame = () => {
+            const count = parseInt(document.getElementById('local-players-count').value);
+            const spiesCount = parseInt(document.getElementById('local-spies-count').value);
+            const cat = document.getElementById('local-category').value;
+
+            if (spiesCount >= count) return alert("عدد الجواسيس لازم يكون أقل من عدد اللاعبين!");
+
+            // جمع الأسماء
+            const names = [];
+            for (let i = 0; i < count; i++) {
+                const inp = document.getElementById(`name-field-${i}`);
+                names.push(inp && inp.value.trim() ? inp.value.trim() : `اللاعب ${i + 1}`);
+            }
+
+            // اختيار الكلمة السرية
+            const w = getRandomWord(cat);
+            localSecretWord = w;
+
+            // بناء مصفوفة الأدوار
+            let roleList = Array(count).fill('citizen');
+            for (let i = 0; i < spiesCount; i++) roleList[i] = 'spy';
+            roleList.sort(() => Math.random() - 0.5);
+
+            // اللاعبون الجدد يبدأون من صفر، المتواجدون يحتفظون بنقاطهم
+            localPlayers = names.map((name, idx) => ({
+                name,
+                role: roleList[idx],
+                word: roleList[idx] === 'spy' ? '؟؟؟' : w.t,
+                emoji: roleList[idx] === 'spy' ? '🕵️' : w.e,
+                vote: null,
+                score: 0,         // نقاط الجولة الحالية فقط
+                scoreReason: []
+            }));
+
+            // لو لاعب جديد مش موجود في persistentScores، ابدأه من صفر
+            names.forEach(name => {
+                if (persistentScores[name] === undefined) persistentScores[name] = 0;
+            });
+
+            localSpyIndices = localPlayers
+                .map((p, i) => p.role === 'spy' ? i : -1)
+                .filter(i => i !== -1);
+            localVotingChoices = {};
+            localVotingIndex = 0;
+            localCurrentVoteChoice = null;
+
+            // بناء ترتيب الأسئلة (كل يسأل مرة وكل يُسأل مرة)
+            localQuestionsOrder = buildQuestionsOrder(count);
+
+            currentPlayerIndex = 0;
+            window.showScreen('local-reveal');
+            updateLocalRevealUI();
+        };
+
+        // بناء ترتيب الأسئلة: كل يسأل مرة وكل يُسأل مرة
+        function buildQuestionsOrder(n) {
+            // استخدام خوارزمية random derangement
+            let askers = [...Array(n).keys()];
+            let askees = [...Array(n).keys()];
+            // خلط askees مع ضمان askees[i] != askers[i]
+            let attempts = 0;
+            do {
+                askees.sort(() => Math.random() - 0.5);
+                attempts++;
+            } while (askees.some((a, i) => a === i) && attempts < 100);
+            // اذا فشل بعد 100 محاولة، نعمل تبديل يدوي
+            for (let i = 0; i < n; i++) {
+                if (askees[i] === i) {
+                    const j = (i + 1) % n;
+                    [askees[i], askees[j]] = [askees[j], askees[i]];
+                }
+            }
+            return askers.map((a, i) => ({ askerIdx: a, askeeIdx: askees[i] }));
+        }
+
+        // ---- شاشة كشف الأدوار ----
+        function updateLocalRevealUI() {
+            const p = localPlayers[currentPlayerIndex];
+            document.getElementById('player-turn-text').innerText = `🎭 دور ${p.name}`;
             document.getElementById('reveal-btn').style.display = 'block';
             document.getElementById('role-content').style.display = 'none';
         }
@@ -594,20 +873,269 @@
         window.revealRole = () => {
             const p = localPlayers[currentPlayerIndex];
             const isSpy = p.role === "spy";
-            // تحديث الواجهة حسب الدور
-            document.getElementById('local-emoji').innerText = p.e;
-            document.getElementById('role-text').innerText = isSpy ? "أنت الجاسوس!" : "أنت لمّاح 😎";
+            document.getElementById('local-emoji').innerText = p.emoji;
+            document.getElementById('role-text').innerText = isSpy ? "🕵️ أنت الجاسوس!" : "😎 أنت لمّاح";
             document.getElementById('role-text').style.color = isSpy ? "#f43f5e" : "#34d399";
-            document.getElementById('secret-word-display').innerText = isSpy ? "مهمتك: اعرف الكلمة" : `الكلمة: ${p.w}`;
-
+            document.getElementById('secret-word-display').innerText = isSpy
+                ? "مهمتك: اعرف الكلمة الخفية من الأسئلة"
+                : `🔑 الكلمة السرية: ${p.word}`;
             document.getElementById('reveal-btn').style.display = 'none';
             document.getElementById('role-content').style.display = 'block';
         };
 
         window.nextPlayer = () => {
             currentPlayerIndex++;
-            if (currentPlayerIndex < localPlayers.length) updateLocalUI();
-            else { alert("ابدأوا اللعب!"); window.showScreen('main-menu'); }
+            if (currentPlayerIndex < localPlayers.length) {
+                updateLocalRevealUI();
+            } else {
+                window.goToQuestionsPhase();
+            }
+        };
+
+        // ---- شاشة الأسئلة ----
+        window.goToQuestionsPhase = () => {
+            const container = document.getElementById('questions-pairs-container');
+            container.innerHTML = '';
+            localQuestionsOrder.forEach(({ askerIdx, askeeIdx }, i) => {
+                const askerName = localPlayers[askerIdx].name;
+                const askeeName = localPlayers[askeeIdx].name;
+                const card = document.createElement('div');
+                card.className = 'question-pair';
+                card.innerHTML = `
+                    <div style="font-size:13px; color:var(--text-muted); margin-bottom:4px;">سؤال ${i + 1}</div>
+                    <div class="asker">🗣 ${askerName}</div>
+                    <div class="arrow">⬇️</div>
+                    <div class="askee">👂 ${askeeName}</div>
+                `;
+                container.appendChild(card);
+            });
+            window.showScreen('local-questions');
+        };
+
+        // ---- شاشة التصويت ----
+        window.goToVoting = () => {
+            localVotingIndex = 0;
+            localCurrentVoteChoice = null;
+            window.showVotingForPlayer(localVotingIndex);
+            window.showScreen('local-voting');
+        };
+
+        window.showVotingForPlayer = (idx) => {
+            const voter = localPlayers[idx];
+            document.getElementById('voting-player-name').innerText = `🗳️ ${voter.name} يصوت`;
+            localCurrentVoteChoice = null;
+            document.getElementById('vote-confirm-btn').style.display = 'none';
+
+            const grid = document.getElementById('local-voting-grid');
+            grid.innerHTML = '';
+            localPlayers.forEach((p, i) => {
+                if (i === idx) return; // لا يصوت لنفسه
+                const card = document.createElement('div');
+                card.className = 'vote-card';
+                card.id = `vote-option-${i}`;
+                card.innerHTML = `<div style="font-weight:bold; color:white;">${p.name}</div>`;
+                card.onclick = () => {
+                    // إزالة تحديد سابق
+                    document.querySelectorAll('.vote-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    localCurrentVoteChoice = i;
+                    document.getElementById('vote-confirm-btn').style.display = 'block';
+                };
+                grid.appendChild(card);
+            });
+        };
+
+        window.confirmVote = () => {
+            if (localCurrentVoteChoice === null) return;
+            localVotingChoices[localVotingIndex] = localCurrentVoteChoice;
+            localPlayers[localVotingIndex].vote = localCurrentVoteChoice;
+            localVotingIndex++;
+            if (localVotingIndex < localPlayers.length) {
+                localCurrentVoteChoice = null;
+                window.showVotingForPlayer(localVotingIndex);
+            } else {
+                window.goToSpyGuess();
+            }
+        };
+
+        // ---- شاشة كشف الجاسوس (قبل التخمين) ----
+        window.goToSpyGuess = () => {
+            // اعرض أسماء الجواسيس
+            const spyNames = localSpyIndices.map(i => localPlayers[i].name).join(' و ');
+            document.getElementById('spy-reveal-name').innerText = spyNames;
+
+            // عداد تنازلي 3 ثواني
+            let count = 3;
+            const cdEl = document.getElementById('spy-reveal-countdown');
+            const goBtn = document.getElementById('spy-reveal-go-btn');
+            cdEl.innerText = count;
+            goBtn.style.display = 'none';
+
+            window.showScreen('local-spy-reveal');
+
+            const cd = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    cdEl.innerText = count;
+                } else {
+                    clearInterval(cd);
+                    cdEl.innerText = '';
+                    goBtn.style.display = 'block';
+                }
+            }, 1000);
+        };
+
+        window.proceedToSpyGuess = () => { _doSpyGuess(); };
+
+        // ---- شاشة تخمين الجاسوس ----
+        function _doSpyGuess() {
+            // جمع كلمات عشوائية (6 كلمات) من كل الفئات + الكلمة الصحيحة
+            const allWords = Object.values(wordsData).flat();
+            // فلتر: لا تكرر الكلمة الصحيحة
+            const pool = allWords.filter(w => w.t !== localSecretWord.t);
+            // اختر 5 عشوائيين
+            const shuffled = pool.sort(() => Math.random() - 0.5).slice(0, 5);
+            // أضف الكلمة الصح
+            const options = [...shuffled, localSecretWord].sort(() => Math.random() - 0.5);
+
+            const grid = document.getElementById('spy-guess-grid');
+            grid.innerHTML = '';
+            document.getElementById('spy-guess-result').style.display = 'none';
+
+            const spyNames = localSpyIndices.map(i => localPlayers[i].name).join(' و ');
+            document.querySelector('#local-spy-guess h2').innerText = `🕵️ ${spyNames} - هل تعرف الكلمة؟`;
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'guess-btn';
+                btn.innerText = `${opt.e} ${opt.t}`;
+                btn.onclick = () => window.spyPickedWord(opt.t, btn, grid);
+                grid.appendChild(btn);
+            });
+
+            window.showScreen('local-spy-guess');
+        }
+
+        window.spyPickedWord = (pickedWord, btn, grid) => {
+            // تعطيل كل الأزرار
+            Array.from(grid.querySelectorAll('.guess-btn')).forEach(b => b.onclick = null);
+            const correct = pickedWord === localSecretWord.t;
+            if (correct) {
+                btn.classList.add('correct');
+                // منح الجاسوس نقاط
+                localSpyIndices.forEach(i => {
+                    localPlayers[i].score += 100;
+                    localPlayers[i].scoreReason.push('عرف الكلمة +100 🎯');
+                });
+            } else {
+                btn.classList.add('wrong');
+                // أظهر الكلمة الصح
+                Array.from(grid.querySelectorAll('.guess-btn')).forEach(b => {
+                    if (b.innerText.includes(localSecretWord.t)) b.classList.add('correct');
+                });
+            }
+
+            // حساب نقاط التصويت
+            localPlayers.forEach((voter, voterIdx) => {
+                if (voter.role === 'spy') return;
+                const targetIdx = voter.vote;
+                if (targetIdx !== null && localSpyIndices.includes(targetIdx)) {
+                    voter.score += 100;
+                    voter.scoreReason.push('صوّت صح +100 ✅');
+                }
+            });
+
+            const resultDiv = document.getElementById('spy-guess-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = correct
+                ? `<p style="color:#34d399; font-size:20px; font-weight:bold;">🎉 الجاسوس عرف الكلمة!</p>`
+                : `<p style="color:#f43f5e; font-size:20px; font-weight:bold;">❌ خطأ! الكلمة كانت: ${localSecretWord.e} ${localSecretWord.t}</p>`;
+            resultDiv.innerHTML += `<button class="btn btn-restart" onclick="window.showScoreboard()" style="margin-top:12px;">🏆 اعرض النقاط</button>`;
+        };
+
+        // ---- لوحة النقاط ----
+        window.showScoreboard = () => {
+            const spyNames = localSpyIndices.map(i => localPlayers[i].name).join(' و ');
+            document.getElementById('scoreboard-spy-reveal').innerText = `🕵️ الجاسوس كان: ${spyNames}`;
+            document.getElementById('scoreboard-word-reveal').innerText = `🔑 الكلمة السرية: ${localSecretWord.e} ${localSecretWord.t}`;
+
+            // أضف نقاط الجولة الحالية إلى النقاط المتراكمة
+            localPlayers.forEach(p => {
+                if (persistentScores[p.name] === undefined) persistentScores[p.name] = 0;
+                persistentScores[p.name] += p.score;
+            });
+
+            // اجمع كل اللاعبين من persistentScores (قد يشمل لاعبين غابوا)
+            // لكن نعرض فقط اللاعبين في الجولة الحالية + النقاط المتراكمة
+            // ثم نضيف اللاعبين اللي انتهت جولتهم من persistentScores
+            const roundNames = new Set(localPlayers.map(p => p.name));
+
+            // بناء قائمة موحدة للعرض
+            const displayList = [];
+
+            // اللاعبون الحاليون
+            localPlayers.forEach(p => {
+                displayList.push({
+                    name: p.name,
+                    role: p.role,
+                    roundScore: p.score,
+                    totalScore: persistentScores[p.name] || 0,
+                    scoreReason: p.scoreReason
+                });
+            });
+
+            // اللاعبون السابقون (اللي نقصوا) - نضيفهم بدون جولة حالية
+            Object.keys(persistentScores).forEach(name => {
+                if (!roundNames.has(name)) {
+                    displayList.push({
+                        name,
+                        role: 'old',
+                        roundScore: 0,
+                        totalScore: persistentScores[name],
+                        scoreReason: ['لم يلعب هذه الجولة']
+                    });
+                }
+            });
+
+            // ترتيب بالمجموع الكلي
+            displayList.sort((a, b) => b.totalScore - a.totalScore);
+            const maxTotal = displayList[0]?.totalScore || 0;
+
+            const tbody = document.getElementById('scoreboard-body');
+            tbody.innerHTML = '';
+            displayList.forEach((p, i) => {
+                const tr = document.createElement('tr');
+                if (p.totalScore === maxTotal && maxTotal > 0) tr.className = 'top-score';
+                const medal = i === 0 && maxTotal > 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+                const isOld = p.role === 'old';
+                tr.innerHTML = `
+                    <td style="${isOld ? 'opacity:0.5;' : ''}">
+                        ${medal} ${p.name} ${p.role === 'spy' ? '🕵️' : ''}
+                        ${isOld ? '<span style="font-size:11px; color:var(--text-muted);"> (غائب)</span>' : ''}
+                    </td>
+                    <td style="color:${p.roundScore > 0 ? '#34d399' : 'var(--text-muted)'}; ${isOld ? 'opacity:0.5;' : ''}">
+                        ${p.roundScore > 0 ? '+' + p.roundScore : '-'}
+                    </td>
+                    <td style="font-weight:900; font-size:18px;">${p.totalScore}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            window.showScreen('local-scoreboard');
+        };
+
+        // ---- جولة جديدة مع الحفاظ على النقاط ----
+        window.newRound = () => {
+            // لا نصفر persistentScores - بس نرجع للإعدادات
+            // الأسماء الموجودة تبقى في حقول الإدخال
+            window.showScreen('local-setup');
+        };
+
+        // ---- إعادة النقاط من الصفر ----
+        window.resetAllScores = () => {
+            if (!confirm('هتمسح كل النقاط وتبدأ من الصفر؟')) return;
+            persistentScores = {};
+            window.showScreen('local-setup');
         };
 
         // ============================================

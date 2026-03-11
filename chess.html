@@ -19,14 +19,21 @@
             color-scheme: dark;
             --bg-color: #0f172a;
             --glass-bg: rgba(30, 41, 59, 0.95);
-            --board-white: #a3a3a4;
-            --board-black: #475569;
+            --board-light: #f0d9b5;
+            --board-dark:  #b58863;
             --accent: #3b82f6;
-            --highlight: rgba(255, 255, 0, 0.5);
+            --highlight: rgba(255, 255, 0, 0.45);
             --hint: rgba(16, 185, 129, 0.6);
             --gold: #fbbf24;
             --danger: #ef4444;
         }
+        /* ====== ثيمات الرقعة ====== */
+        body.theme-classic  { --board-light:#f0d9b5; --board-dark:#b58863; }
+        body.theme-ocean    { --board-light:#d6e8f5; --board-dark:#4a90c4; }
+        body.theme-forest   { --board-light:#d9e8c5; --board-dark:#5a8a4a; }
+        body.theme-neon     { --board-light:#1a1a2e; --board-dark:#16213e;
+                              --accent:#a855f7; --gold:#a855f7; }
+        body.theme-marble   { --board-light:#e8e0d4; --board-dark:#7a6a5a; }
 
         body {
             background-color: var(--bg-color) !important;
@@ -147,12 +154,12 @@
         }
 
         .white-sq {
-            background-color: var(--board-white);
+            background-color: var(--board-light);
             color: black;
         }
 
         .black-sq {
-            background-color: var(--board-black);
+            background-color: var(--board-dark);
             color: white;
         }
 
@@ -296,13 +303,137 @@
 
         .white-sq .coord-rank,
         .white-sq .coord-file {
-            color: var(--board-black);
+            color: var(--board-dark);
         }
 
         .black-sq .coord-rank,
         .black-sq .coord-file {
-            color: var(--board-white);
+            color: var(--board-light);
         }
+
+        /* ====== لوحة الثيمات ====== */
+        .theme-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .theme-btn {
+            width: 48px; height: 48px;
+            border-radius: 10px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            overflow: hidden;
+            transition: border-color 0.2s, transform 0.15s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .theme-btn:hover { transform: scale(1.15); }
+        .theme-btn.active { border-color: #fbbf24; box-shadow: 0 0 12px rgba(251,191,36,0.5); }
+        .theme-btn span { display:block; width:100%; height:100%; }
+
+        /* اختيار القطع بالصور */
+        .piece-picker {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 8px 0 14px;
+            flex-wrap: wrap;
+        }
+        .piece-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 3px solid transparent;
+            background: rgba(255,255,255,0.06);
+            cursor: pointer;
+            transition: border-color 0.2s, transform 0.15s, background 0.2s;
+        }
+        .piece-btn:hover { transform: scale(1.08); background: rgba(255,255,255,0.12); }
+        .piece-btn.active { border-color: #fbbf24; background: rgba(251,191,36,0.1); }
+        .piece-btn .piece-preview {
+            display: flex;
+            gap: 2px;
+        }
+        .piece-btn img {
+            width: 30px;
+            height: 30px;
+            filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+        }
+        .piece-btn .piece-label {
+            font-size: 11px;
+            color: #aaa;
+            font-family: 'Cairo';
+        }
+
+        /* ====== نافذة الثيمات داخل اللعبة ====== */
+        #theme-panel-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 200;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        #theme-panel-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+        #theme-panel {
+            background: #1e293b;
+            border-radius: 20px 20px 0 0;
+            padding: 20px 20px 30px;
+            width: 100%;
+            max-width: 480px;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(.32,1.1,.7,1);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        #theme-panel-overlay.open #theme-panel {
+            transform: translateY(0);
+        }
+        #theme-panel h4 {
+            color: #fbbf24;
+            margin: 0 0 10px;
+            text-align: center;
+            font-size: 16px;
+        }
+        #theme-panel .panel-section { margin-bottom: 14px; }
+        #theme-panel .panel-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        /* زر الثيمات داخل اللعبة */
+        #in-game-theme-btn {
+            position: fixed;
+            bottom: 78px;
+            left: 16px;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: rgba(30,41,59,0.9);
+            border: 2px solid rgba(255,255,255,0.15);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: transform 0.2s;
+        }
+        #in-game-theme-btn:hover { transform: scale(1.1); }
     </style>
 </head>
 
@@ -320,13 +451,22 @@
         <!-- القائمة الرئيسية -->
         <div class="box" id="main-menu-box">
             <h3 id="welcome-msg" style="color:var(--gold)"></h3>
-            <hr style="border-color:rgba(255,255,255,0.1); margin: 15px 0;">
+            <hr style="border-color:rgba(255,255,255,0.1); margin: 12px 0;">
 
-            <button onclick="showOnlineSection()" style="width:100%; padding:15px; margin:10px 0; font-size:16px;">
+            <!-- اختيار الثيم في القائمة الرئيسية -->
+            <div style="margin-bottom:12px;">
+                <p style="margin:4px 0; font-size:12px; color:#94a3b8; text-align:center;">🎨 لون الرقعة</p>
+                <div class="theme-picker" id="main-theme-picker"></div>
+                <p style="margin:8px 0 4px; font-size:12px; color:#94a3b8; text-align:center;">♟️ شكل القطع</p>
+                <div class="piece-picker" id="main-piece-picker"></div>
+            </div>
+            <hr style="border-color:rgba(255,255,255,0.1); margin: 10px 0;">
+
+            <button onclick="showOnlineSection()" style="width:100%; padding:15px; margin:8px 0; font-size:16px;">
                 لعب مع صديق (أونلاين) 🌐
             </button>
             <button onclick="showOfflineSection()"
-                style="width:100%; padding:15px; margin:10px 0; font-size:16px; background:#8b5cf6;">
+                style="width:100%; padding:15px; margin:8px 0; font-size:16px; background:#8b5cf6;">
                 ضد الذكاء الاصطناعي (أوفلاين) 🤖
             </button>
         </div>
@@ -342,7 +482,6 @@
                 </select>
                 <button onclick="createRoom()" style="background:#10b981; width:90%">إنشاء</button>
             </div>
-
             <div>
                 <h4 style="margin:5px">دخول غرفة</h4>
                 <div style="display:flex; justify-content:center; gap:5px">
@@ -357,12 +496,9 @@
         <div class="box hidden" id="offline-section">
             <h3 style="color:#8b5cf6">ضد الذكاء الاصطناعي 🤖</h3>
             <p>اختر مستوى الصعوبة:</p>
-            <button onclick="startOfflineGame('easy')" style="width:100%; background:#10b981; margin:8px 0;">سهل (Easy)
-                👶</button>
-            <button onclick="startOfflineGame('medium')" style="width:100%; background:#f59e0b; margin:8px 0;">متوسط
-                (Medium) 🤓</button>
-            <button onclick="startOfflineGame('hard')" style="width:100%; background:#ef4444; margin:8px 0;">صعب (Hard)
-                🔥</button>
+            <button onclick="startOfflineGame('easy')" style="width:100%; background:#10b981; margin:8px 0;">سهل (Easy) 👶</button>
+            <button onclick="startOfflineGame('medium')" style="width:100%; background:#f59e0b; margin:8px 0;">متوسط (Medium) 🤓</button>
+            <button onclick="startOfflineGame('hard')" style="width:100%; background:#ef4444; margin:8px 0;">صعب (Hard) 🔥</button>
             <button onclick="backToMain()" style="background:transparent; color:#aaa; margin-top:10px;">رجوع</button>
         </div>
     </div>
@@ -393,6 +529,26 @@
         <div id="game-status" style="margin-top:15px; color:var(--gold); font-weight:bold; height:20px;"></div>
         <button onclick="leaveRoom()"
             style="margin-top:10px; font-size:13px; background:var(--danger); padding:8px 20px">انسحاب</button>
+    </div>
+
+    <!-- زر تغيير الثيم داخل اللعبة -->
+    <div id="in-game-theme-btn" onclick="openThemePanel()">🎨</div>
+
+    <!-- نافذة الثيمات داخل اللعبة -->
+    <div id="theme-panel-overlay" onclick="closeThemePanel(event)">
+        <div id="theme-panel">
+            <h4>🎨 تغيير الثيم</h4>
+            <div class="panel-section">
+                <div class="panel-label">🟧 ألوان الرقعة</div>
+                <div class="theme-picker" id="ingame-theme-picker"></div>
+            </div>
+            <div class="panel-section">
+                <div class="panel-label">♟️ شكل القطع</div>
+                <div class="piece-picker" id="ingame-piece-picker"></div>
+            </div>
+            <button onclick="closeThemePanel(null)"
+                style="width:100%; background:rgba(255,255,255,0.08); margin-top:6px;">إغلاق ✕</button>
+        </div>
     </div>
 
     <div id="chat-btn" class="hidden" onclick="toggleChat()">💬</div>
@@ -430,39 +586,184 @@
         let selectedSquare = null;
         let chatOpen = false;
 
-        // --- Sound Manager (Web Audio API) ---
+        // --- Sound Manager (Realistic Wood Impact via Web Audio) ---
         const SoundManager = {
             ctx: null,
-            init: function () {
+            init() {
+                if (this.ctx) return;
                 try {
                     window.AudioContext = window.AudioContext || window.webkitAudioContext;
                     this.ctx = new AudioContext();
-                } catch (e) { console.log('Web Audio API not supported'); }
+                } catch(e) {}
             },
-            playTone: function (freq, type, duration, vol = 0.1) {
-                if (!this.ctx) this.init();
+            // نبضة خشب طبيعية
+            _woodThud(freq, duration, vol) {
                 if (!this.ctx) return;
+                const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * duration, this.ctx.sampleRate);
+                const data = buf.getChannelData(0);
+                for (let i = 0; i < data.length; i++) {
+                    const t = i / this.ctx.sampleRate;
+                    // ضربة + ديكاي سريع
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 40) * vol
+                        + Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 25) * vol * 0.4;
+                }
+                const src = this.ctx.createBufferSource();
+                src.buffer = buf;
+                // فلتر دافئ: يعطي طابعًا خشبيًا
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = freq;
+                filter.Q.value = 1.5;
+                src.connect(filter);
+                filter.connect(this.ctx.destination);
+                src.start();
+            },
+            playMove() {
+                this.init();
+                this._woodThud(320, 0.18, 1.0);
+            },
+            playCapture() {
+                this.init();
+                // ضربتان متتاليتان = طقطقة تخطيطية
+                this._woodThud(220, 0.22, 1.4);
+                setTimeout(() => this._woodThud(180, 0.18, 1.0), 90);
+            },
+            playCheck() {
+                this.init();
+                if (!this.ctx) return;
+                // صوت تحذير حاد
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + duration);
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(660, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.3);
             },
-            playMove: function () { this.playTone(300, 'sine', 0.1, 0.2); },
-            playCapture: function () { this.playTone(150, 'square', 0.15, 0.2); },
-            playGameOver: function () {
-                if (!this.ctx) this.init();
-                // Simple chord
-                this.playTone(400, 'sine', 1.0, 0.2);
-                setTimeout(() => this.playTone(500, 'sine', 1.0, 0.2), 200);
-                setTimeout(() => this.playTone(600, 'sine', 1.5, 0.2), 400);
+            playGameOver() {
+                this.init();
+                if (!this.ctx) return;
+                // موسيقى نهاية حزينة
+                const notes = [523, 494, 440, 392];
+                notes.forEach((freq, i) => {
+                    setTimeout(() => {
+                        const osc = this.ctx.createOscillator();
+                        const g = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.value = freq;
+                        g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+                        osc.connect(g); g.connect(this.ctx.destination);
+                        osc.start(); osc.stop(this.ctx.currentTime + 0.5);
+                    }, i * 200);
+                });
             }
         };
+
+        // --- ثيمات الرقعة والقطع ---
+        const BOARD_THEMES = [
+            { id:'classic', name:'كلاسيك',   light:'#f0d9b5', dark:'#b58863' },
+            { id:'ocean',   name:'أزرق',     light:'#d6e8f5', dark:'#4a90c4' },
+            { id:'forest',  name:'غابة',     light:'#d9e8c5', dark:'#5a8a4a' },
+            { id:'neon',    name:'نيون',     light:'#1e1b4b', dark:'#312e81' },
+            { id:'marble',  name:'رخام',     light:'#e8e0d4', dark:'#7a6a5a' },
+        ];
+        const PIECE_SETS = [
+            { id:'cburnett', name:'كلاسيك',  path:'cburnett' },
+            { id:'merida',   name:'ميريدا',   path:'merida'   },
+            { id:'alpha',    name:'ألفا',     path:'alpha'    },
+            { id:'tatiana',  name:'تاتيانا',  path:'tatiana'  },
+        ];
+        let currentBoardTheme = localStorage.getItem('heka_chess_board_theme') || 'classic';
+        let currentPieceSet   = localStorage.getItem('heka_chess_piece_set')   || 'cburnett';
+
+        function applyBoardTheme(id) {
+            currentBoardTheme = id;
+            localStorage.setItem('heka_chess_board_theme', id);
+            BOARD_THEMES.forEach(t => document.body.classList.remove('theme-' + t.id));
+            document.body.classList.add('theme-' + id);
+            document.querySelectorAll('.theme-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.theme === id);
+            });
+        }
+
+        function applyPieceSet(id) {
+            currentPieceSet = id;
+            localStorage.setItem('heka_chess_piece_set', id);
+            document.querySelectorAll('.piece-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.piece === id);
+            });
+            // إعادة رسم الرقعة لو اللعبة شغالة
+            if (!document.getElementById('screen-game').classList.contains('hidden')) {
+                renderBoard(null);
+            }
+        }
+
+        function buildThemePickers() {
+            const pickerIds = [
+                'main-theme-picker',
+                'online-theme-picker',
+                'offline-theme-picker',
+                'ingame-theme-picker'
+            ];
+            pickerIds.forEach(containerId => {
+                const el = document.getElementById(containerId);
+                if (!el) return;
+                el.innerHTML = '';
+                BOARD_THEMES.forEach(t => {
+                    const btn = document.createElement('div');
+                    btn.className = 'theme-btn' + (t.id === currentBoardTheme ? ' active' : '');
+                    btn.title = t.name;
+                    btn.dataset.theme = t.id;
+                    btn.innerHTML = `
+                        <span style="background:${t.light}"></span>
+                        <span style="background:${t.dark}"></span>
+                        <span style="background:${t.dark}"></span>
+                        <span style="background:${t.light}"></span>`;
+                    btn.onclick = () => { applyBoardTheme(t.id); renderBoard(null); };
+                    el.appendChild(btn);
+                });
+            });
+
+            const piecePickerIds = [
+                'main-piece-picker',
+                'online-piece-picker',
+                'offline-piece-picker',
+                'ingame-piece-picker'
+            ];
+            piecePickerIds.forEach(containerId => {
+                const el = document.getElementById(containerId);
+                if (!el) return;
+                el.innerHTML = '';
+                PIECE_SETS.forEach(p => {
+                    const btn = document.createElement('div');
+                    btn.className = 'piece-btn' + (p.id === currentPieceSet ? ' active' : '');
+                    btn.dataset.piece = p.id;
+                    const baseUrl = 'https://raw.githubusercontent.com/lichess-org/lila/master/public/piece';
+                    btn.innerHTML = `
+                        <div class="piece-preview">
+                            <img src="${baseUrl}/${p.id}/wK.svg" alt="أبيض" loading="lazy">
+                            <img src="${baseUrl}/${p.id}/bK.svg" alt="أسود" loading="lazy">
+                        </div>
+                        <div class="piece-label">${p.name}</div>
+                    `;
+                    btn.onclick = () => applyPieceSet(p.id);
+                    el.appendChild(btn);
+                });
+            });
+        }
+
+        // فتح وغلق نافذة الثيمات
+        function openThemePanel() {
+            buildThemePickers(); // تحديث الأزرار
+            document.getElementById('theme-panel-overlay').classList.add('open');
+        }
+        function closeThemePanel(e) {
+            if (e && e.target !== document.getElementById('theme-panel-overlay')) return;
+            document.getElementById('theme-panel-overlay').classList.remove('open');
+        }
 
         // قيم القطع للتقييم
         const pieceValues = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
@@ -473,6 +774,10 @@
                 document.getElementById('username').value = saved;
                 saveName();
             }
+            // تطبيق الثيم المحفوظ
+            applyBoardTheme(currentBoardTheme);
+            applyPieceSet(currentPieceSet);
+            buildThemePickers();
         }
 
         function showScreen(id) {
@@ -547,10 +852,10 @@
             boardOrientation = (color === 'w') ? 'white' : 'black';
             document.getElementById('lobby-code').innerText = code;
             document.getElementById('chat-btn').classList.remove('hidden');
-
+            // إظهار زر الثيمات
+            document.getElementById('in-game-theme-btn').style.display = 'flex';
             if (color === 'w') showScreen('screen-lobby');
             else showScreen('screen-game');
-
             listen();
         }
 
@@ -584,26 +889,24 @@
         // --- المنطق والرسم ---
         // المصدر الجديد الموثوق للصور (GitHub Raw)
         function getPieceImg(piece) {
-            // piece.color: 'w', piece.type: 'p' -> wP.svg
             const c = piece.color;
             const t = piece.type.toUpperCase();
-            // نستخدم رابط GitHub Raw مباشر من مستودع Lichess (موثوق وسريع)
-            return `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/cburnett/${c}${t}.svg`;
+            return `https://raw.githubusercontent.com/lichess-org/lila/master/public/piece/${currentPieceSet}/${c}${t}.svg`;
         }
 
         // --- الأوفلاين (AI) ---
         function startOfflineGame(level) {
             playMode = 'offline';
             aiLevel = level;
-            myColor = 'w'; // اللاعب دائماً أبيض حالياً للتبسيط
-            gameMode = (level === 'easy') ? 'beginner' : 'pro'; // إظهار المساعدات في السهل فقط
+            myColor = 'w';
+            gameMode = (level === 'easy') ? 'beginner' : 'pro';
             boardOrientation = 'white';
-
-            // Initialize Audio Logic
             SoundManager.init();
-
             game.reset();
             showScreen('screen-game');
+            // إظهار زر الثيمات
+            const btn = document.getElementById('in-game-theme-btn');
+            btn.style.display = 'flex';
             updateOfflineUI();
         }
 
@@ -1088,7 +1391,10 @@
                     s.innerText = "دور الخصم";
                     oppInfo.classList.add('turn-active');
                 }
-                if (game.in_check() && gameMode !== 'pro') s.innerText += " (كش!)";
+                if (game.in_check() && gameMode !== 'pro') {
+                    s.innerText += " (كش!)";
+                    SoundManager.playCheck();
+                }
             }
         }
 

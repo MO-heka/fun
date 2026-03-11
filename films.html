@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="color-scheme" content="dark">
     <title>🎬 لعبة الأفلام المصرية</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -434,31 +435,37 @@
 
         // دالة تحميل فيلم جديد
         function loadNewFilm() {
-            // التأكد من وجود أفلام متاحة
+            // التأكد من وجود أعمال متاحة في هذه الجلسة
             if (gameState.usedFilms.length >= egyptianFilms.length) {
                 gameFinished();
                 return;
             }
 
-            // اختيار فيلم عشوائي لم يُستخدم من قبل
+            // اختيار عمل عشوائي لم يُستخدم في هذه الجلسة
             let film;
+            let attempts = 0;
             do {
                 film = getRandomFilm();
+                attempts++;
+                if (attempts > egyptianFilms.length * 2) break;
             } while (gameState.usedFilms.includes(film.name));
 
             gameState.currentFilm = film;
             gameState.usedFilms.push(film.name);
+            // حفظ في localStorage عشان موبايلات مختلفة ميشوفوش نفس الفيلم
+            markFilmUsed(film.name);
 
-            // عرض اسم الفيلم
+            // عرض اسم العمل مع نوعه
             const nameDisplay = document.getElementById('film-name-display');
-            nameDisplay.innerText = film.name;
+            const typeBadge = film.type ? `<div style="font-size:16px; color:#94a3b8; margin-bottom:8px; font-weight:500;">${film.type === 'فيلم' ? '🎬' : film.type === 'مسلسل' ? '📺' : '🎭'} ${film.type}</div>` : '';
+            nameDisplay.innerHTML = typeBadge + `<span>${film.name}</span>`;
             nameDisplay.style.animation = 'none';
-            nameDisplay.offsetHeight; /* trigger reflow */
+            nameDisplay.offsetHeight;
             nameDisplay.style.animation = 'float 3s infinite ease-in-out';
 
             // تحديث رابط البحث
             const searchBtn = document.getElementById('google-search-btn');
-            searchBtn.href = `https://www.google.com/search?q=${encodeURIComponent(film.name + ' فيلم مصر')}`;
+            searchBtn.href = `https://www.google.com/search?q=${encodeURIComponent(film.name + ' ' + (film.type || 'فيلم') + ' مصري')}`;
 
             // تحديث لوحة النقاط
             updateScoreBoard();

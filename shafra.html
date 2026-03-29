@@ -637,6 +637,7 @@
             if (!myName) myName = `لاعب ${Math.floor(Math.random() * 100)}`;
 
             currentMode = "online"; prepareUI();
+            isGameOver = false;
 
             // الاستماع لحالة اللعبة
             db.ref('rooms/' + roomId).on('value', (snap) => {
@@ -646,8 +647,17 @@
                     document.getElementById('bLeft').innerText = `🔵: ${data.bCount}`;
                     document.getElementById('rLeft').innerText = `🔴: ${data.rCount}`;
 
-                    if (data.bCount === 0) { alert("تهانينا للفريق الأزرق! لقد فزتم بالمهمة! 🔵🥳"); }
-                    if (data.rCount === 0) { alert("تهانينا للفريق الأحمر! لقد فزتم بالمهمة! 🔴🥳"); }
+                    if (data.bCount > 0 && data.rCount > 0) {
+                        isGameOver = false;
+                    }
+                    if (data.bCount === 0 && !isGameOver) { 
+                        isGameOver = true;
+                        alert("تهانينا للفريق الأزرق! لقد فزتم بالمهمة! 🔵🥳"); 
+                    }
+                    if (data.rCount === 0 && !isGameOver) { 
+                        isGameOver = true;
+                        alert("تهانينا للفريق الأحمر! لقد فزتم بالمهمة! 🔴🥳"); 
+                    }
                 } else { resetOnlineGame(); }
             });
 
@@ -680,6 +690,7 @@
         function resetGameAction() { if (currentMode === "local") resetLocalGame(); else resetOnlineGame(); }
 
         function resetLocalGame() {
+            isGameOver = false;
             let s = [...words].sort(() => 0.5 - Math.random()).slice(0, 25);
             let r = [...Array(9).fill('team1'), ...Array(8).fill('team2'), ...Array(7).fill('neutral'), 'bomb'].sort(() => 0.5 - Math.random());
             let localCards = s.map((w, i) => ({ w: w.w, e: w.e, r: r[i], v: false }));
@@ -690,6 +701,7 @@
         }
 
         function resetOnlineGame() {
+            isGameOver = false;
             let s = [...words].sort(() => 0.5 - Math.random()).slice(0, 25);
             let r = [...Array(9).fill('team1'), ...Array(8).fill('team2'), ...Array(7).fill('neutral'), 'bomb'].sort(() => 0.5 - Math.random());
             let cards = s.map((item, i) => ({ w: item.w, e: item.e, r: r[i], v: false }));
@@ -703,6 +715,7 @@
                 d.className = `card ${c.r} ${c.v ? 'revealed' : ''}`;
                 d.innerHTML = `<div class="emoji">${c.e}</div><div class="word">${c.w}</div>`;
                 d.onclick = () => {
+                    if (isGameOver) return;
                     const isMasterView = b.classList.contains('master-view');
                     if (isMasterView) {
                         alert("يا هيكا أنت سيد كود، المستكشف هو اللي بيفتح الكروت! 🕶️");
@@ -713,6 +726,7 @@
                     if (currentMode === "online") {
                         db.ref(`rooms/${roomId}/cards/${i}`).update({ v: true });
                         if (c.r === 'bomb') {
+                            isGameOver = true;
                             alert("بـوووم! الفريق اللي ضغط على القنبلة خسر الجيم! 💣💥");
                         } else {
                             let teamKey = c.r === 'team1' ? 'bCount' : (c.r === 'team2' ? 'rCount' : null);
@@ -721,7 +735,10 @@
                     } else {
                         // وضع المحلي (Local)
                         c.v = true;
-                        if (c.r === 'bomb') { alert("بـوووم! الفريق اللي ضغط على القنبلة خسر الجيم! 💣💥"); }
+                        if (c.r === 'bomb') { 
+                            isGameOver = true;
+                            alert("بـوووم! الفريق اللي ضغط على القنبلة خسر الجيم! 💣💥"); 
+                        }
                         renderBoard(cards);
 
                         // تحديث العدادات محلياً
@@ -730,8 +747,14 @@
                         document.getElementById('bLeft').innerText = `🔵: ${bRem}`;
                         document.getElementById('rLeft').innerText = `🔴: ${rRem}`;
 
-                        if (bRem === 0) alert("تهانينا للفريق الأزرق! لقد فزتم بالمهمة! 🔵🥳");
-                        if (rRem === 0) alert("تهانينا للفريق الأحمر! لقد فزتم بالمهمة! 🔴🥳");
+                        if (bRem === 0 && !isGameOver) { 
+                            isGameOver = true;
+                            alert("تهانينا للفريق الأزرق! لقد فزتم بالمهمة! 🔵🥳");
+                        }
+                        if (rRem === 0 && !isGameOver) { 
+                            isGameOver = true;
+                            alert("تهانينا للفريق الأحمر! لقد فزتم بالمهمة! 🔴🥳");
+                        }
                     }
                 };
                 b.appendChild(d);

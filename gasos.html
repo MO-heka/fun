@@ -989,10 +989,21 @@
 
         // ---- شاشة تخمين الجاسوس ----
         function _doSpyGuess() {
-            // جمع كلمات عشوائية (6 كلمات) من كل الفئات + الكلمة الصحيحة
-            const allWords = Object.values(wordsData).flat();
+            // إيجاد تصنيف الكلمة الصحيحة
+            let currentCategoryWords = [];
+            for (const key in wordsData) {
+                if (wordsData[key].find(w => w.t === localSecretWord.t)) {
+                    currentCategoryWords = wordsData[key];
+                    break;
+                }
+            }
+            // إذا لم نجد التصنيف لسبب ما، نأخذ كل الكلمات
+            if (currentCategoryWords.length === 0) {
+                currentCategoryWords = Object.values(wordsData).flat();
+            }
+
             // فلتر: لا تكرر الكلمة الصحيحة
-            const pool = allWords.filter(w => w.t !== localSecretWord.t);
+            const pool = currentCategoryWords.filter(w => w.t !== localSecretWord.t);
             // اختر 5 عشوائيين
             const shuffled = pool.sort(() => Math.random() - 0.5).slice(0, 5);
             // أضف الكلمة الصح

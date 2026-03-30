@@ -165,10 +165,14 @@ function initGame(mode, numPlayers, roomId) {
     G.finishedPieces = {};
     G.streakSixes = {};
 
-    const names = [G.myName, 'Bot أحمد', 'Bot سارة', 'Bot خالد'];
+    const names = [G.myName, 'Bot سارة', 'Bot أحمد', 'Bot خالد'];
+    
+    let playColors = COLORS.slice(0, G.numPlayers);
+    if (G.numPlayers === 2) playColors = ['blue', 'green'];
+
     G.players = [];
     for (let i = 0; i < G.numPlayers; i++) {
-        const color = COLORS[i];
+        const color = playColors[i];
         const isBot = (mode === 'bot' && i > 0) || false;
         G.players.push({
             color,
@@ -197,19 +201,31 @@ function rollDice() {
 function doRollDice(onComplete) {
     G.animating = true;
     const diceEl = document.getElementById('dice');
-    const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+    
+    const diceSVGs = [
+        `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
+        `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
+        `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
+        `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/></svg>`,
+        `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
+        `<svg viewBox="0 0 100 100"><circle cx="30" cy="20" r="12" fill="#000"/><circle cx="70" cy="20" r="12" fill="#000"/><circle cx="30" cy="50" r="12" fill="#000"/><circle cx="70" cy="50" r="12" fill="#000"/><circle cx="30" cy="80" r="12" fill="#000"/><circle cx="70" cy="80" r="12" fill="#000"/></svg>`
+    ];
+
     let rolls = 0;
     const maxRolls = 10;
+    
+    diceEl.classList.add('rolling');
+    
     const anim = setInterval(() => {
         const r = Math.floor(Math.random() * 6);
-        diceEl.textContent = diceFaces[r];
-        diceEl.style.transform = `rotate(${Math.random() * 30 - 15}deg) scale(1.1)`;
+        diceEl.innerHTML = diceSVGs[r];
         rolls++;
         if (rolls >= maxRolls) {
             clearInterval(anim);
             G.dice = Math.floor(Math.random() * 6) + 1;
-            diceEl.textContent = diceFaces[G.dice - 1];
-            diceEl.style.transform = 'rotate(0) scale(1)';
+            diceEl.innerHTML = diceSVGs[G.dice - 1];
+            diceEl.classList.remove('rolling');
+            
             sfx('dice');
             vibrate(50);
             G.diceRolled = true;
@@ -827,20 +843,40 @@ function showParticles(color) {
 function showWinScreen(player) {
     const overlay = document.getElementById('winOverlay');
     overlay.style.display = 'flex';
-    document.getElementById('winnerName').textContent = player.name;
+    document.getElementById('winnerName').textContent = player.name + ' فاز!';
     document.getElementById('winnerName').style.color = COLOR_HEX[player.color];
-    document.getElementById('winnerScore').textContent = player.score;
-    document.getElementById('winCaptures').textContent = G.captures[player.color];
-    document.getElementById('winMoves').textContent = G.totalMoves[player.color];
-    // Confetti
+
+    const tbody = document.getElementById('winTableBody');
+    tbody.innerHTML = '';
+    
+    G.players.forEach((p) => {
+        let rankStr = '-';
+        if (p.finished) {
+             const rank = G.rankings.indexOf(p.color) + 1;
+             rankStr = rank === 1 ? '🥇 الأول' : (rank === 2 ? '🥈 الثاني' : (rank === 3 ? '🥉 الثالث' : 'الرابع'));
+        } else if (G.gameOver) {
+             rankStr = 'خسر';
+        }
+        tbody.innerHTML += `
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.1); font-weight:bold;">
+                <td style="padding:12px;text-align:right;"><span style="color:${COLOR_HEX[p.color]};font-size:1.2rem;vertical-align:middle;">●</span> ${p.name}</td>
+                <td style="padding:8px;text-align:center;">${p.score}</td>
+                <td style="padding:8px;text-align:center;">${G.captures[p.color]}</td>
+                <td style="padding:8px;text-align:center;">${rankStr}</td>
+            </tr>
+        `;
+    });
+
+    sfx('win');
+    vibrate([200, 100, 200, 100, 400]);
     for (let i = 0; i < 50; i++) {
         const c = document.createElement('div');
         c.className = 'confetti';
-        c.style.left = Math.random() * 100 + '%';
+        c.style.left = Math.random() * 100 + 'vw';
         c.style.background = COLOR_HEX[COLORS[Math.floor(Math.random() * 4)]];
-        c.style.animationDelay = Math.random() * 2 + 's';
-        c.style.animationDuration = (2 + Math.random() * 2) + 's';
+        c.style.animationDuration = Math.random() * 2 + 2 + 's';
         overlay.appendChild(c);
+        setTimeout(() => c.remove(), 4000);
     }
 }
 
@@ -976,12 +1012,14 @@ function gameLoop() {
 }
 
 // ===== Start Functions =====
-function startBotGame(numPlayers) {
+function startBotGame() {
     G.myName = localStorage.getItem('heka_global_player_name') || localStorage.getItem('heka_player_name') || 'لاعب';
-    initGame('bot', numPlayers);
+    initGame('bot', selectedPlayers);
+    document.getElementById('botSetup').style.display = 'none';
     document.getElementById('mainMenu').style.display = 'none';
     document.getElementById('gameContainer').style.display = 'flex';
-    document.getElementById('chatTrigger2').style.display = 'flex';
+    // Hide chat entirely in bot mode
+    document.getElementById('chatTrigger2').style.display = 'none';
     startTurnTimer();
     gameLoop();
 }
@@ -1054,10 +1092,15 @@ function startGameFromLobby() {
     db.ref(`ludo_rooms/${G.roomId}/lobby`).once('value', snap => {
          const pObj = snap.val() || {};
          const pKeys = Object.keys(pObj);
+         const numOnlinePlayers = pKeys.length || 1; // Fallback to 1 if empty
+         
          const players = [];
-         for (let i = 0; i < 4; i++) {
-             const color = COLORS[i];
-             const name = pKeys[i] ? pKeys[i] : `Bot ${i+1}`;
+         let playColors = COLORS.slice(0, numOnlinePlayers);
+         if (numOnlinePlayers === 2) playColors = ['blue', 'green'];
+
+         for (let i = 0; i < numOnlinePlayers; i++) {
+             const color = playColors[i];
+             const name = pKeys[i] || `Bot ${i+1}`;
              const isBot = !pKeys[i];
              players.push({
                  color, name, isBot,

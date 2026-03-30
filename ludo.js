@@ -195,6 +195,8 @@ function rollDice() {
     if (G.diceRolled || G.gameOver || G.animating) return;
     const player = G.players[G.currentTurn];
     if (player.isBot) return;
+    // Online: only let the correct player roll
+    if (G.mode === 'online' && player.name !== G.myName) return;
     doRollDice();
 }
 
@@ -498,6 +500,12 @@ function startTurnTimer() {
         if (el) el.textContent = '🤖';
         return;
     }
+    // In online mode, only show timer if it's my turn
+    if (G.mode === 'online' && player && player.name !== G.myName) {
+        const el = document.getElementById('turnTimer');
+        if (el) el.textContent = '⏳';
+        return;
+    }
     G.turnTimeLeft = 30;
     updateTimerUI();
     G.turnTimer = setInterval(() => {
@@ -508,7 +516,8 @@ function startTurnTimer() {
             clearTurnTimer();
             showToast('⏰ انتهى الوقت! لعب تلقائي...');
             sfx('buzz');
-            if (G.mode === 'online' && !G.isHost) return;
+            // In online, only auto-play if I'm host or it's my turn
+            if (G.mode === 'online' && !G.isHost && player.name !== G.myName) return;
             autoPlay();
         }
     }, 1000);
@@ -893,6 +902,8 @@ function handleBoardClick(e) {
     if (!G.diceRolled || G.animating || G.gameOver) return;
     const player = G.players[G.currentTurn];
     if (player.isBot) return;
+    // Online: only the correct player can move
+    if (G.mode === 'online' && player.name !== G.myName) return;
 
     const canvas = document.getElementById('ludoBoard');
     const rect = canvas.getBoundingClientRect();
@@ -937,7 +948,8 @@ function syncState() {
         dice: G.dice,
         diceRolled: G.diceRolled,
         rankings: G.rankings,
-        gameOver: G.gameOver
+        gameOver: G.gameOver,
+        sixCount: G.sixCount
     });
 }
 
@@ -951,13 +963,32 @@ function listenOnline() {
             initGame('online', data.players.length, G.roomId);
         }
 
+        const wasMyTurn = G.players && G.players[G.currentTurn] && G.players[G.currentTurn].name === G.myName;
+        const prevTurn = G.currentTurn;
+
         G.players = data.players;
         G.currentTurn = data.currentTurn;
         G.dice = data.dice;
         G.diceRolled = data.diceRolled;
         G.rankings = data.rankings || [];
         G.gameOver = data.gameOver;
+        G.sixCount = data.sixCount || 0;
+
+        // If turn changed, reset local timer
+        if (prevTurn !== G.currentTurn) {
+            clearTurnTimer();
+            G.diceRolled = false;
+            startTurnTimer();
+        }
+
+        // If it's now a bot's turn and I'm the host, auto-play
+        const curPlayer = G.players[G.currentTurn];
+        if (G.isHost && curPlayer && curPlayer.isBot && !G.gameOver) {
+            setTimeout(autoPlay, 800);
+        }
+
         renderBoard();
+        updateDiceUI();
     });
 }
 
@@ -1044,19 +1075,28 @@ function startOnlineGame() {
     G.mode = 'online';
 
     // Disconnect handling
-    const myPresenceRef = db.ref(`ludo_rooms/${G.roomId}/presence/${G.myName}`);
-    myPresenceRef.set(true);
-    myPresenceRef.onDisconnect().remove();
+    G.myPresenceRef = db.ref(`ludo_rooms/${G.roomId}/presence/${G.myName}`);
+    G.myPresenceRef.set(true);
+    G.myPresenceRef.onDisconnect().remove();
 
     db.ref(`ludo_rooms/${G.roomId}/presence`).on('value', snap => {
         if (!G.isHost || !G.players) return;
         const pres = snap.val() || {};
         let changed = false;
         G.players.forEach(p => {
-             if (!p.isBot && !pres[p.name]) {
+             // Mark disconnected human players as bots
+             if (!p.isBot && p.name !== G.myName && !pres[p.name]) {
                  p.isBot = true;
+                 p._originalName = p._originalName || p.name; // save original name for rejoin
                  changed = true;
                  showToast(`🔴 ${p.name} غادر اللعبة! بيلعب مكانه البوت`);
+             }
+             // Rejoin: if a bot has the original name of a present player, restore them
+             if (p.isBot && p._originalName && pres[p._originalName]) {
+                 p.isBot = false;
+                 p.name = p._originalName;
+                 changed = true;
+                 showToast(`🟢 ${p.name} رجع للعبة!`);
              }
         });
         if (changed) syncState();
@@ -1073,32 +1113,60 @@ function joinLobby() {
     G.roomId = document.getElementById('ludoRoomInput').value.trim();
     if (!G.roomId) { alert('اكتب رقم الغرفة!'); return; }
     
-    document.getElementById('onlineSetup').style.display = 'none';
-    document.getElementById('onlineLobby').style.display = 'block';
-    document.getElementById('lobbyRoomId').textContent = G.roomId;
-
-    G.lobbyRef = db.ref(`ludo_rooms/${G.roomId}/lobby/${G.myName}`);
-    G.lobbyRef.set({ joined: true });
-    G.lobbyRef.onDisconnect().remove();
-
-    db.ref(`ludo_rooms/${G.roomId}/lobby`).on('value', snap => {
-        const players = snap.val() || {};
-        const keys = Object.keys(players);
-        const ul = document.getElementById('lobbyPlayersList');
-        ul.innerHTML = '';
-        keys.forEach((k, i) => {
-            ul.innerHTML += `<li style="padding:10px; background:rgba(255,255,255,0.1); margin-top:5px; border-radius:10px;">👤 ${k} ${i===0?'👑 (المضيف)':''}</li>`;
-            if (k === G.myName) G.isHost = (i === 0);
-        });
-        document.getElementById('btnStartOnline').style.display = G.isHost && keys.length > 0 ? 'inline-block' : 'none';
-    });
-
-    db.ref(`ludo_rooms/${G.roomId}/gameStarted`).on('value', snap => {
+    // Check if game already started — try to rejoin or block
+    db.ref(`ludo_rooms/${G.roomId}/gameStarted`).once('value', snap => {
         if (snap.val()) {
-            db.ref(`ludo_rooms/${G.roomId}/gameStarted`).off();
-            db.ref(`ludo_rooms/${G.roomId}/lobby`).off();
-            startOnlineGame();
+            // Game already started — check if this player was in the game (rejoin)
+            db.ref(`ludo_rooms/${G.roomId}/state/players`).once('value', stateSnap => {
+                const players = stateSnap.val();
+                if (!players) { alert('الغرفة مشغولة! اللعبة بدأت بالفعل 🚫'); return; }
+                const mySlot = players.find(p => p._originalName === G.myName || p.name === G.myName);
+                if (mySlot) {
+                    // Rejoin — set presence and go directly to game
+                    showToast('🟢 بترجع للعبة...');
+                    G.isHost = false;
+                    document.getElementById('onlineSetup').style.display = 'none';
+                    // Set presence so host detects rejoin
+                    const rejoinRef = db.ref(`ludo_rooms/${G.roomId}/presence/${G.myName}`);
+                    rejoinRef.set(true);
+                    rejoinRef.onDisconnect().remove();
+                    G.myPresenceRef = rejoinRef;
+                    startOnlineGame();
+                } else {
+                    alert('الغرفة مشغولة! اللعبة بدأت بالفعل 🚫');
+                }
+            });
+            return;
         }
+
+        // Game not started yet — join lobby normally
+        document.getElementById('onlineSetup').style.display = 'none';
+        document.getElementById('onlineLobby').style.display = 'block';
+        document.getElementById('lobbyRoomId').textContent = G.roomId;
+
+        G.lobbyRef = db.ref(`ludo_rooms/${G.roomId}/lobby/${G.myName}`);
+        G.lobbyRef.set({ joined: true });
+        G.lobbyRef.onDisconnect().remove();
+
+        db.ref(`ludo_rooms/${G.roomId}/lobby`).on('value', snap2 => {
+            const players = snap2.val() || {};
+            const keys = Object.keys(players);
+            const ul = document.getElementById('lobbyPlayersList');
+            ul.innerHTML = '';
+            keys.forEach((k, i) => {
+                ul.innerHTML += `<li style="padding:10px; background:rgba(255,255,255,0.1); margin-top:5px; border-radius:10px;">👤 ${k} ${i===0?'👑 (المضيف)':''}</li>`;
+                if (k === G.myName) G.isHost = (i === 0);
+            });
+            document.getElementById('btnStartOnline').style.display = G.isHost && keys.length > 0 ? 'inline-block' : 'none';
+        });
+
+        db.ref(`ludo_rooms/${G.roomId}/gameStarted`).on('value', snap3 => {
+            if (snap3.val()) {
+                db.ref(`ludo_rooms/${G.roomId}/gameStarted`).off();
+                db.ref(`ludo_rooms/${G.roomId}/lobby`).off();
+                startOnlineGame();
+            }
+        });
     });
 }
 
@@ -1106,7 +1174,7 @@ function startGameFromLobby() {
     db.ref(`ludo_rooms/${G.roomId}/lobby`).once('value', snap => {
          const pObj = snap.val() || {};
          const pKeys = Object.keys(pObj);
-         const numOnlinePlayers = pKeys.length || 1; // Fallback to 1 if empty
+         const numOnlinePlayers = pKeys.length || 1;
          
          const players = [];
          let playColors = COLORS.slice(0, numOnlinePlayers);
@@ -1118,12 +1186,13 @@ function startGameFromLobby() {
              const isBot = !pKeys[i];
              players.push({
                  color, name, isBot,
+                 _originalName: name, // save for rejoin detection
                  pieces: [{ pos: -1, homeStretch: -1, finished: false }, { pos: -1, homeStretch: -1, finished: false }, { pos: -1, homeStretch: -1, finished: false }, { pos: -1, homeStretch: -1, finished: false }],
                  score: 0, finished: false
              });
          }
          db.ref(`ludo_rooms/${G.roomId}/state`).set({
-             players, currentTurn: 0, dice: 1, diceRolled: false, gameOver: false
+             players, currentTurn: 0, dice: 1, diceRolled: false, gameOver: false, sixCount: 0
          }).then(() => {
              db.ref(`ludo_rooms/${G.roomId}/gameStarted`).set(true);
          });
@@ -1139,11 +1208,34 @@ function leaveLobby() {
 function restartGame() {
     cancelAnimationFrame(animFrame);
     clearTurnTimer();
+    // Stop all Firebase listeners and remove presence
+    if (G.roomId) {
+        db.ref('ludo_rooms/' + G.roomId + '/state').off();
+        db.ref('ludo_rooms/' + G.roomId + '/presence').off();
+        db.ref('ludo_rooms/' + G.roomId + '/chat').off();
+        db.ref('ludo_rooms/' + G.roomId + '/gameStarted').off();
+        db.ref('ludo_rooms/' + G.roomId + '/lobby').off();
+        if (G.myPresenceRef) G.myPresenceRef.remove();
+    }
+    // Stop sound
+    G.soundOn = false;
+    // Reset state
+    G.players = [];
+    G.roomId = '';
+    G.mode = null;
+    G.diceRolled = false;
+    G.gameOver = false;
+    G.validMoves = [];
+    G.animating = false;
     document.getElementById('winOverlay').style.display = 'none';
     document.getElementById('winOverlay').querySelectorAll('.confetti').forEach(c => c.remove());
     document.getElementById('gameContainer').style.display = 'none';
     document.getElementById('mainMenu').style.display = 'block';
     document.getElementById('onlineSetup').style.display = 'none';
+    document.getElementById('onlineLobby').style.display = 'none';
+    // Reset sound to on for next game
+    G.soundOn = true;
+    document.getElementById('soundBtn').textContent = '🔊';
 }
 
 function showOnlineSetup() {

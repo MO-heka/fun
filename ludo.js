@@ -357,7 +357,13 @@ function movePiece(moveObj) {
         if (captured) showToast('العب تاني عشان كلت! 🗡️');
         else if (finished && G.dice !== 6) showToast('العب تاني عشان دخلت بيتك! 🏠');
         
-        setTimeout(() => { renderBoard(); if (player.isBot) autoPlay(); }, 600);
+        setTimeout(() => { 
+            renderBoard(); 
+            if (player.isBot) {
+                if (G.mode === 'online' && !G.isHost) return;
+                autoPlay(); 
+            }
+        }, 600);
     } else {
         nextTurn();
     }
@@ -419,6 +425,7 @@ function nextTurn() {
     startTurnTimer();
     renderBoard();
     if (G.players[G.currentTurn].isBot && !G.gameOver) {
+        if (G.mode === 'online' && !G.isHost) return;
         setTimeout(autoPlay, 800);
     }
 }
@@ -501,6 +508,7 @@ function startTurnTimer() {
             clearTurnTimer();
             showToast('⏰ انتهى الوقت! لعب تلقائي...');
             sfx('buzz');
+            if (G.mode === 'online' && !G.isHost) return;
             autoPlay();
         }
     }, 1000);
@@ -937,6 +945,12 @@ function listenOnline() {
     db.ref('ludo_rooms/' + G.roomId + '/state').on('value', snap => {
         const data = snap.val();
         if (!data) return;
+        
+        // Basic initializations for clients not hosting, ensures stats dicts exist
+        if (!G.players || G.players.length === 0) {
+            initGame('online', data.players.length, G.roomId);
+        }
+
         G.players = data.players;
         G.currentTurn = data.currentTurn;
         G.dice = data.dice;

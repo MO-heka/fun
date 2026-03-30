@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>لودو 4Fun - لعبة اللودو </title>
+    <link rel="icon" type="image/png" href="i_ludo.png">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --glass: rgba(30, 41, 59, 0.85);
+            --accent: #fbbf24;
+            --red: #ef4444;
+            --blue: #3b82f6;
+            --green: #22c55e;
+            --yellow: #eab308;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            background-image: radial-gradient(at 20% 20%, rgba(239, 68, 68, .08) 0, transparent 50%), radial-gradient(at 80% 20%, rgba(59, 130, 246, .08) 0, transparent 50%), radial-gradient(at 80% 80%, rgba(34, 197, 94, .08) 0, transparent 50%), radial-gradient(at 20% 80%, rgba(234, 179, 8, .08) 0, transparent 50%);
+            min-height: 100vh;
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* === MENU === */
+        #mainMenu {
+            max-width: 460px;
+            width: 90%;
+            margin: 30px auto;
+            text-align: center;
+            animation: fadeIn .5s;
+        }
+
+        .menu-box {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .4);
+        }
+
+        .menu-title {
+            font-size: 2.4rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--red), var(--blue), var(--green), var(--yellow));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .menu-sub {
+            color: var(--muted);
+            font-size: .95rem;
+            margin-bottom: 25px;
+        }
+
+        .menu-btn {
+            width: 100%;
+            padding: 16px;
+            margin: 8px 0;
+            border-radius: 16px;
+            border: none;
+            font-size: 1.15rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all .3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, .3);
+        }
+
+        .menu-btn:active {
+            transform: scale(.97);
+        }
+
+        .btn-bot {
+            background: linear-gradient(135deg, var(--green), #059669);
+            color: #fff;
+        }
+
+        .btn-online {
+            background: linear-gradient(135deg, var(--accent), #f59e0b);
+            color: #000;
+        }
+
+        .btn-back {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid #334155;
+            margin-top: 15px;
+            font-size: .95rem;
+        }
+
+        .player-select {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            justify-content: center;
+        }
+
+        .p-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid #334155;
+            background: #334155;
+            color: #fff;
+            font-weight: 800;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .p-btn.active {
+            border-color: var(--accent);
+            background: rgba(251, 191, 36, .2);
+            color: var(--accent);
+        }
+
+        .menu-label {
+            color: var(--muted);
+            font-size: .9rem;
+            margin-top: 15px;
+        }
+
+
+        /* === ONLINE SETUP === */
+        #onlineSetup {
+            display: none;
+            max-width: 460px;
+            width: 90%;
+            margin: 30px auto;
+            text-align: center;
+        }
+
+        #onlineSetup input,
+        #onlineSetup select {
+            width: 85%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 2px solid #334155;
+            background: var(--surface);
+            color: #fff;
+            font-size: 1.1rem;
+            text-align: center;
+            margin: 8px 0;
+            outline: none;
+            transition: .3s;
+        }
+
+        #onlineSetup input:focus,
+        #onlineSetup select:focus {
+            border-color: var(--accent);
+        }
+
+        .color-picks {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .cpick {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .cpick.active {
+            border-color: #fff;
+            transform: scale(1.15);
+            box-shadow: 0 0 15px rgba(255, 255, 255, .3);
+        }
+
+        /* === GAME === */
+        #gameContainer {
+            display: none;
+            width: 100%;
+            max-width: 700px;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            gap: 10px;
+            animation: fadeIn .5s;
+        }
+
+        .game-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 5px;
+        }
+
+        .game-header h2 {
+            font-size: 1rem;
+            color: var(--accent);
+        }
+
+        .hdr-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .hdr-btn {
+            background: rgba(255, 255, 255, .1);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 12px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: .2s;
+        }
+
+        .hdr-btn:hover {
+            background: rgba(255, 255, 255, .2);
+        }
+
+        /* Scoreboard */
+        .scoreboard {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .score-card {
+            flex: 1;
+            min-width: 70px;
+            max-width: 120px;
+            background: var(--surface);
+            border-radius: 14px;
+            padding: 8px 6px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: .3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-card.active-turn {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(251, 191, 36, .2);
+        }
+
+        .score-card.active-turn::before {
+            content: '🎯';
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: .7rem;
+        }
+
+        .s-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin: 0 auto 4px;
+            border: 2px solid rgba(255, 255, 255, .3);
+        }
+
+        .s-name {
+            font-size: .7rem;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .s-score {
+            font-size: 1.1rem;
+            font-weight: 900;
+        }
+
+        .s-pieces {
+            font-size: .65rem;
+            color: var(--muted);
+        }
+
+        /* Board */
+        .board-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1;
+        }
+
+        #ludoBoard {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        #particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Dice & Controls */
+        .dice-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 5px 0;
+        }
+
+        #dice {
+            font-size: 3.5rem;
+            cursor: pointer;
+            transition: transform .15s;
+            user-select: none;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .4));
+        }
+
+        #dice:hover {
+            transform: scale(1.1);
+        }
+
+        #dice:active {
+            transform: scale(.9);
+        }
+
+        #currentTurnLabel {
+            font-weight: 800;
+            font-size: 1rem;
+        }
+
+        #turnTimer {
+            background: rgba(0, 0, 0, .3);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: var(--accent);
+            font-family: monospace;
+        }
+
+        /* Power-ups */
+        .power-ups {
+            display: flex;
+            gap: 8px;
+            margin: 5px 0;
+        }
+
+        .power-btn {
+            background: var(--surface);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 8px 14px;
+            color: #fff;
+            cursor: pointer;
+            font-size: .85rem;
+            transition: .2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .power-btn:disabled {
+            opacity: .3;
+            cursor: not-allowed;
+        }
+
+        .power-btn:not(:disabled):hover {
+            border-color: var(--accent);
+            background: rgba(251, 191, 36, .1);
+        }
+
+        .pw-count {
+            background: rgba(255, 255, 255, .15);
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: .7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Emoji bar */
+        .emoji-bar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .emoji-btn {
+            background: rgba(255, 255, 255, .08);
+            border: none;
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .emoji-btn:hover {
+            transform: scale(1.2);
+            background: rgba(255, 255, 255, .15);
+        }
+
+        /* Toast */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .toast-msg {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, .15);
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: .9rem;
+            font-weight: 700;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all .3s;
+        }
+
+        .toast-msg.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Win overlay */
+        #winOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .85);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            text-align: center;
+        }
+
+        .win-title {
+            font-size: 3rem;
+            font-weight: 900;
+        }
+
+        #winnerName {
+            font-size: 2rem;
+            font-weight: 900;
+        }
+
+        .win-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1rem;
+        }
+
+        .win-stat {
+            text-align: center;
+        }
+
+        .win-stat span {
+            display: block;
+            font-size: 1.8rem;
+            font-weight: 900;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            animation: confettiFall linear forwards;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                top: -10px;
+                transform: rotate(0) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                top: 100vh;
+                transform: rotate(720deg) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Chat */
+        .chat-float-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 55px;
+            height: 55px;
+            background: var(--accent);
+            color: #000;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .4);
+            z-index: 1000;
+            border: none;
+            transition: .2s;
+        }
+
+        .chat-float-btn:hover {
+            transform: scale(1.1);
+        }
+
+        #chatDot2 {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 14px;
+            height: 14px;
+            background: var(--red);
+            border-radius: 50%;
+            display: none;
+        }
+
+        #ludoChatBox {
+            position: fixed;
+            bottom: 85px;
+            right: 20px;
+            width: 300px;
+            height: 380px;
+            background: var(--surface);
+            border: 2px solid var(--accent);
+            border-radius: 16px;
+            display: none;
+            flex-direction: column;
+            z-index: 1001;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, .6);
+            overflow: hidden;
+            animation: slideUp .3s;
+        }
+
+        .chat-hdr {
+            background: var(--accent);
+            color: #000;
+            padding: 10px 14px;
+            font-weight: 800;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-hdr button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        #ludoChatHistory {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chat-msg {
+            background: rgba(255, 255, 255, .08);
+            padding: 8px 12px;
+            border-radius: 10px;
+            max-width: 85%;
+            font-size: .85rem;
+            word-wrap: break-word;
+        }
+
+        .chat-msg.mine {
+            background: var(--blue);
+            align-self: flex-end;
+            color: #fff;
+        }
+
+        .sender-name {
+            font-size: .65rem;
+            color: var(--muted);
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .chat-input-row {
+            display: flex;
+            padding: 8px;
+            border-top: 1px solid #334155;
+            background: var(--bg);
+        }
+
+        .chat-input-row input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background: var(--surface);
+            color: #fff;
+            outline: none;
+            margin-left: 6px;
+        }
+
+        .chat-input-row button {
+            background: var(--accent);
+            border: none;
+            padding: 0 14px;
+            border-radius: 8px;
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .footer-heka {
+            margin: 20px 0;
+            font-size: 1.8rem;
+            color: var(--accent);
+            opacity: .5;
+            font-weight: 900;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1
+            }
+        }
+
+        @media(max-width:400px) {
+            .score-card {
+                min-width: 60px;
+                padding: 6px 3px
+            }
+
+            .menu-title {
+                font-size: 1.8rem
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(3, 1fr)
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Toast -->
+    <div id="toastContainer"></div>
+
+    <!-- ===== MAIN MENU ===== -->
+    <div id="mainMenu">
+        <div class="menu-box">
+            <div class="menu-title">🎲 لودو 4Fun</div>
+            <p class="menu-sub">العب لودو مع أصحابك أونلاين أو ضد الكمبيوتر!</p>
+
+            <p class="menu-label">عدد اللاعبين</p>
+            <div class="player-select" id="playerSelect">
+                <button class="p-btn" onclick="selectPlayers(2)">2</button>
+                <button class="p-btn" onclick="selectPlayers(3)">3</button>
+                <button class="p-btn active" onclick="selectPlayers(4)">4</button>
+            </div>
+
+            <button class="menu-btn btn-bot" onclick="startBotGame(selectedPlayers)">🤖 ضد الكمبيوتر</button>
+            <button class="menu-btn btn-online" onclick="showOnlineSetup()">🌐 لعب أونلاين</button>
+            <button class="menu-btn btn-back" onclick="location.href='index.html'">🔙 رجوع للقائمة</button>
+        </div>
+    </div>
+
+    <!-- ===== ONLINE SETUP ===== -->
+    <div id="onlineSetup">
+        <div class="menu-box">
+            <h2 style="color:var(--accent)">🌐 اللعب أونلاين</h2>
+            <p id="onlineName" style="color:var(--muted);margin:10px 0"></p>
+            <input type="text" id="ludoRoomInput" placeholder="رقم الغرفة (مثلاً: ludo123)">
+            <button class="menu-btn btn-online" onclick="joinLobby()">🚀 دخول الغرفة</button>
+            <button class="menu-btn btn-back"
+                onclick="document.getElementById('onlineSetup').style.display='none';document.getElementById('mainMenu').style.display='block';">🔙
+                رجوع</button>
+        </div>
+    </div>
+
+    <!-- ===== LOBBY ===== -->
+    <div id="onlineLobby" style="display:none;" class="menu-box">
+        <div class="menu-content" style="text-align:center;">
+            <h2 style="color:var(--yellow);margin-bottom:10px;text-shadow:0 0 10px rgba(234,179,8,0.5);">غرفة الانتظار ⏳
+            </h2>
+            <p style="color:var(--muted);font-size:18px;">رقم الغرفة: <span id="lobbyRoomId"
+                    style="color:white;font-weight:bold;"></span></p>
+
+            <ul id="lobbyPlayersList"
+                style="list-style:none; padding:0; text-align:right; margin:20px 0; font-size:18px;">
+            </ul>
+
+            <button class="menu-btn btn-online" id="btnStartOnline" style="display:none;"
+                onclick="startGameFromLobby()">🎮 ابدأ اللعبة</button>
+            <button class="menu-btn btn-back" onclick="leaveLobby()">🔙 خروج</button>
+        </div>
+    </div>
+
+    <!-- ===== GAME AREA ===== -->
+    <div id="gameContainer">
+        <div class="game-header">
+            <h2 id="roomLabel">لعب محلي</h2>
+            <div class="hdr-btns">
+                <button class="hdr-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
+                <button class="hdr-btn" onclick="restartGame()">🏠</button>
+            </div>
+        </div>
+
+        <!-- Scoreboard -->
+        <div class="scoreboard">
+            <div class="score-card" id="score-red">
+                <div class="s-color" style="background:var(--red)"></div><span class="s-name">-</span>
+                <div class="s-score">0</div>
+                <div class="s-pieces">0/4</div>
+            </div>
+            <div class="score-card" id="score-blue">
+                <div class="s-color" style="background:var(--blue)"></div><span class="s-name">-</span>
+                <div class="s-score">0</div>
+                <div class="s-pieces">0/4</div>
+            </div>
+            <div class="score-card" id="score-green">
+                <div class="s-color" style="background:var(--green)"></div><span class="s-name">-</span>
+                <div class="s-score">0</div>
+                <div class="s-pieces">0/4</div>
+            </div>
+            <div class="score-card" id="score-yellow">
+                <div class="s-color" style="background:var(--yellow)"></div><span class="s-name">-</span>
+                <div class="s-score">0</div>
+                <div class="s-pieces">0/4</div>
+            </div>
+        </div>
+
+        <!-- Board -->
+        <div class="board-wrapper">
+            <canvas id="ludoBoard" width="750" height="750" onclick="handleBoardClick(event)"></canvas>
+            <canvas id="particles"></canvas>
+        </div>
+
+        <!-- Dice & Turn -->
+        <div class="dice-area">
+            <span id="turnTimer">30s</span>
+            <span id="currentTurnLabel">دور: ---</span>
+            <span id="dice" onclick="rollDice()">🎲</span>
+        </div>
+
+        <div class="footer-heka" style="margin-top:20px;">heka</div>
+        <button class="menu-btn btn-back" style="max-width:300px" onclick="restartGame()">العودة للقائمة 🏠</button>
+    </div>
+
+    <!-- Chat -->
+    <button id="chatTrigger2" class="chat-float-btn" onclick="toggleLudoChat()">💬<div id="chatDot2"></div></button>
+    <div id="ludoChatBox">
+        <div class="chat-hdr"><span>دردشة 💬</span><button onclick="toggleLudoChat()">✖</button></div>
+        <div id="ludoChatHistory"></div>
+        <div class="emoji-bar"
+            style="position:static; padding:10px 5px; background:rgba(255,255,255,0.05); margin:5px; border-radius:10px; display:flex; justify-content:center; gap:8px;">
+            <button class="emoji-btn" onclick="sendEmoji('😂')">😂</button>
+            <button class="emoji-btn" onclick="sendEmoji('🔥')">🔥</button>
+            <button class="emoji-btn" onclick="sendEmoji('💪')">💪</button>
+            <button class="emoji-btn" onclick="sendEmoji('😎')">😎</button>
+            <button class="emoji-btn" onclick="sendEmoji('🎉')">🎉</button>
+            <button class="emoji-btn" onclick="sendEmoji('💀')">💀</button>
+            <button class="emoji-btn" onclick="sendEmoji('🤯')">🤯</button>
+            <button class="emoji-btn" onclick="sendEmoji('👏')">👏</button>
+        </div>
+        <div class="chat-input-row">
+            <input type="text" id="ludoChatInput" placeholder="اكتب رسالة..."
+                onkeypress="if(event.key==='Enter')sendChatMsg()">
+            <button onclick="sendChatMsg()">➤</button>
+        </div>
+    </div>
+
+    <!-- Win Overlay -->
+    <div id="winOverlay">
+        <div class="win-title">🏆 مبروك! 🏆</div>
+        <div id="winnerName">---</div>
+        <div class="win-stats">
+            <div class="win-stat"><span id="winnerScore">0</span>نقاط</div>
+            <div class="win-stat"><span id="winCaptures">0</span>أكل</div>
+            <div class="win-stat"><span id="winMoves">0</span>حركات</div>
+        </div>
+        <button class="menu-btn btn-online" style="max-width:250px;margin-top:20px" onclick="restartGame()">🔄 لعب
+            تاني</button>
+    </div>
+
+    <script>
+        let selectedPlayers = 4;
+        function selectPlayers(n) {
+            selectedPlayers = n;
+            document.querySelectorAll('.p-btn').forEach((b, i) => b.classList.toggle('active', [2, 3, 4][i] === n));
+        }
+        function pickColor(color, el) {
+            document.querySelectorAll('.cpick').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('ludoColorSelect').value = color;
+        }
+        // Set name on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const name = localStorage.getItem('heka_global_player_name') || localStorage.getItem('heka_player_name');
+            if (name) {
+                const el = document.getElementById('onlineName');
+                if (el) el.textContent = 'أهلاً، ' + name;
+            }
+        });
+    </script>
+    <script src="ludo.js"></script>
+</body>
+
+</html>

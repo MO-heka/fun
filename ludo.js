@@ -47,7 +47,7 @@ let G = {
     myName: 'مجهول',
     numPlayers: 4,
     currentTurn: 0,
-    players: [], // [{color,name,pieces:[{pos:-1,home:false,finished:false},...],score:0,isBot:false}]
+    players: [],
     dice: 0,
     diceRolled: false,
     sixCount: 0,
@@ -70,13 +70,59 @@ let G = {
     animating: false,
     chatOpen: false,
     emojis: ['😂', '🔥', '💪', '😎', '🎉', '💀', '🤯', '👏', '😤', '🥳'],
+    _audioCtx: null,
 };
+
+// ===== Full cleanup on page unload/back =====
+// When player leaves (back button, close tab, etc.), stop EVERYTHING to free RAM
+// The onDisconnect().remove() on presence will tell the host this player left
+// so a bot takes over. If they return later, they can rejoin.
+window.addEventListener('pagehide', fullCleanupOnExit);
+window.addEventListener('beforeunload', fullCleanupOnExit);
+
+let _cleanedUp = false;
+function fullCleanupOnExit() {
+    if (_cleanedUp) return;
+    _cleanedUp = true;
+
+    // 1. Stop audio
+    if (G._audioCtx) {
+        try { G._audioCtx.close(); } catch(e) {}
+        G._audioCtx = null;
+    }
+    G.soundOn = false;
+
+    // 2. Stop turn timer
+    clearTurnTimer();
+
+    // 3. Stop animation/render loop
+    cancelAnimationFrame(animFrame);
+
+    // 4. Detach ALL Firebase listeners to stop network/RAM usage
+    if (G.roomId) {
+        try {
+            db.ref('ludo_rooms/' + G.roomId + '/state').off();
+            db.ref('ludo_rooms/' + G.roomId + '/presence').off();
+            db.ref('ludo_rooms/' + G.roomId + '/chat').off();
+            db.ref('ludo_rooms/' + G.roomId + '/gameStarted').off();
+            db.ref('ludo_rooms/' + G.roomId + '/lobby').off();
+        } catch(e) {}
+        // Note: presence removal happens automatically via onDisconnect()
+    }
+
+    // 5. Clear game state to free memory
+    G.players = [];
+    G.validMoves = [];
+    G.moveHistory = [];
+}
 
 // Audio
 const SFX = {};
 function initAudio() {
     const AC = new (window.AudioContext || window.webkitAudioContext)();
+    G._audioCtx = AC;
     function tone(freq, dur, type = 'sine') {
+        if (!G._audioCtx || G._audioCtx.state === 'closed') return;
         const o = AC.createOscillator(), g = AC.createGain();
         o.type = type; o.frequency.value = freq;
         g.gain.setValueAtTime(0.15, AC.currentTime);
@@ -195,8 +241,8 @@ function rollDice() {
     if (G.diceRolled || G.gameOver || G.animating) return;
     const player = G.players[G.currentTurn];
     if (player.isBot) return;
-    // Online: only let the correct player roll
-    if (G.mode === 'online' && player.name !== G.myName) return;
+    // Online: only let the correct player roll (use color for reliable sync)
+    if (G.mode === 'online' && player.color !== G.myColor) return;
     doRollDice();
 }
 
@@ -501,7 +547,7 @@ function startTurnTimer() {
         return;
     }
     // In online mode, only show timer if it's my turn
-    if (G.mode === 'online' && player && player.name !== G.myName) {
+    if (G.mode === 'online' && player && player.color !== G.myColor) {
         const el = document.getElementById('turnTimer');
         if (el) el.textContent = '⏳';
         return;
@@ -517,7 +563,7 @@ function startTurnTimer() {
             showToast('⏰ انتهى الوقت! لعب تلقائي...');
             sfx('buzz');
             // In online, only auto-play if I'm host or it's my turn
-            if (G.mode === 'online' && !G.isHost && player.name !== G.myName) return;
+            if (G.mode === 'online' && !G.isHost && player.color !== G.myColor) return;
             autoPlay();
         }
     }, 1000);
@@ -546,14 +592,21 @@ function clearHighlights() {
 function renderBoard() {
     const board = document.getElementById('ludoBoard');
     if (!board) return;
-    const ctx = board.getContext('2d');
     const W = board.width, H = board.height;
-    const cell = W / 15;
-    ctx.clearRect(0, 0, W, H);
+    // If canvas has no size yet, try to resize and skip this frame
+    if (W === 0 || H === 0) {
+        resizeCanvas();
+        return;
+    }
+    const ctx = board.getContext('2d');
+    // Use CSS size for drawing coordinates (ctx is already scaled by DPR)
+    const cssSize = parseFloat(board.style.width) || (W / (window.devicePixelRatio || 1));
+    const cell = cssSize / 15;
+    ctx.clearRect(0, 0, cssSize, cssSize);
 
     // Background
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, cssSize, cssSize);
 
     // Draw colored bases (6x6 cells each corner)
     drawBase(ctx, 0, 0, cell * 6, cell * 6, '#ef4444', '#b91c1c', '#fca5a5');       // red top-left
@@ -604,8 +657,8 @@ function renderBoard() {
                 y = 7.5 * cell + Math.sin(angle) * cell * 0.7;
             } else if (piece.pos === -1) {
                 const bc = BASE_COORDS[player.color][i];
-                x = bc[0] * cell;
-                y = bc[1] * cell;
+                x = bc[0] * cell + cell / 2;
+                y = bc[1] * cell + cell / 2;
             } else if (piece.homeStretch >= 0) {
                 const hc = HOME_STRETCH_COORDS[player.color][piece.homeStretch];
                 if (hc) { x = hc[0] * cell + cell / 2; y = hc[1] * cell + cell / 2; }
@@ -902,16 +955,15 @@ function handleBoardClick(e) {
     if (!G.diceRolled || G.animating || G.gameOver) return;
     const player = G.players[G.currentTurn];
     if (player.isBot) return;
-    // Online: only the correct player can move
-    if (G.mode === 'online' && player.name !== G.myName) return;
+    // Online: only the correct player can move (use color for reliable sync)
+    if (G.mode === 'online' && player.color !== G.myColor) return;
 
     const canvas = document.getElementById('ludoBoard');
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const mx = (e.clientX - rect.left) * scaleX;
-    const my = (e.clientY - rect.top) * scaleY;
-    const cell = canvas.width / 15;
+    // Use CSS coordinates (same as rendering coordinates)
+    const mx = (e.clientX - rect.left) * (parseFloat(canvas.style.width) || rect.width) / rect.width;
+    const my = (e.clientY - rect.top) * (parseFloat(canvas.style.height) || rect.height) / rect.height;
+    const cell = (parseFloat(canvas.style.width) || rect.width) / 15;
 
     if (!G.validMoves || G.validMoves.length === 0) return;
 
@@ -963,7 +1015,6 @@ function listenOnline() {
             initGame('online', data.players.length, G.roomId);
         }
 
-        const wasMyTurn = G.players && G.players[G.currentTurn] && G.players[G.currentTurn].name === G.myName;
         const prevTurn = G.currentTurn;
 
         G.players = data.players;
@@ -973,6 +1024,21 @@ function listenOnline() {
         G.rankings = data.rankings || [];
         G.gameOver = data.gameOver;
         G.sixCount = data.sixCount || 0;
+        G.numPlayers = data.players.length;
+
+        // Detect myColor from player list using name match
+        if (!G.myColor) {
+            const me = G.players.find(p => p.name === G.myName || p._originalName === G.myName);
+            if (me) G.myColor = me.color;
+        }
+
+        // Update stats dicts
+        G.players.forEach(p => {
+            if (G.totalMoves[p.color] === undefined) G.totalMoves[p.color] = 0;
+            if (G.captures[p.color] === undefined) G.captures[p.color] = 0;
+            if (G.finishedPieces[p.color] === undefined) G.finishedPieces[p.color] = 0;
+            if (G.streakSixes[p.color] === undefined) G.streakSixes[p.color] = 0;
+        });
 
         // If turn changed, reset local timer
         if (prevTurn !== G.currentTurn) {
@@ -1065,14 +1131,27 @@ function startBotGame() {
     document.getElementById('gameContainer').style.display = 'flex';
     // Hide chat entirely in bot mode
     document.getElementById('chatTrigger2').style.display = 'none';
-    startTurnTimer();
-    gameLoop();
+    // Wait a frame for the container to be visible, then resize canvas and start
+    requestAnimationFrame(() => {
+        resizeCanvas();
+        startTurnTimer();
+        gameLoop();
+    });
 }
 function startOnlineGame() {
     document.getElementById('onlineLobby').style.display = 'none';
     document.getElementById('gameContainer').style.display = 'flex';
     document.getElementById('chatTrigger2').style.display = 'flex';
     G.mode = 'online';
+
+    // Detect myColor from lobby data
+    db.ref(`ludo_rooms/${G.roomId}/state/players`).once('value', snap => {
+        const players = snap.val();
+        if (players) {
+            const me = players.find(p => p.name === G.myName || p._originalName === G.myName);
+            if (me) G.myColor = me.color;
+        }
+    });
 
     // Disconnect handling
     G.myPresenceRef = db.ref(`ludo_rooms/${G.roomId}/presence/${G.myName}`);
@@ -1104,29 +1183,83 @@ function startOnlineGame() {
 
     listenOnline();
     initChat();
-    startTurnTimer();
-    gameLoop();
+    // Wait a frame for the container to be visible, then resize canvas and start
+    requestAnimationFrame(() => {
+        resizeCanvas();
+        startTurnTimer();
+        gameLoop();
+    });
+}
+
+// ===== Auto-cleanup rooms older than 2 hours =====
+function cleanupOldRooms() {
+    const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
+    db.ref('ludo_rooms').orderByChild('createdAt').endAt(twoHoursAgo).once('value', snap => {
+        const rooms = snap.val();
+        if (!rooms) return;
+        Object.keys(rooms).forEach(roomId => {
+            db.ref('ludo_rooms/' + roomId).remove();
+        });
+    });
+}
+
+// Generate a random 6-char room code
+function generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
+// Create a new room (auto-generate code)
+function createRoom() {
+    G.myName = localStorage.getItem('heka_global_player_name') || localStorage.getItem('heka_player_name') || 'لاعب';
+    
+    // Cleanup old rooms first
+    cleanupOldRooms();
+
+    const roomCode = generateRoomCode();
+    G.roomId = roomCode;
+    G.isHost = true;
+
+    // Create the room in Firebase
+    db.ref(`ludo_rooms/${G.roomId}`).set({
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        host: G.myName,
+        gameStarted: false
+    }).then(() => {
+        // Join the lobby as host
+        _enterLobby();
+    });
 }
 
 function joinLobby() {
     G.myName = localStorage.getItem('heka_global_player_name') || localStorage.getItem('heka_player_name') || 'لاعب';
     G.roomId = document.getElementById('ludoRoomInput').value.trim();
-    if (!G.roomId) { alert('اكتب رقم الغرفة!'); return; }
+    if (!G.roomId) { alert('اكتب كود الغرفة!'); return; }
     
-    // Check if game already started — try to rejoin or block
-    db.ref(`ludo_rooms/${G.roomId}/gameStarted`).once('value', snap => {
-        if (snap.val()) {
-            // Game already started — check if this player was in the game (rejoin)
+    // Cleanup old rooms
+    cleanupOldRooms();
+
+    // Check if room exists
+    db.ref(`ludo_rooms/${G.roomId}`).once('value', snap => {
+        if (!snap.exists()) {
+            alert('الغرفة مش موجودة! تأكد من الكود 🚫');
+            return;
+        }
+
+        // Check if game already started — try to rejoin or block
+        const roomData = snap.val();
+        if (roomData.gameStarted) {
             db.ref(`ludo_rooms/${G.roomId}/state/players`).once('value', stateSnap => {
                 const players = stateSnap.val();
                 if (!players) { alert('الغرفة مشغولة! اللعبة بدأت بالفعل 🚫'); return; }
                 const mySlot = players.find(p => p._originalName === G.myName || p.name === G.myName);
                 if (mySlot) {
-                    // Rejoin — set presence and go directly to game
                     showToast('🟢 بترجع للعبة...');
+                    G.myColor = mySlot.color;
                     G.isHost = false;
                     document.getElementById('onlineSetup').style.display = 'none';
-                    // Set presence so host detects rejoin
                     const rejoinRef = db.ref(`ludo_rooms/${G.roomId}/presence/${G.myName}`);
                     rejoinRef.set(true);
                     rejoinRef.onDisconnect().remove();
@@ -1140,37 +1273,50 @@ function joinLobby() {
         }
 
         // Game not started yet — join lobby normally
-        document.getElementById('onlineSetup').style.display = 'none';
-        document.getElementById('onlineLobby').style.display = 'block';
-        document.getElementById('lobbyRoomId').textContent = G.roomId;
+        G.isHost = false;
+        _enterLobby();
+    });
+}
 
-        G.lobbyRef = db.ref(`ludo_rooms/${G.roomId}/lobby/${G.myName}`);
-        G.lobbyRef.set({ joined: true });
-        G.lobbyRef.onDisconnect().remove();
+function _enterLobby() {
+    document.getElementById('onlineSetup').style.display = 'none';
+    document.getElementById('onlineLobby').style.display = 'block';
+    document.getElementById('lobbyRoomId').textContent = G.roomId;
 
+    G.lobbyRef = db.ref(`ludo_rooms/${G.roomId}/lobby/${G.myName}`);
+    G.lobbyRef.set({ joined: true });
+    G.lobbyRef.onDisconnect().remove();
+
+    // Read host name from room
+    db.ref(`ludo_rooms/${G.roomId}/host`).once('value', snap => {
+        const hostName = snap.val();
+        
         db.ref(`ludo_rooms/${G.roomId}/lobby`).on('value', snap2 => {
             const players = snap2.val() || {};
             const keys = Object.keys(players);
             const ul = document.getElementById('lobbyPlayersList');
             ul.innerHTML = '';
             keys.forEach((k, i) => {
-                ul.innerHTML += `<li style="padding:10px; background:rgba(255,255,255,0.1); margin-top:5px; border-radius:10px;">👤 ${k} ${i===0?'👑 (المضيف)':''}</li>`;
-                if (k === G.myName) G.isHost = (i === 0);
+                const isHost = (k === hostName);
+                ul.innerHTML += `<li style="padding:10px; background:rgba(255,255,255,0.1); margin-top:5px; border-radius:10px;">👤 ${k} ${isHost?'👑 (المضيف)':''}</li>`;
+                if (k === G.myName) G.isHost = isHost;
             });
-            document.getElementById('btnStartOnline').style.display = G.isHost && keys.length > 0 ? 'inline-block' : 'none';
+            // Only show start button for the host, and need at least 2 players
+            document.getElementById('btnStartOnline').style.display = G.isHost && keys.length >= 2 ? 'inline-block' : 'none';
         });
+    });
 
-        db.ref(`ludo_rooms/${G.roomId}/gameStarted`).on('value', snap3 => {
-            if (snap3.val()) {
-                db.ref(`ludo_rooms/${G.roomId}/gameStarted`).off();
-                db.ref(`ludo_rooms/${G.roomId}/lobby`).off();
-                startOnlineGame();
-            }
-        });
+    db.ref(`ludo_rooms/${G.roomId}/gameStarted`).on('value', snap3 => {
+        if (snap3.val()) {
+            db.ref(`ludo_rooms/${G.roomId}/gameStarted`).off();
+            db.ref(`ludo_rooms/${G.roomId}/lobby`).off();
+            startOnlineGame();
+        }
     });
 }
 
 function startGameFromLobby() {
+    if (!G.isHost) return; // Only host can start
     db.ref(`ludo_rooms/${G.roomId}/lobby`).once('value', snap => {
          const pObj = snap.val() || {};
          const pKeys = Object.keys(pObj);
@@ -1186,11 +1332,16 @@ function startGameFromLobby() {
              const isBot = !pKeys[i];
              players.push({
                  color, name, isBot,
-                 _originalName: name, // save for rejoin detection
+                 _originalName: name,
                  pieces: [{ pos: -1, homeStretch: -1, finished: false }, { pos: -1, homeStretch: -1, finished: false }, { pos: -1, homeStretch: -1, finished: false }, { pos: -1, homeStretch: -1, finished: false }],
                  score: 0, finished: false
              });
          }
+
+         // Set host myColor right away
+         const hostPlayer = players.find(p => p.name === G.myName);
+         if (hostPlayer) G.myColor = hostPlayer.color;
+
          db.ref(`ludo_rooms/${G.roomId}/state`).set({
              players, currentTurn: 0, dice: 1, diceRolled: false, gameOver: false, sixCount: 0
          }).then(() => {
@@ -1201,6 +1352,10 @@ function startGameFromLobby() {
 
 function leaveLobby() {
     if (G.lobbyRef) G.lobbyRef.remove();
+    // If host leaves, remove the room
+    if (G.isHost && G.roomId) {
+        db.ref(`ludo_rooms/${G.roomId}`).remove();
+    }
     document.getElementById('onlineLobby').style.display = 'none';
     document.getElementById('mainMenu').style.display = 'block';
 }
@@ -1208,6 +1363,11 @@ function leaveLobby() {
 function restartGame() {
     cancelAnimationFrame(animFrame);
     clearTurnTimer();
+    // Close audio context to stop all sounds
+    if (G._audioCtx) {
+        try { G._audioCtx.close(); } catch(e) {}
+        G._audioCtx = null;
+    }
     // Stop all Firebase listeners and remove presence
     if (G.roomId) {
         db.ref('ludo_rooms/' + G.roomId + '/state').off();
@@ -1223,6 +1383,7 @@ function restartGame() {
     G.players = [];
     G.roomId = '';
     G.mode = null;
+    G.myColor = null;
     G.diceRolled = false;
     G.gameOver = false;
     G.validMoves = [];
@@ -1243,14 +1404,24 @@ function showOnlineSetup() {
     document.getElementById('onlineSetup').style.display = 'block';
 }
 
-// Canvas resize
+// Canvas resize — updates BOTH CSS size and internal canvas resolution
 function resizeCanvas() {
     const canvas = document.getElementById('ludoBoard');
     if (!canvas) return;
     const container = canvas.parentElement;
+    if (!container || container.offsetWidth === 0) return;
     const size = Math.min(container.offsetWidth, 600);
     canvas.style.width = size + 'px';
     canvas.style.height = size + 'px';
+    // Set internal resolution for sharp rendering on high-DPI screens
+    // Note: setting canvas.width resets the context transform, so scale won't stack
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Re-render after resize
+    if (G.players && G.players.length > 0) renderBoard();
 }
 window.addEventListener('resize', resizeCanvas);
 

@@ -751,8 +751,10 @@
         <div class="menu-box">
             <h2 style="color:var(--accent)">🌐 اللعب أونلاين</h2>
             <p id="onlineName" style="color:var(--muted);margin:10px 0"></p>
-            <input type="text" id="ludoRoomInput" placeholder="رقم الغرفة (مثلاً: ludo123)">
-            <button class="menu-btn btn-online" onclick="joinLobby()">🚀 دخول الغرفة</button>
+            <button class="menu-btn btn-online" onclick="createRoom()">🏠 إنشاء غرفة جديدة</button>
+            <p class="menu-label" style="margin-top:20px">أو ادخل كود غرفة موجودة</p>
+            <input type="text" id="ludoRoomInput" placeholder="كود الغرفة (مثلاً: ABC123)" style="text-transform:uppercase">
+            <button class="menu-btn btn-bot" onclick="joinLobby()">🚀 دخول الغرفة</button>
             <button class="menu-btn btn-back"
                 onclick="document.getElementById('onlineSetup').style.display='none';document.getElementById('mainMenu').style.display='block';">🔙
                 رجوع</button>

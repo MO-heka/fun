@@ -289,6 +289,7 @@ function doRollDice(onComplete) {
                     G.sixCount = 0;
                     G.diceRolled = false;
                     nextTurn();
+                    if (G.mode === 'online') syncState();
                     return;
                 }
             } else {
@@ -298,7 +299,11 @@ function doRollDice(onComplete) {
             const moves = getValidMoves();
             if (moves.length === 0) {
                 showToast('مفيش حركة متاحة ❌');
-                setTimeout(() => { G.diceRolled = false; nextTurn(); }, 1000);
+                setTimeout(() => { 
+                    G.diceRolled = false; 
+                    nextTurn(); 
+                    if (G.mode === 'online') syncState();
+                }, 1000);
             } else {
                 highlightMoves(moves);
                 // If callback provided (bot), call it with moves
@@ -497,7 +502,11 @@ function autoPlay() {
 function makeAutoMove(moves) {
     const player = G.players[G.currentTurn];
     if (!moves || moves.length === 0) {
-        setTimeout(() => { G.diceRolled = false; nextTurn(); }, 1000);
+        setTimeout(() => { 
+            G.diceRolled = false; 
+            nextTurn(); 
+            if (G.mode === 'online') syncState();
+        }, 1000);
         return;
     }
 
@@ -562,8 +571,15 @@ function startTurnTimer() {
             clearTurnTimer();
             showToast('⏰ انتهى الوقت! لعب تلقائي...');
             sfx('buzz');
-            // In online, only auto-play if I'm host or it's my turn
-            if (G.mode === 'online' && !G.isHost && player.color !== G.myColor) return;
+            // In online, restrict who triggers autoPlay strictly
+            if (G.mode === 'online') {
+                const p = G.players[G.currentTurn];
+                if (p.isBot) {
+                    if (!G.isHost) return; // Only host autoPlays bots
+                } else {
+                    if (p.color !== G.myColor) return; // Only you can autoPlay yourself
+                }
+            }
             autoPlay();
         }
     }, 1000);

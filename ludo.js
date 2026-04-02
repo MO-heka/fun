@@ -992,43 +992,59 @@ function handleBoardClick(e) {
 }
 
 // ===== Online Sync =====
+// Sequence number to prevent stale state from overwriting newer state
+let _syncSeq = 0;
+
 function syncState() {
     if (G.mode !== 'online' || !G.roomId) return;
+    _syncSeq++;
     db.ref('ludo_rooms/' + G.roomId + '/state').set({
         players: G.players,
         currentTurn: G.currentTurn,
         dice: G.dice,
         diceRolled: G.diceRolled,
-        rankings: G.rankings,
+        rankings: G.rankings || [],
         gameOver: G.gameOver,
-        sixCount: G.sixCount
+        sixCount: G.sixCount,
+        seq: _syncSeq,
+        updatedBy: G.mySlotId || ''
     });
 }
+
+// Track the last sequence number we processed to ignore stale/own updates
+let _lastReceivedSeq = -1;
+let _botAutoPlayScheduled = false;
 
 function listenOnline() {
     db.ref('ludo_rooms/' + G.roomId + '/state').on('value', snap => {
         const data = snap.val();
-        if (!data) return;
-        
-        // Basic initializations for clients not hosting, ensures stats dicts exist
-        if (!G.players || G.players.length === 0) {
-            initGame('online', data.players.length, G.roomId);
+        if (!data || !data.players) return;
+
+        const incomingSeq = data.seq || 0;
+
+        // If this update was sent by us, skip reprocessing (we already have the state)
+        if (data.updatedBy === G.mySlotId && incomingSeq <= _syncSeq) {
+            return;
         }
+
+        // Track sequence
+        _lastReceivedSeq = incomingSeq;
 
         const prevTurn = G.currentTurn;
 
+        // Apply the full authoritative state from Firebase
         G.players = data.players;
         G.currentTurn = data.currentTurn;
         G.dice = data.dice;
-        G.diceRolled = data.diceRolled;
+        G.diceRolled = data.diceRolled;  // Trust the synced value
         G.rankings = data.rankings || [];
         G.gameOver = data.gameOver;
         G.sixCount = data.sixCount || 0;
         G.numPlayers = data.players.length;
 
-        // Detect myColor from player list using name match
-        if (!G.myColor) {
-            const me = G.players.find(p => p.name === G.myName || p._originalName === G.myName);
+        // Detect myColor from slotId
+        if (!G.myColor && G.mySlotId) {
+            const me = G.players.find(p => p.slotId === G.mySlotId);
             if (me) G.myColor = me.color;
         }
 
@@ -1043,14 +1059,19 @@ function listenOnline() {
         // If turn changed, reset local timer
         if (prevTurn !== G.currentTurn) {
             clearTurnTimer();
-            G.diceRolled = false;
             startTurnTimer();
         }
 
-        // If it's now a bot's turn and I'm the host, auto-play
+        // If it's now a bot's turn and I'm the host, auto-play (with guard against duplicates)
         const curPlayer = G.players[G.currentTurn];
-        if (G.isHost && curPlayer && curPlayer.isBot && !G.gameOver) {
-            setTimeout(autoPlay, 800);
+        if (G.isHost && curPlayer && curPlayer.isBot && !G.gameOver && !_botAutoPlayScheduled) {
+            _botAutoPlayScheduled = true;
+            setTimeout(() => {
+                _botAutoPlayScheduled = false;
+                if (G.players[G.currentTurn] && G.players[G.currentTurn].isBot && !G.gameOver) {
+                    autoPlay();
+                }
+            }, 800);
         }
 
         renderBoard();
@@ -1144,36 +1165,39 @@ function startOnlineGame() {
     document.getElementById('chatTrigger2').style.display = 'flex';
     G.mode = 'online';
 
-    // Detect myColor from lobby data
+    // Detect myColor from slotId
     db.ref(`ludo_rooms/${G.roomId}/state/players`).once('value', snap => {
         const players = snap.val();
         if (players) {
-            const me = players.find(p => p.name === G.myName || p._originalName === G.myName);
+            const me = players.find(p => p.slotId === G.mySlotId);
             if (me) G.myColor = me.color;
         }
     });
 
-    // Disconnect handling
-    G.myPresenceRef = db.ref(`ludo_rooms/${G.roomId}/presence/${G.myName}`);
-    G.myPresenceRef.set(true);
+    // Disconnect handling - use slotId as the key for presence (unique per player)
+    const presenceKey = G.mySlotId || G.myName;
+    G.myPresenceRef = db.ref(`ludo_rooms/${G.roomId}/presence/${presenceKey}`);
+    G.myPresenceRef.set({ name: G.myName, slotId: G.mySlotId });
     G.myPresenceRef.onDisconnect().remove();
 
     db.ref(`ludo_rooms/${G.roomId}/presence`).on('value', snap => {
         if (!G.isHost || !G.players) return;
         const pres = snap.val() || {};
+        const presentSlotIds = Object.values(pres).map(v => v.slotId || v);
         let changed = false;
         G.players.forEach(p => {
              // Mark disconnected human players as bots
-             if (!p.isBot && p.name !== G.myName && !pres[p.name]) {
+             if (!p.isBot && p.slotId !== G.mySlotId && !presentSlotIds.includes(p.slotId)) {
                  p.isBot = true;
-                 p._originalName = p._originalName || p.name; // save original name for rejoin
+                 p._originalName = p._originalName || p.name;
+                 p._originalSlotId = p._originalSlotId || p.slotId;
                  changed = true;
                  showToast(`🔴 ${p.name} غادر اللعبة! بيلعب مكانه البوت`);
              }
-             // Rejoin: if a bot has the original name of a present player, restore them
-             if (p.isBot && p._originalName && pres[p._originalName]) {
+             // Rejoin: if a bot has the original slotId of a present player, restore them
+             if (p.isBot && p._originalSlotId && presentSlotIds.includes(p._originalSlotId)) {
                  p.isBot = false;
-                 p.name = p._originalName;
+                 p.name = p._originalName || p.name;
                  changed = true;
                  showToast(`🟢 ${p.name} رجع للعبة!`);
              }
@@ -1203,33 +1227,40 @@ function cleanupOldRooms() {
     });
 }
 
-// Generate a random 6-char room code
+// Generate a random 4-digit room code
 function generateRoomCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-    return code;
+    return String(Math.floor(1000 + Math.random() * 9000));
 }
 
-// Create a new room (auto-generate code)
+// Create a new room (auto-generate 4-digit code, retry if taken)
 function createRoom() {
     G.myName = localStorage.getItem('heka_global_player_name') || localStorage.getItem('heka_player_name') || 'لاعب';
     
     // Cleanup old rooms first
     cleanupOldRooms();
 
+    // Generate a unique slot ID for this player
+    G.mySlotId = 'slot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
     const roomCode = generateRoomCode();
     G.roomId = roomCode;
     G.isHost = true;
 
-    // Create the room in Firebase
-    db.ref(`ludo_rooms/${G.roomId}`).set({
-        createdAt: firebase.database.ServerValue.TIMESTAMP,
-        host: G.myName,
-        gameStarted: false
-    }).then(() => {
-        // Join the lobby as host
-        _enterLobby();
+    // Check if code already exists, if so regenerate
+    db.ref(`ludo_rooms/${G.roomId}`).once('value', snap => {
+        if (snap.exists()) {
+            // Try again with a different code
+            G.roomId = generateRoomCode();
+        }
+        // Create the room in Firebase
+        db.ref(`ludo_rooms/${G.roomId}`).set({
+            createdAt: firebase.database.ServerValue.TIMESTAMP,
+            host: G.myName,
+            hostSlotId: G.mySlotId,
+            gameStarted: false
+        }).then(() => {
+            _enterLobby();
+        });
     });
 }
 
@@ -1240,6 +1271,9 @@ function joinLobby() {
     
     // Cleanup old rooms
     cleanupOldRooms();
+
+    // Generate a unique slot ID for this player
+    G.mySlotId = 'slot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
     // Check if room exists
     db.ref(`ludo_rooms/${G.roomId}`).once('value', snap => {
@@ -1254,14 +1288,16 @@ function joinLobby() {
             db.ref(`ludo_rooms/${G.roomId}/state/players`).once('value', stateSnap => {
                 const players = stateSnap.val();
                 if (!players) { alert('الغرفة مشغولة! اللعبة بدأت بالفعل 🚫'); return; }
+                // Try to find our slot by name or originalName
                 const mySlot = players.find(p => p._originalName === G.myName || p.name === G.myName);
                 if (mySlot) {
                     showToast('🟢 بترجع للعبة...');
+                    G.mySlotId = mySlot.slotId;
                     G.myColor = mySlot.color;
                     G.isHost = false;
                     document.getElementById('onlineSetup').style.display = 'none';
-                    const rejoinRef = db.ref(`ludo_rooms/${G.roomId}/presence/${G.myName}`);
-                    rejoinRef.set(true);
+                    const rejoinRef = db.ref(`ludo_rooms/${G.roomId}/presence/${G.mySlotId}`);
+                    rejoinRef.set({ name: G.myName, slotId: G.mySlotId });
                     rejoinRef.onDisconnect().remove();
                     G.myPresenceRef = rejoinRef;
                     startOnlineGame();
@@ -1283,13 +1319,14 @@ function _enterLobby() {
     document.getElementById('onlineLobby').style.display = 'block';
     document.getElementById('lobbyRoomId').textContent = G.roomId;
 
-    G.lobbyRef = db.ref(`ludo_rooms/${G.roomId}/lobby/${G.myName}`);
-    G.lobbyRef.set({ joined: true });
+    // Use slotId as the lobby key to guarantee uniqueness
+    G.lobbyRef = db.ref(`ludo_rooms/${G.roomId}/lobby/${G.mySlotId}`);
+    G.lobbyRef.set({ name: G.myName, slotId: G.mySlotId });
     G.lobbyRef.onDisconnect().remove();
 
-    // Read host name from room
-    db.ref(`ludo_rooms/${G.roomId}/host`).once('value', snap => {
-        const hostName = snap.val();
+    // Read host slotId from room
+    db.ref(`ludo_rooms/${G.roomId}/hostSlotId`).once('value', snap => {
+        const hostSlotId = snap.val();
         
         db.ref(`ludo_rooms/${G.roomId}/lobby`).on('value', snap2 => {
             const players = snap2.val() || {};
@@ -1297,9 +1334,11 @@ function _enterLobby() {
             const ul = document.getElementById('lobbyPlayersList');
             ul.innerHTML = '';
             keys.forEach((k, i) => {
-                const isHost = (k === hostName);
-                ul.innerHTML += `<li style="padding:10px; background:rgba(255,255,255,0.1); margin-top:5px; border-radius:10px;">👤 ${k} ${isHost?'👑 (المضيف)':''}</li>`;
-                if (k === G.myName) G.isHost = isHost;
+                const pData = players[k];
+                const displayName = pData.name || k;
+                const isHost = (k === hostSlotId);
+                ul.innerHTML += `<li style="padding:10px; background:rgba(255,255,255,0.1); margin-top:5px; border-radius:10px;">👤 ${displayName} ${isHost?'👑 (المضيف)':''}</li>`;
+                if (k === G.mySlotId) G.isHost = isHost;
             });
             // Only show start button for the host, and need at least 2 players
             document.getElementById('btnStartOnline').style.display = G.isHost && keys.length >= 2 ? 'inline-block' : 'none';
@@ -1319,7 +1358,7 @@ function startGameFromLobby() {
     if (!G.isHost) return; // Only host can start
     db.ref(`ludo_rooms/${G.roomId}/lobby`).once('value', snap => {
          const pObj = snap.val() || {};
-         const pKeys = Object.keys(pObj);
+         const pKeys = Object.keys(pObj); // these are slotIds
          const numOnlinePlayers = pKeys.length || 1;
          
          const players = [];
@@ -1328,22 +1367,27 @@ function startGameFromLobby() {
 
          for (let i = 0; i < numOnlinePlayers; i++) {
              const color = playColors[i];
-             const name = pKeys[i] || `Bot ${i+1}`;
-             const isBot = !pKeys[i];
+             const slotId = pKeys[i];
+             const pData = pObj[slotId];
+             const name = pData ? pData.name : `Bot ${i+1}`;
+             const isBot = !pData;
              players.push({
                  color, name, isBot,
+                 slotId: slotId,
                  _originalName: name,
                  pieces: [{ pos: -1, homeStretch: -1, finished: false }, { pos: -1, homeStretch: -1, finished: false }, { pos: -1, homeStretch: -1, finished: false }, { pos: -1, homeStretch: -1, finished: false }],
                  score: 0, finished: false
              });
          }
 
-         // Set host myColor right away
-         const hostPlayer = players.find(p => p.name === G.myName);
+         // Set host myColor right away using slotId
+         const hostPlayer = players.find(p => p.slotId === G.mySlotId);
          if (hostPlayer) G.myColor = hostPlayer.color;
 
+         _syncSeq = 1;
          db.ref(`ludo_rooms/${G.roomId}/state`).set({
-             players, currentTurn: 0, dice: 1, diceRolled: false, gameOver: false, sixCount: 0
+             players, currentTurn: 0, dice: 1, diceRolled: false, gameOver: false, sixCount: 0,
+             rankings: [], seq: 1, updatedBy: G.mySlotId
          }).then(() => {
              db.ref(`ludo_rooms/${G.roomId}/gameStarted`).set(true);
          });
@@ -1356,6 +1400,7 @@ function leaveLobby() {
     if (G.isHost && G.roomId) {
         db.ref(`ludo_rooms/${G.roomId}`).remove();
     }
+    G.mySlotId = null;
     document.getElementById('onlineLobby').style.display = 'none';
     document.getElementById('mainMenu').style.display = 'block';
 }

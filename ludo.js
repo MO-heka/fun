@@ -238,12 +238,12 @@ function initGame(mode, numPlayers, roomId) {
 
 // ===== Dice =====
 const DICE_SVGS = [
-    `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
-    `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
-    `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
-    `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/></svg>`,
-    `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
-    `<svg viewBox="0 0 100 100"><circle cx="30" cy="20" r="12" fill="#000"/><circle cx="70" cy="20" r="12" fill="#000"/><circle cx="30" cy="50" r="12" fill="#000"/><circle cx="70" cy="50" r="12" fill="#000"/><circle cx="30" cy="80" r="12" fill="#000"/><circle cx="70" cy="80" r="12" fill="#000"/></svg>`
+    `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="30" cy="20" r="12" fill="#000"/><circle cx="70" cy="20" r="12" fill="#000"/><circle cx="30" cy="50" r="12" fill="#000"/><circle cx="70" cy="50" r="12" fill="#000"/><circle cx="30" cy="80" r="12" fill="#000"/><circle cx="70" cy="80" r="12" fill="#000"/></svg>`
 ];
 
 function rollDice() {

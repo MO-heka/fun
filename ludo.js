@@ -1019,6 +1019,13 @@ let _syncSeq = 0;
 function syncState() {
     if (G.mode !== 'online' || !G.roomId) return;
     _syncSeq++;
+    
+    // Build explicit piece states for each color
+    let piecesPayload = {};
+    G.players.forEach(p => {
+        piecesPayload[`${p.color}Pieces`] = p.pieces;
+    });
+
     db.ref('ludo_rooms/' + G.roomId + '/state').set({
         players: G.players,
         currentTurn: G.currentTurn,
@@ -1028,7 +1035,12 @@ function syncState() {
         gameOver: G.gameOver,
         sixCount: G.sixCount,
         seq: _syncSeq,
-        updatedBy: G.mySlotId || ''
+        updatedBy: G.mySlotId || '',
+        
+        // --- Explicit fields for direct synchronization ---
+        activePlayerTurnNumber: G.currentTurn + 1,
+        activePlayerColor: G.players[G.currentTurn] ? G.players[G.currentTurn].color : '',
+        ...piecesPayload
     });
 }
 
@@ -1057,6 +1069,25 @@ function listenOnline() {
 
         // Apply the full authoritative state from Firebase
         G.players = Array.isArray(data.players) ? data.players : Object.values(data.players);
+        
+        // Sync pieces explicitly from the new fields 
+        G.players.forEach(p => {
+             const explicitPieces = data[`${p.color}Pieces`];
+             if (explicitPieces) {
+                 p.pieces = Array.isArray(explicitPieces) ? explicitPieces : Object.values(explicitPieces);
+             }
+             // Ultimate deep safety net to guarantee it's a safe Array of 4 elements
+             const rawPieces = p.pieces || {};
+             p.pieces = [0, 1, 2, 3].map(i => {
+                 const rp = rawPieces[i] || {};
+                 return {
+                     pos: rp.pos !== undefined ? rp.pos : -1,
+                     homeStretch: rp.homeStretch !== undefined ? rp.homeStretch : -1,
+                     finished: rp.finished || false
+                 };
+             });
+        });
+
         G.currentTurn = data.currentTurn;
         G.dice = data.dice;
         G.diceRolled = data.diceRolled;  // Trust the synced value

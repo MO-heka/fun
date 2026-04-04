@@ -237,6 +237,15 @@ function initGame(mode, numPlayers, roomId) {
 }
 
 // ===== Dice =====
+const DICE_SVGS = [
+    `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
+    `<svg viewBox="0 0 100 100"><circle cx="30" cy="20" r="12" fill="#000"/><circle cx="70" cy="20" r="12" fill="#000"/><circle cx="30" cy="50" r="12" fill="#000"/><circle cx="70" cy="50" r="12" fill="#000"/><circle cx="30" cy="80" r="12" fill="#000"/><circle cx="70" cy="80" r="12" fill="#000"/></svg>`
+];
+
 function rollDice() {
     if (G.diceRolled || G.gameOver || G.animating) return;
     const player = G.players[G.currentTurn];
@@ -250,15 +259,6 @@ function doRollDice(onComplete) {
     G.animating = true;
     const diceEl = document.getElementById('dice');
     
-    const diceSVGs = [
-        `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
-        `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
-        `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/></svg>`,
-        `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/></svg>`,
-        `<svg viewBox="0 0 100 100"><circle cx="25" cy="25" r="12" fill="#000"/><circle cx="75" cy="75" r="12" fill="#000"/><circle cx="25" cy="75" r="12" fill="#000"/><circle cx="75" cy="25" r="12" fill="#000"/><circle cx="50" cy="50" r="12" fill="#000"/></svg>`,
-        `<svg viewBox="0 0 100 100"><circle cx="30" cy="20" r="12" fill="#000"/><circle cx="70" cy="20" r="12" fill="#000"/><circle cx="30" cy="50" r="12" fill="#000"/><circle cx="70" cy="50" r="12" fill="#000"/><circle cx="30" cy="80" r="12" fill="#000"/><circle cx="70" cy="80" r="12" fill="#000"/></svg>`
-    ];
-
     let rolls = 0;
     const maxRolls = 10;
     
@@ -266,18 +266,23 @@ function doRollDice(onComplete) {
     
     const anim = setInterval(() => {
         const r = Math.floor(Math.random() * 6);
-        diceEl.innerHTML = diceSVGs[r];
+        diceEl.innerHTML = DICE_SVGS[r];
         rolls++;
         if (rolls >= maxRolls) {
             clearInterval(anim);
             G.dice = Math.floor(Math.random() * 6) + 1;
-            diceEl.innerHTML = diceSVGs[G.dice - 1];
+            diceEl.innerHTML = DICE_SVGS[G.dice - 1];
             diceEl.classList.remove('rolling');
             
             sfx('dice');
             vibrate(50);
             G.diceRolled = true;
             G.animating = false;
+
+            if (G.mode === 'online') syncState();
+            
+            clearTurnTimer();
+            startTurnTimer();
 
             if (G.dice === 6) {
                 sfx('six');
@@ -412,6 +417,9 @@ function movePiece(moveObj) {
         
         setTimeout(() => { 
             renderBoard(); 
+            clearTurnTimer();
+            startTurnTimer();
+            
             if (player.isBot) {
                 if (G.mode === 'online' && !G.isActingHost && !G.isHost) return;
                 autoPlay(); 
@@ -885,6 +893,13 @@ function updateDiceUI() {
             el.style.color = '#fff';
         }
     }
+    
+    const diceEl = document.getElementById('dice');
+    if (diceEl && !G.animating && G.dice >= 1 && G.dice <= 6) {
+        diceEl.innerHTML = DICE_SVGS[G.dice - 1];
+        diceEl.style.color = '#000';
+        diceEl.style.fontSize = 'initial';
+    }
 }
 
 // ===== Toast & Effects =====
@@ -1111,8 +1126,8 @@ function listenOnline() {
             if (G.streakSixes[p.color] === undefined) G.streakSixes[p.color] = 0;
         });
 
-        // If turn changed, reset local timer
-        if (prevTurn !== G.currentTurn) {
+        // If sequence changed, reset local timer for tight synchronization
+        if (incomingSeq > _lastReceivedSeq) {
             clearTurnTimer();
             startTurnTimer();
         }
@@ -1233,8 +1248,14 @@ function startOnlineGame() {
     // Disconnect handling - use slotId as the key for presence (unique per player)
     const presenceKey = G.mySlotId || G.myName;
     G.myPresenceRef = db.ref(`ludo_rooms/${G.roomId}/presence/${presenceKey}`);
-    G.myPresenceRef.set({ name: G.myName, slotId: G.mySlotId });
-    G.myPresenceRef.onDisconnect().remove();
+    
+    // Auto-reconnect presence logic natively supported by Firebase
+    db.ref('.info/connected').on('value', snap => {
+        if (snap.val() === true) {
+            G.myPresenceRef.set({ name: G.myName, slotId: G.mySlotId });
+            G.myPresenceRef.onDisconnect().remove();
+        }
+    });
 
     db.ref(`ludo_rooms/${G.roomId}/presence`).on('value', snap => {
         if (!G.players) return;

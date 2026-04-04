@@ -413,7 +413,7 @@ function movePiece(moveObj) {
         setTimeout(() => { 
             renderBoard(); 
             if (player.isBot) {
-                if (G.mode === 'online' && !G.isHost) return;
+                if (G.mode === 'online' && !G.isActingHost && !G.isHost) return;
                 autoPlay(); 
             }
         }, 600);
@@ -468,7 +468,7 @@ function nextTurn() {
     clearTurnTimer();
     let next = (G.currentTurn + 1) % G.numPlayers;
     let attempts = 0;
-    while (G.players[next].finished && attempts < G.numPlayers) {
+    while (G.players[next] && G.players[next].finished && attempts < G.numPlayers) {
         next = (next + 1) % G.numPlayers;
         attempts++;
     }
@@ -477,8 +477,8 @@ function nextTurn() {
     G.sixCount = 0;
     startTurnTimer();
     renderBoard();
-    if (G.players[G.currentTurn].isBot && !G.gameOver) {
-        if (G.mode === 'online' && !G.isHost) return;
+    if (G.players[G.currentTurn] && G.players[G.currentTurn].isBot && !G.gameOver) {
+        if (G.mode === 'online' && !G.isActingHost && !G.isHost) return;
         setTimeout(autoPlay, 800);
     }
 }
@@ -574,10 +574,10 @@ function startTurnTimer() {
             // In online, restrict who triggers autoPlay strictly
             if (G.mode === 'online') {
                 const p = G.players[G.currentTurn];
-                if (p.isBot) {
-                    if (!G.isHost) return; // Only host autoPlays bots
+                if (p && p.isBot) {
+                    if (!G.isActingHost && !G.isHost) return; // Only acting host autoPlays bots
                 } else {
-                    if (p.color !== G.myColor) return; // Only you can autoPlay yourself
+                    if (p && p.color !== G.myColor) return; // Only you can autoPlay yourself
                 }
             }
             autoPlay();
@@ -1043,6 +1043,8 @@ function listenOnline() {
             return;
         }
 
+        if (incomingSeq > _syncSeq) _syncSeq = incomingSeq;
+
         // Track sequence
         _lastReceivedSeq = incomingSeq;
 
@@ -1080,7 +1082,7 @@ function listenOnline() {
 
         // If it's now a bot's turn and I'm the host, auto-play (with guard against duplicates)
         const curPlayer = G.players[G.currentTurn];
-        if (G.isHost && curPlayer && curPlayer.isBot && !G.gameOver && !_botAutoPlayScheduled) {
+        if ((G.isActingHost || G.isHost) && curPlayer && curPlayer.isBot && !G.gameOver && !_botAutoPlayScheduled) {
             _botAutoPlayScheduled = true;
             setTimeout(() => {
                 _botAutoPlayScheduled = false;
@@ -1197,9 +1199,22 @@ function startOnlineGame() {
     G.myPresenceRef.onDisconnect().remove();
 
     db.ref(`ludo_rooms/${G.roomId}/presence`).on('value', snap => {
-        if (!G.isHost || !G.players) return;
+        if (!G.players) return;
         const pres = snap.val() || {};
         const presentSlotIds = Object.values(pres).map(v => v.slotId || v);
+
+        // Determine acting host (first connected player)
+        let actingHostSlot = null;
+        for (let p of G.players) {
+             if (presentSlotIds.includes(p.slotId) || p.slotId === G.mySlotId) {
+                 actingHostSlot = p.slotId;
+                 break;
+             }
+        }
+        G.isActingHost = (actingHostSlot === G.mySlotId) || G.isHost;
+
+        if (!G.isActingHost) return;
+
         let changed = false;
         G.players.forEach(p => {
              // Mark disconnected human players as bots
@@ -1208,14 +1223,14 @@ function startOnlineGame() {
                  p._originalName = p._originalName || p.name;
                  p._originalSlotId = p._originalSlotId || p.slotId;
                  changed = true;
-                 showToast(`🔴 ${p.name} غادر اللعبة! بيلعب مكانه البوت`);
+                 showToast(`🔴 ${p.name || 'لاعب'} غادر اللعبة! بيلعب مكانه البوت`);
              }
              // Rejoin: if a bot has the original slotId of a present player, restore them
              if (p.isBot && p._originalSlotId && presentSlotIds.includes(p._originalSlotId)) {
                  p.isBot = false;
                  p.name = p._originalName || p.name;
                  changed = true;
-                 showToast(`🟢 ${p.name} رجع للعبة!`);
+                 showToast(`🟢 ${p.name || 'لاعب'} رجع للعبة!`);
              }
         });
         if (changed) syncState();

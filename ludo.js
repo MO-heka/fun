@@ -877,8 +877,13 @@ function updateDiceUI() {
     const el = document.getElementById('currentTurnLabel');
     if (el) {
         const p = G.players[G.currentTurn];
-        el.textContent = `دور: ${p.name}`;
-        el.style.color = COLOR_HEX[p.color];
+        if (p) {
+            el.textContent = `دور: ${p.name || 'لاعب'}`;
+            el.style.color = COLOR_HEX[p.color] || '#fff';
+        } else {
+            el.textContent = `دور: ---`;
+            el.style.color = '#fff';
+        }
     }
 }
 
@@ -1051,7 +1056,7 @@ function listenOnline() {
         const prevTurn = G.currentTurn;
 
         // Apply the full authoritative state from Firebase
-        G.players = data.players;
+        G.players = Array.isArray(data.players) ? data.players : Object.values(data.players);
         G.currentTurn = data.currentTurn;
         G.dice = data.dice;
         G.diceRolled = data.diceRolled;  // Trust the synced value
@@ -1185,8 +1190,9 @@ function startOnlineGame() {
 
     // Detect myColor from slotId
     db.ref(`ludo_rooms/${G.roomId}/state/players`).once('value', snap => {
-        const players = snap.val();
+        let players = snap.val();
         if (players) {
+            if (!Array.isArray(players)) players = Object.values(players);
             const me = players.find(p => p.slotId === G.mySlotId);
             if (me) G.myColor = me.color;
         }

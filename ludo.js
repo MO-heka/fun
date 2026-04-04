@@ -147,10 +147,10 @@ function vibrate(ms) { if (G.vibrationOn && navigator.vibrate) navigator.vibrate
 const PATH_COORDS = [];
 const HOME_STRETCH_COORDS = { red: [], blue: [], yellow: [], green: [] };
 const BASE_COORDS = {
-    red: [[2, 2], [4, 2], [2, 4], [4, 4]], // top-left
-    blue: [[11, 2], [13, 2], [11, 4], [13, 4]], // top-right
-    yellow: [[11, 11], [13, 11], [11, 13], [13, 13]], // bottom-right
-    green: [[2, 11], [4, 11], [2, 13], [4, 13]] // bottom-left
+    red: [[1.5, 1.5], [3.5, 1.5], [1.5, 3.5], [3.5, 3.5]], // top-left
+    blue: [[10.5, 1.5], [12.5, 1.5], [10.5, 3.5], [12.5, 3.5]], // top-right
+    yellow: [[10.5, 10.5], [12.5, 10.5], [10.5, 12.5], [12.5, 12.5]], // bottom-right
+    green: [[1.5, 10.5], [3.5, 10.5], [1.5, 12.5], [3.5, 12.5]] // bottom-left
 };
 // Center/finish
 const CENTER = [6.5, 6.5];
@@ -1056,7 +1056,8 @@ function listenOnline() {
         const incomingSeq = data.seq || 0;
 
         // If this update was sent by us, skip reprocessing (we already have the state)
-        if (data.updatedBy === G.mySlotId && incomingSeq <= _syncSeq) {
+        // CRITICAL FIX: Only skip if G.players is already populated, otherwise the Host ignores the very first initialization!
+        if (data.updatedBy === G.mySlotId && incomingSeq <= _syncSeq && G.players && G.players.length > 0) {
             return;
         }
 
@@ -1453,9 +1454,21 @@ function startGameFromLobby() {
          if (hostPlayer) G.myColor = hostPlayer.color;
 
          _syncSeq = 1;
+         
+         // Build explicit piece states for each color
+         let piecesPayload = {};
+         players.forEach(p => {
+             piecesPayload[`${p.color}Pieces`] = p.pieces;
+         });
+
          db.ref(`ludo_rooms/${G.roomId}/state`).set({
              players, currentTurn: 0, dice: 1, diceRolled: false, gameOver: false, sixCount: 0,
-             rankings: [], seq: 1, updatedBy: G.mySlotId
+             rankings: [], seq: 1, updatedBy: G.mySlotId,
+             
+             // --- Explicit fields for direct synchronization ---
+             activePlayerTurnNumber: 1,
+             activePlayerColor: players[0] ? players[0].color : '',
+             ...piecesPayload
          }).then(() => {
              db.ref(`ludo_rooms/${G.roomId}/gameStarted`).set(true);
          });

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Sporcel Party - لعبة أسئلة جماعية في الوقت الحقيقي. العب مع أصدقائك واثبت معلوماتك!">
   <title>Sporcel Party 🎉 - لعبة الأسئلة الجماعية</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sporcel_style.css">
 </head>
 <body>
 
@@ -585,14 +585,14 @@
      SCRIPTS — ORDER MATTERS!
      ============================================================ -->
 <!-- 1. Categories (must load before main.js) -->
-<script src="categories/general.js"></script>
-<script src="categories/movies.js"></script>
-<script src="categories/football.js"></script>
-<script src="categories/programming.js"></script>
-<script src="categories/custom.js"></script>
+<script src="sporcel_general.js"></script>
+<script src="sporcel_movies.js"></script>
+<script src="sporcel_football.js"></script>
+<script src="sporcel_programming.js"></script>
+<script src="sporcel_custom.js"></script>
 
 <!-- 2. Firebase (ES module) -->
-<script type="module" src="firebase.js"></script>
+<script type="module" src="sporcel_firebase.js"></script>
 
 <!-- 3. Main game logic (wait for firebase init) -->
 <script>
@@ -615,7 +615,7 @@
   window.addEventListener('load', () => {
     setTimeout(() => {
       const s = document.createElement('script');
-      s.src = 'main.js';
+      s.src = 'sporcel_main.js';
       document.body.appendChild(s);
     }, 1200);
   });

@@ -207,6 +207,11 @@
             background: linear-gradient(145deg, #043191, #0fabff);
         }
 
+        .card-sporcel {
+            border-left: 5px solid #a855f7;
+            background: linear-gradient(145deg, #4c1d95, #7c3aed);
+        }
+
         .user-name {
             font-weight: bold;
             font-size: 1.2rem;
@@ -487,6 +492,17 @@
                 <span class="arrow">⬅</span>
             </a>
 
+            <a href="sporcel/sporcel.html" class="game-card card-sporcel" onclick="passSporcelName(event)">
+                <div class="game-info">
+                    <div class="game-icon" style="font-size:2rem;background:linear-gradient(135deg,#7c3aed,#ec4899);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center">🎉</div>
+                    <div class="game-text">
+                        <span class="game-title">Sporcel Party</span>
+                        <span class="game-desc">أسئلة جماعية أونلاين - العب مع أصدقائك!</span>
+                    </div>
+                </div>
+                <span class="arrow">⬅</span>
+            </a>
+
             <a href="footindex.html" class="game-card card-football">
                 <div class="game-info">
                     <img src="i_football.webp" alt="⚽">
@@ -547,6 +563,16 @@
                 localStorage.setItem('heka_chess_name', name); // Legacy chess key
 
                 showGames(name);
+            }
+
+            function passSporcelName(e) {
+                // Name is already in localStorage, Sporcel will read it automatically
+                // Just ensure it's saved as heka_global_player_name
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) {
+                    e.preventDefault();
+                    alert('الرجاء كتابة اسمك أولاً!');
+                }
             }
 
             function showGames(name) {

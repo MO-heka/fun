@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sporcel Party - لعبة أسئلة جماعية في الوقت الحقيقي. العب مع أصدقائك واثبت معلوماتك!">
+  <title>Sporcel Party 🎉 - لعبة الأسئلة الجماعية</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Floating Particles -->
+<div id="particles" class="particles" aria-hidden="true"></div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+<!-- ============================================================
+     APP WRAPPER
+     ============================================================ -->
+<div id="app">
+
+  <!-- ============================================================
+       PAGE: HOME
+       ============================================================ -->
+  <section id="page-home" class="page active" role="main">
+    <div class="container" style="display:flex;flex-direction:column;align-items:center;min-height:100vh;justify-content:center;padding:40px 20px;">
+
+      <div class="home-hero">
+        <span class="emoji-float" role="img" aria-label="حفلة">🎉</span>
+        <h1 class="game-logo">SPORCEL PARTY</h1>
+        <p class="game-tagline">لعبة الأسئلة الجماعية الأسرع في الوقت الحقيقي ⚡</p>
+        <div id="home-welcome-name" style="display:none;margin-top:14px;font-size:1rem;color:var(--accent-4);font-weight:700;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:50px;padding:6px 20px;display:inline-flex;align-items:center;gap:8px">
+          <span>👋</span><span id="home-player-name-display"></span>
+        </div>
+      </div>
+
+      <div class="home-buttons">
+        <button id="btn-create-room" class="btn home-btn btn-create" aria-label="إنشاء غرفة جديدة">
+          <span class="btn-icon-large">🏠</span>
+          <span>إنشاء غرفة</span>
+        </button>
+        <button id="btn-join-room" class="btn home-btn btn-join" aria-label="الانضمام لغرفة">
+          <span class="btn-icon-large">🚪</span>
+          <span>انضمام</span>
+        </button>
+        <button id="btn-how-to-play" class="btn home-btn btn-how" aria-label="طريقة اللعب">
+          <span class="btn-icon-large">❓</span>
+          <span>كيف تلعب؟</span>
+        </button>
+      </div>
+
+      <p style="margin-top:32px;color:var(--text-muted);font-size:0.85rem;">
+        من 2 إلى 20 لاعب • أسئلة متنوعة • نقاط ومراهنات
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAGE: LOBBY
+       ============================================================ -->
+  <section id="page-lobby" class="page" role="main" aria-label="غرفة الانتظار">
+    <div class="container" style="padding-top:30px;padding-bottom:30px;">
+
+      <!-- Header -->
+      <div class="lobby-header">
+        <div>
+          <h2 style="font-size:1.5rem;font-weight:900">🏠 غرفة الانتظار</h2>
+          <p id="lobby-player-count" style="color:var(--text-secondary);font-size:0.9rem;margin-top:4px">0 لاعب</p>
+        </div>
+        <div class="room-code-display">
+          <div class="room-code-label">كود الغرفة</div>
+          <div id="lobby-room-code" class="room-code-value" tabindex="0" role="button" aria-label="انسخ كود الغرفة">------</div>
+          <div class="copy-hint">اضغط للنسخ 📋</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="showPage('home')" aria-label="خروج">← خروج</button>
+      </div>
+
+      <!-- Players Grid -->
+      <div class="card mb-4">
+        <div class="card-title">👥 اللاعبون</div>
+        <div id="players-grid" class="players-grid">
+          <!-- filled dynamically -->
+        </div>
+      </div>
+
+      <!-- Settings (Host) -->
+      <div id="host-controls" class="card mb-4 hidden">
+        <div class="card-title">⚙️ إعدادات اللعبة</div>
+
+        <div class="settings-grid">
+          <div class="setting-item">
+            <div class="setting-label">عدد الأسئلة</div>
+            <div id="setting-rounds-val" class="setting-value">10</div>
+            <input id="setting-rounds" type="range" class="form-range" min="5" max="20" value="10" aria-label="عدد الأسئلة">
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-top:4px">
+              <span>5</span><span>20</span>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-label">الوقت لكل سؤال (ثانية)</div>
+            <div id="setting-time-val" class="setting-value">30</div>
+            <input id="setting-time" type="range" class="form-range" min="10" max="90" value="30" aria-label="وقت كل سؤال">
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-top:4px">
+              <span>10ث</span><span>90ث</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px">
+          <div class="form-label">الفئات (اختر واحدة أو أكثر)</div>
+          <div id="categories-grid" class="categories-grid">
+            <!-- filled by JS -->
+          </div>
+        </div>
+
+        <hr class="divider">
+        <button id="btn-start-game" class="btn btn-primary btn-block btn-lg mt-4" style="font-size:1.2rem" aria-label="ابدأ اللعبة">
+          🚀 ابدأ اللعبة
+        </button>
+      </div>
+
+      <!-- Non-host message -->
+      <div id="non-host-msg" class="card text-center hidden">
+        <div style="font-size:3rem;margin-bottom:12px">⏳</div>
+        <p style="font-size:1.1rem;font-weight:600">في انتظار المشرف لبدء اللعبة...</p>
+        <p style="color:var(--text-muted);margin-top:8px;font-size:0.9rem">
+          شارك الكود مع أصدقائك بينما تنتظر!
+        </p>
+        <hr class="divider">
+        <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
+          <div>
+            <div class="form-label">الأسئلة</div>
+            <div id="display-rounds" style="font-size:1.4rem;font-weight:800;color:var(--accent-1)">10</div>
+          </div>
+          <div>
+            <div class="form-label">الوقت</div>
+            <div id="display-time" style="font-size:1.4rem;font-weight:800;color:var(--accent-3)">30ث</div>
+          </div>
+          <div>
+            <div class="form-label">الفئات</div>
+            <div id="display-categories" style="font-size:1.4rem">🌍</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAGE: GAME (Playing)
+       ============================================================ -->
+  <section id="page-game" class="page" role="main" aria-label="جلسة اللعب">
+
+    <!-- Top Bar -->
+    <div class="game-top-bar">
+      <div class="round-info">
+        الجولة <span id="round-current">1</span> / <span id="round-total">10</span>
+      </div>
+
+      <!-- Timer -->
+      <div class="timer-wrap" role="timer" aria-label="الوقت المتبقي">
+        <div class="timer-ring">
+          <svg class="timer-svg" viewBox="0 0 64 64" aria-hidden="true">
+            <circle class="timer-track" cx="32" cy="32" r="26"/>
+            <circle id="timer-progress" class="timer-progress" cx="32" cy="32" r="26"/>
+          </svg>
+          <div id="timer-number" class="timer-number">30</div>
+        </div>
+      </div>
+
+      <div style="font-size:0.85rem;color:var(--text-secondary)">
+        أجاب: <span id="submitted-count" style="color:var(--accent-5);font-weight:700">0</span>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar-wrap" style="margin:0;border-radius:0">
+      <div id="progress-bar" class="progress-bar-fill" style="width:0%"></div>
+    </div>
+
+    <!-- Question Area -->
+    <div class="question-area">
+      <div id="question-category-badge" class="question-category-badge">
+        🌍 معلومات عامة
+      </div>
+
+      <div id="question-text" class="question-text" role="heading" aria-level="2">
+        السؤال سيظهر هنا...
+      </div>
+
+      <div id="question-difficulty" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:20px;background:var(--bg-glass);padding:4px 14px;border-radius:20px;display:inline-block">
+        سهل
+      </div>
+
+      <!-- Wager Section -->
+      <div class="wager-section">
+        <div class="wager-label">🎯 اختر عدد النقاط التي تراهن بها (كل رقم مرة واحدة فقط):</div>
+        <div style="width:100%;text-align:center;font-size:0.9rem;color:var(--accent-4);margin-bottom:8px">
+          المختار: <span id="selected-wager-display" style="font-weight:900;font-size:1.1rem">—</span>
+        </div>
+        <div id="wager-grid" class="wager-section" style="justify-content:center">
+          <!-- 1-20 wager buttons -->
+        </div>
+      </div>
+
+      <!-- Answer Input -->
+      <div class="answer-section">
+        <input
+          id="answer-input"
+          type="text"
+          class="answer-input"
+          placeholder="اكتب إجابتك هنا..."
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          aria-label="الإجابة"
+          maxlength="200"
+        >
+        <button id="btn-submit-answer" class="btn btn-primary" aria-label="إرسال الإجابة">
+          ✓ أرسل
+        </button>
+      </div>
+
+      <!-- Host reveal button -->
+      <div style="margin-top:20px" id="host-reveal-section">
+        <button id="btn-reveal-results" class="btn btn-secondary btn-sm hidden" aria-label="عرض النتائج">
+          👁 عرض إجابات الجميع
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAGE: RESULTS (After each round)
+       ============================================================ -->
+  <section id="page-results" class="page" role="main" aria-label="نتائج الجولة">
+    <div class="container" style="max-width:800px;padding:30px 20px;">
+
+      <div class="results-header">
+        <div style="color:var(--text-muted);font-size:0.9rem;margin-bottom:4px">الجولة <span id="results-round-num">1</span></div>
+        <h2 class="results-title">📝 إجابات اللاعبين</h2>
+        <div style="background:var(--bg-card2);border-radius:var(--radius-md);padding:12px 20px;display:inline-block;margin-top:8px">
+          <div style="font-size:0.8rem;color:var(--text-muted)">السؤال: <span id="results-question" style="color:var(--text-primary);font-weight:700">—</span></div>
+          <div style="font-size:0.85rem;color:var(--accent-5);margin-top:4px;font-weight:600">✅ الإجابة الصحيحة: <span id="results-correct-answer">—</span></div>
+        </div>
+      </div>
+
+      <!-- Answers List -->
+      <div class="card mb-4">
+        <div class="card-title">🎯 الإجابات</div>
+        <div id="answers-list" class="answers-list">
+          <!-- dynamically filled -->
+        </div>
+        <div id="host-results-controls" class="hidden" style="margin-top:20px;text-align:center">
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px">✅ خليك تحدد كل إجابة صحيحة أو غلط</p>
+          <button id="btn-next-round" class="btn btn-primary btn-lg" aria-label="الجولة التالية">
+            ➡ الجولة التالية
+          </button>
+        </div>
+        <div class="hidden" id="waiting-host-msg" style="text-align:center;padding:20px;color:var(--text-muted)">
+          ⏳ في انتظار المشرف لتحديد الإجابات...
+        </div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="card">
+        <div class="card-title">🏆 الترتيب الحالي</div>
+        <div id="leaderboard" class="leaderboard">
+          <!-- dynamically filled -->
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAGE: VOTING (Pre-Final Round)
+       ============================================================ -->
+  <section id="page-voting" class="page" role="main" aria-label="تصويت الجولة النهائية">
+    <div class="container" style="max-width:700px;padding:40px 20px;text-align:center;">
+
+      <div id="voting-round-display" class="mb-4">
+        <!-- dynamically filled -->
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-title" style="justify-content:center">🎓 مستوى الصعوبة</div>
+        <div id="vote-difficulty" class="vote-grid">
+          <!-- dynamically filled -->
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-title" style="justify-content:center">💰 قيمة النقاط (الخطر!)</div>
+        <p style="font-size:0.85rem;color:var(--accent-2);margin-bottom:16px">صح = تربح | غلط = تخسر نفس العدد!</p>
+        <div id="vote-points" class="vote-grid">
+          <!-- dynamically filled -->
+        </div>
+      </div>
+
+      <button id="btn-start-final" class="btn btn-primary btn-lg hidden" disabled aria-label="ابدأ الجولة النهائية">
+        🚀 ابدأ الجولة النهائية
+      </button>
+
+      <div id="non-host-voting-msg" style="color:var(--text-muted);font-size:0.9rem;margin-top:12px">
+        في انتظار المشرف لبدء الجولة النهائية...
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAGE: FINAL ROUND
+       ============================================================ -->
+  <section id="page-final" class="page" role="main" aria-label="الجولة النهائية">
+    <div class="container" style="max-width:700px;padding:40px 20px;text-align:center;">
+
+      <div class="final-round-banner">
+        <div class="final-badge">🌟 الجولة النهائية</div>
+        <div id="final-pts-badge" style="display:inline-block;background:var(--gradient-warm);color:white;border-radius:50px;padding:6px 20px;font-weight:800;font-size:1.1rem;margin:12px 0">
+          ±10 نقطة
+        </div>
+      </div>
+
+      <div class="card">
+        <!-- Timer (Final Round) -->
+        <div style="display:flex;justify-content:center;margin-bottom:20px">
+          <div class="timer-ring" style="width:80px;height:80px">
+            <svg class="timer-svg" viewBox="0 0 64 64" style="width:80px;height:80px" aria-hidden="true">
+              <circle class="timer-track" cx="32" cy="32" r="26"/>
+              <circle id="final-timer-progress" class="timer-progress" cx="32" cy="32" r="26"/>
+            </svg>
+            <div id="final-timer-number" class="timer-number" style="font-size:1.5rem">30</div>
+          </div>
+        </div>
+
+        <div id="final-category-badge" class="question-category-badge" style="justify-content:center;margin-bottom:16px">
+          🌍 معلومات عامة
+        </div>
+
+        <div id="final-question-text" class="question-text" style="font-size:1.6rem;margin-bottom:28px">
+          السؤال النهائي سيظهر هنا...
+        </div>
+
+        <div class="answer-section">
+          <input
+            id="final-answer-input"
+            type="text"
+            class="answer-input"
+            placeholder="إجابتك النهائية..."
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+            aria-label="الإجابة النهائية"
+            maxlength="200"
+          >
+          <button id="btn-submit-final" class="btn btn-primary" aria-label="إرسال الإجابة النهائية">
+            ✓ أكد
+          </button>
+        </div>
+
+        <p style="margin-top:16px;color:var(--accent-2);font-size:0.85rem;font-weight:600">
+          ⚠️ انتبه! إذا أجبت غلط ستُخصم النقاط منك
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAGE: FINAL RESULTS
+       ============================================================ -->
+  <section id="page-final-results" class="page" role="main" aria-label="نتائج الجولة النهائية">
+    <div class="container" style="max-width:800px;padding:30px 20px;">
+
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:3rem;margin-bottom:12px">🏁</div>
+        <h2 style="font-size:2rem;font-weight:900;background:var(--gradient-warm);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">نتائج الجولة النهائية</h2>
+        <div style="background:var(--bg-card2);border-radius:var(--radius-md);padding:12px 20px;display:inline-block;margin-top:12px">
+          <div style="font-size:0.85rem;color:var(--text-muted)">السؤال: <span id="final-results-question" style="color:var(--text-primary);font-weight:700">—</span></div>
+          <div style="font-size:0.85rem;color:var(--accent-5);margin-top:4px;font-weight:600">✅ الإجابة: <span id="final-results-correct">—</span></div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-title">🎯 إجابات الجولة النهائية</div>
+        <div id="final-answers-list" class="answers-list"></div>
+        <div id="btn-show-winner-wrap" style="margin-top:20px;text-align:center">
+          <button id="btn-show-winner" class="btn btn-primary btn-lg hidden" aria-label="عرض الفائز">
+            🏆 عرض الفائز!
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🏆 الترتيب النهائي</div>
+        <div id="final-leaderboard" class="leaderboard"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PAGE: WINNER
+       ============================================================ -->
+  <section id="page-winner" class="page" role="main" aria-label="شاشة الفائز">
+    <div class="container" style="max-width:700px;padding:60px 20px;text-align:center;">
+
+      <span class="trophy-emoji" role="img" aria-label="كأس">🏆</span>
+
+      <div id="winner-avatar" style="width:100px;height:100px;border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--gradient-main);box-shadow:0 0 40px rgba(124,58,237,0.5)">
+        🏆
+      </div>
+
+      <div class="winner-name" id="winner-name">الفائز!</div>
+      <div class="winner-label" id="winner-is-me"></div>
+      <div class="winner-score" id="winner-score">0 نقطة</div>
+
+      <hr class="divider" style="max-width:400px;margin:32px auto">
+
+      <div class="card" style="max-width:500px;margin:0 auto 32px">
+        <div class="card-title">🏆 الترتيب النهائي للجميع</div>
+        <div id="winner-leaderboard" class="leaderboard"></div>
+      </div>
+
+      <button id="btn-play-again" class="btn btn-primary btn-lg" aria-label="العب مجدداً">
+        🔄 العب مجدداً
+      </button>
+
+    </div>
+  </section>
+
+</div><!-- /#app -->
+
+<!-- ============================================================
+     CHAT SYSTEM
+     ============================================================ -->
+<button id="chat-fab" class="" aria-label="الدردشة" title="الدردشة">
+  💬
+  <span id="chat-unread-badge">0</span>
+</button>
+
+<div id="chat-panel" role="dialog" aria-label="الدردشة" aria-hidden="true">
+  <div class="chat-header">
+    <div class="chat-header-title">
+      <span>💬</span>
+      <span>الدردشة</span>
+      <span id="chat-online-count" style="font-size:0.75rem;opacity:0.8;margin-right:4px"></span>
+    </div>
+    <button class="chat-close-btn" id="chat-close-btn" aria-label="إغلاق الدردشة">✕</button>
+  </div>
+
+  <div id="chat-messages">
+    <div class="chat-empty">
+      <div class="chat-empty-icon">💬</div>
+      <div class="chat-empty-text">لا توجد رسائل بعد.<br>كن أول من يكتب!</div>
+    </div>
+  </div>
+
+  <div class="chat-input-area">
+    <input
+      id="chat-input"
+      type="text"
+      placeholder="اكتب رسالة..."
+      maxlength="200"
+      autocomplete="off"
+      aria-label="اكتب رسالة"
+    >
+    <button id="chat-send-btn" aria-label="إرسال">➤</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODALS
+     ============================================================ -->
+
+<!-- Create Room Modal -->
+<div id="modal-create" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="create-modal-title">
+  <div class="modal">
+    <button class="modal-close" aria-label="إغلاق">✕</button>
+    <h2 id="create-modal-title" class="modal-title">🏠 إنشاء غرفة جديدة</h2>
+    <form id="form-create">
+      <div class="form-group">
+        <label class="form-label" for="input-create-name">اسمك في اللعبة</label>
+        <input
+          id="input-create-name"
+          type="text"
+          class="form-input"
+          placeholder="أدخل اسمك..."
+          maxlength="20"
+          required
+          autocomplete="nickname"
+        >
+        <div id="create-name-hint" style="font-size:0.8rem;color:var(--accent-5);margin-top:6px;display:none">✓ تم تعبئة اسمك من الصفحة الرئيسية</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg" aria-label="إنشاء الغرفة">
+        🚀 إنشاء الغرفة
+      </button>
+    </form>
+    <p style="margin-top:16px;text-align:center;font-size:0.85rem;color:var(--text-muted)">
+      ستحصل على كود فريد تشاركه مع أصدقائك
+    </p>
+  </div>
+</div>
+
+<!-- Join Room Modal -->
+<div id="modal-join" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="join-modal-title">
+  <div class="modal">
+    <button class="modal-close" aria-label="إغلاق">✕</button>
+    <h2 id="join-modal-title" class="modal-title">🚪 الانضمام لغرفة</h2>
+    <form id="form-join">
+      <div class="form-group">
+        <label class="form-label" for="input-join-name">اسمك في اللعبة</label>
+        <input
+          id="input-join-name"
+          type="text"
+          class="form-input"
+          placeholder="أدخل اسمك..."
+          maxlength="20"
+          required
+          autocomplete="nickname"
+        >
+        <div id="join-name-hint" style="font-size:0.8rem;color:var(--accent-5);margin-top:6px;display:none">✓ تم تعبئة اسمك من الصفحة الرئيسية</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="input-join-code">كود الغرفة</label>
+        <input
+          id="input-join-code"
+          type="text"
+          class="form-input large"
+          placeholder="XXXXXX"
+          maxlength="6"
+          required
+          style="text-transform:uppercase;direction:ltr"
+        >
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg" aria-label="الانضمام للغرفة">
+        🎮 انضم الآن
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- How to Play Modal -->
+<div id="modal-how" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="how-modal-title">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" aria-label="إغلاق">✕</button>
+    <h2 id="how-modal-title" class="modal-title">❓ كيف تلعب؟</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-num">1</div>
+        <div class="step-text">أنشئ غرفة وشارك الكود مع أصدقائك (2-20 لاعب)</div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">2</div>
+        <div class="step-text">المشرف يختار الفئات، عدد الأسئلة، ووقت كل سؤال</div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">3</div>
+        <div class="step-text">في كل جولة: اختر عدد النقاط التي تراهن بها (1-20) — كل رقم مرة واحدة فقط!</div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">4</div>
+        <div class="step-text">اكتب إجابتك قبل انتهاء الوقت. المشرف يحدد الصح والغلط</div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">5</div>
+        <div class="step-text">الجولة الأخيرة خاصة — صوّتوا على الصعوبة والنقاط. إذا أجبت غلط تُخصم منك النقاط!</div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">6</div>
+        <div class="step-text">اللاعب بأعلى نقاط في النهاية يفوز 🏆</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block mt-6" onclick="hideModal('modal-how')" aria-label="فهمت">
+      🎮 فهمت، لنلعب!
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS — ORDER MATTERS!
+     ============================================================ -->
+<!-- 1. Categories (must load before main.js) -->
+<script src="categories/general.js"></script>
+<script src="categories/movies.js"></script>
+<script src="categories/football.js"></script>
+<script src="categories/programming.js"></script>
+<script src="categories/custom.js"></script>
+
+<!-- 2. Firebase (ES module) -->
+<script type="module" src="firebase.js"></script>
+
+<!-- 3. Main game logic (wait for firebase init) -->
+<script>
+  // Auto-fill player name from the main 4fun Games index
+  (function prefillName() {
+    const saved = localStorage.getItem('heka_global_player_name') || localStorage.getItem('heka_player_name');
+    if (!saved) return;
+
+    const createInput = document.getElementById('input-create-name');
+    if (createInput) { createInput.value = saved; document.getElementById('create-name-hint').style.display = 'block'; }
+
+    const joinInput = document.getElementById('input-join-name');
+    if (joinInput) { joinInput.value = saved; document.getElementById('join-name-hint').style.display = 'block'; }
+
+    const display = document.getElementById('home-player-name-display');
+    const wrap    = document.getElementById('home-welcome-name');
+    if (display && wrap) { display.textContent = 'أهلاً ' + saved + '!'; wrap.style.display = 'inline-flex'; }
+  })();
+
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const s = document.createElement('script');
+      s.src = 'main.js';
+      document.body.appendChild(s);
+    }, 1200);
+  });
+</script>
+
+</body>
+</html>

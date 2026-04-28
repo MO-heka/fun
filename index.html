@@ -1,604 +1,114 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="dark">
-    <title>ألعاب 4fun 🎮 - الرئيسية</title>
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="icon" type="image/png" href="icon.png">
-
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            color-scheme: dark;
-            --primary: #60a5fa;
-            --accent: #a78bfa;
-            --bg-dark: #0f172a;
-            --surface: #1e293b;
-            --glass: rgba(30, 41, 59, 0.7);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Tajawal', sans-serif;
-        }
-
-        body {
-            background: #0f172a;
-            background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-main);
-            text-align: center;
-            padding: 20px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 500px;
-            padding: 30px;
-            background: var(--glass);
-            backdrop-filter: blur(12px);
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
-            transition: 0.3s;
-        }
-
-        h1 {
-            font-size: 2.2rem;
-            margin-bottom: 5px;
-            background: linear-gradient(to right, #60a5fa, #a78bfa);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-        }
-
-        .welcome-text {
-            color: #94a3b8;
-            font-size: 1rem;
-            margin-bottom: 25px;
-        }
-
-        /* Name Input Section */
-        #name-section {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 30px;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .input-group {
-            position: relative;
-            width: 100%;
-        }
-
-        input {
-            width: 100%;
-            padding: 15px 20px;
-            border-radius: 12px;
-            border: 2px solid #334155;
-            background: #1e293b;
-            color: white;
-            font-size: 1.1rem;
-            text-align: center;
-            transition: 0.3s;
-            outline: none;
-        }
-
-        input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        }
-
-        .save-btn {
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .save-btn:active {
-            transform: scale(0.97);
-        }
-
-        /* User Profile Display */
-        #user-display {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 30px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 15px;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .game-card {
-            background: var(--surface);
-            text-decoration: none;
-            color: white;
-            padding: 16px 20px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .game-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent);
-            opacity: 0;
-            transition: 0.3s;
-        }
-
-        .game-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-        }
-
-        .game-card:hover::before {
-            opacity: 1;
-        }
-
-        /* Specific Card Themes - Muted & Eye-friendly */
-        .card-spy {
-            border-left: 5px solid #0ea5e9;
-            background: linear-gradient(145deg, #075985, #0c4a6e);
-        }
-
-        .card-shafra {
-            border-left: 5px solid #a855f7;
-            background: linear-gradient(145deg, #6b21a8, #4c1d95);
-        }
-
-        .card-chess {
-            border-left: 5px solid #94a3b8;
-            background: linear-gradient(145deg, #334155, #1e293b);
-        }
-
-        .card-films {
-            border-left: 5px solid #ef4444;
-            background: linear-gradient(145deg, #991b1b, #7f1d1d);
-        }
-
-        .card-football {
-            border-left: 5px solid #22c55e;
-            background: linear-gradient(145deg, #166534, #064e3b);
-        }
-
-        .card-quiz {
-            border-left: 5px solid #eab308;
-            background: linear-gradient(145deg, #854d0e, #713f12);
-        }
-
-        .card-ludo {
-            border-left: 5px solid #0026ff;
-            background: linear-gradient(145deg, #043191, #0fabff);
-        }
-
-        .card-sporcel {
-            border-left: 5px solid #a855f7;
-            background: linear-gradient(145deg, #4c1d95, #7c3aed);
-        }
-
-        .user-name {
-            font-weight: bold;
-            font-size: 1.2rem;
-            color: #e2e8f0;
-        }
-
-        .edit-icon {
-            cursor: pointer;
-            opacity: 0.6;
-            padding: 5px;
-            border-radius: 5px;
-            transition: 0.2s;
-        }
-
-        .edit-icon:hover {
-            opacity: 1;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .profile-icon {
-            font-size: 1.5rem;
-        }
-
-        /* Games Grid */
-        #games-area {
-            margin-top: 20px;
-            display: none;
-            flex-direction: column;
-            gap: 15px;
-            animation: slideUp 0.5s ease;
-        }
-
-        .games-section-title {
-            text-align: right;
-            margin: 20px 5px 10px;
-            color: #94a3b8;
-            font-size: 1rem;
-        }
-
-        .game-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            z-index: 1;
-        }
-
-        .game-info img {
-            width: 48px;
-            height: 48px;
-            object-fit: cover;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 2px;
-        }
-
-        .game-icon {
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            font-size: 1.8rem;
-        }
-
-        .game-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .game-text {
-            display: flex;
-            flex-direction: column;
-            text-align: right;
-        }
-
-        .game-title {
-            font-weight: 700;
-            font-size: 1.1rem;
-            margin-bottom: 2px;
-        }
-
-        .game-desc {
-            font-size: 0.85rem;
-            color: rgba(248, 250, 252, 0.7);
-        }
-
-        .arrow {
-            font-size: 1.2rem;
-            opacity: 0.5;
-            transition: 0.3s;
-            z-index: 1;
-        }
-
-        .game-card:hover .arrow {
-            transform: translateX(-5px);
-            opacity: 1;
-        }
-
-        footer {
-            margin-top: 40px;
-            font-size: 0.8rem;
-            color: #64748b;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .contact-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 30px;
-            border-radius: 50px;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
-            border: 1.5px solid rgba(139, 92, 246, 0.4);
-            color: #c4b5fd;
-            font-family: 'Tajawal', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 700;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .contact-btn::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 50px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-
-        .contact-btn:hover {
-            border-color: transparent;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
-        }
-
-        .contact-btn:hover::before {
-            opacity: 1;
-        }
-
-        .contact-btn:active {
-            transform: scale(0.97);
-        }
-
-        .contact-btn .btn-icon {
-            font-size: 1.1rem;
-            transition: transform 0.3s ease;
-        }
-
-        .contact-btn:hover .btn-icon {
-            transform: scale(1.2);
-        }
-
-        .contact-hint {
-            font-size: 0.7rem;
-            color: #475569;
-            margin-top: -8px;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تم نقل اللعبة - 4Fun</title>
+  <!-- إعادة توجيه تلقائي للرابط الجديد بعد 5 ثواني -->
+  <meta http-equiv="refresh" content="5;url=https://heka7.github.io/4fun">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080d1a;
+      --surface: #131e35;
+      --text: #e8eeff;
+      --muted: #7a90bb;
+      --gold: #f5b800;
+      --gold2: #ff9500;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      overflow: hidden;
+      background: radial-gradient(ellipse at 50% 0%, #1a2d55 0%, var(--bg) 70%);
+    }
+    .container {
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      padding: 40px 30px;
+      border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(245, 184, 0, 0.15);
+      max-width: 90%;
+      width: 450px;
+      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .icon {
+      font-size: 5rem;
+      margin-bottom: 20px;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 900;
+      margin-bottom: 15px;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      color: var(--muted);
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-decoration: none;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+      color: #1a0800;
+      padding: 16px 30px;
+      border-radius: 14px;
+      font-weight: 900;
+      font-size: 1.15rem;
+      transition: all 0.2s;
+      box-shadow: 0 6px 20px rgba(245, 184, 0, 0.4);
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(245, 184, 0, 0.6);
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+    .loader {
+      margin-top: 25px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+  </style>
 </head>
-
 <body>
-
-    <div class="container">
-        <h1>4fun Games 🎮</h1>
-        <p class="welcome-text"></p>
-
-        <!-- Name Entry Section -->
-        <div id="name-section">
-            <h3 style="margin-bottom:10px;">👋 مرحباً بك!</h3>
-            <p style="font-size:0.9rem; color:#cbd5e1; margin-bottom:15px;">الرجاء كتابة اسمك لتبدأ اللعب مع أصدقائك</p>
-            <div class="input-group">
-                <input type="text" id="usernameInput" placeholder="اسمك (مثلاً: Heka)" maxlength="15">
-            </div>
-            <button class="save-btn" onclick="saveName()">✨ حفظ ودخول</button>
-        </div>
-
-        <!-- User Profile Display (Hidden by default) -->
-        <div id="user-display"
-            style="display:none; align-items:center; justify-content:center; gap:12px; margin-bottom:20px;">
-            <span class="edit-icon" onclick="editName()" title="تعديل الاسم"
-                style="font-size:1.2rem; cursor:pointer; opacity:0.7;">✏️</span>
-            <span class="user-name" id="displayName" style="font-size:1.2rem; font-weight:700;">---</span>
-            <span style="font-size:1.5rem;">👤</span>
-        </div>
-
-        <!-- Games List (Hidden by default) -->
-        <div id="games-area">
-
-
-
-            <h3 style="text-align:right; margin: 20px 5px 10px; color: #94a3b8; font-size:1rem;">ألعابنا المميزة</h3>
-
-            <a href="gasos.html" class="game-card card-spy">
-                <div class="game-info">
-                    <img src="i_gasos.webp" alt="🕵️">
-                    <div class="game-text">
-                        <span class="game-title">من هو الجاسوس؟</span>
-                        <span class="game-desc">اكتشف المخادع بينكم</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
-
-            <a href="shafra.html" class="game-card card-shafra">
-                <div class="game-info">
-                    <img src="i_4afra.webp" alt="🧠">
-                    <div class="game-text">
-                        <span class="game-title">ورقة شفرة</span>
-                        <span class="game-desc">لعبة التخمين والذكاء</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
-
-            <a href="chess.html" class="game-card card-chess">
-                <div class="game-info">
-                    <img src="i_chess.webp" alt="♟️">
-                    <div class="game-text">
-                        <span class="game-title">شطرنج</span>
-                        <span class="game-desc">لعبه الذكاء و الاستراتيجية</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
-
-            <a href="films.html" class="game-card card-films">
-                <div class="game-info">
-                    <img src="i_film.webp" alt="🎬">
-                    <div class="game-text">
-                        <span class="game-title">أفلام مصرية</span>
-                        <span class="game-desc">مثل الفيلم وعرف صحابك</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
-            <a href="ludo.html" class="game-card card-ludo">
-                <div class="game-info">
-                    <img src="i_ludo.png" alt="🎲">
-                    <div class="game-text">
-                        <span class="game-title">لودو 4Fun</span>
-                        <span class="game-desc">لعبة اللودو - محلي وأونلاين</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
-
-            <a href="sporcel.html" class="game-card card-sporcel" onclick="passSporcelName(event)">
-                <div class="game-info">
-                    <div class="game-icon" style="font-size:2rem;background:linear-gradient(135deg,#7c3aed,#ec4899);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center">🎉</div>
-                    <div class="game-text">
-                        <span class="game-title">Sporcel Party</span>
-                        <span class="game-desc">أسئلة جماعية أونلاين - العب مع أصدقائك!</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
-
-            <a href="footindex.html" class="game-card card-football">
-                <div class="game-info">
-                    <img src="i_football.webp" alt="⚽">
-                    <div class="game-text">
-                        <span class="game-title">تحديات كورة</span>
-                        <span class="game-desc">XO، تخمين لاعبين، والمزيد...</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
-
-
-
-            <a href="https://mo-heka.github.io/s/start_game.html" class="game-card card-quiz">
-                <div class="game-info">
-                    <img src="https://raw.githubusercontent.com/MO-heka/s/refs/heads/main/logo.png" alt="Quiz">
-                    <div class="game-text">
-                        <span class="game-title">سين جيم </span>
-                        <span class="game-desc">جمع نقط من الاسئله و اكسب</span>
-                    </div>
-                </div>
-                <span class="arrow">⬅</span>
-            </a>
-
-
-
-            <footer>
-                Developed by Heka 👨🏻‍💻
-                <a href="contact.html" class="contact-btn">
-                    <span class="btn-icon">📬</span>
-                    Contact Us
-                </a>
-
-            </footer>
-        </div>
-
-        <script>
-            // Centralized logic for Player Name
-            const STORAGE_KEY = 'heka_global_player_name';
-
-            function init() {
-                const savedName = localStorage.getItem(STORAGE_KEY);
-                if (savedName) {
-                    showGames(savedName);
-                } else {
-                    showNameEntry();
-                }
-            }
-
-            function saveName() {
-                const nameInput = document.getElementById('usernameInput');
-                const name = nameInput.value.trim();
-                if (!name) return alert("الرجاء كتابة اسم!");
-
-                localStorage.setItem(STORAGE_KEY, name);
-                // Also sync with legacy keys if needed by individual games before their update
-                localStorage.setItem('heka_player_name', name); // Standard key I'll use in games
-                localStorage.setItem('heka_chess_name', name); // Legacy chess key
-
-                showGames(name);
-            }
-
-            function passSporcelName(e) {
-                // Name is already in localStorage, Sporcel will read it automatically
-                // Just ensure it's saved as heka_global_player_name
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (!saved) {
-                    e.preventDefault();
-                    alert('الرجاء كتابة اسمك أولاً!');
-                }
-            }
-
-            function showGames(name) {
-                document.getElementById('name-section').style.display = 'none';
-                document.getElementById('user-display').style.display = 'flex';
-                document.getElementById('games-area').style.display = 'flex';
-                document.getElementById('displayName').innerText = name;
-            }
-
-            function showNameEntry() {
-                document.getElementById('name-section').style.display = 'flex';
-                document.getElementById('user-display').style.display = 'none';
-                document.getElementById('games-area').style.display = 'none';
-                // Pre-fill if exists but editing
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) document.getElementById('usernameInput').value = saved;
-            }
-
-            function editName() {
-                showNameEntry();
-            }
-
-            window.onload = init;
-        </script>
-
+  <div class="container">
+    <div class="icon">🚀</div>
+    <h1>تم تحديث اللعبة!</h1>
+    <p>أنت تستخدم رابطاً لإصدار قديم من اللعبة.<br>لقد قمنا بالانتقال إلى رابط جديد لتقديم تجربة أسرع وأفضل.</p>
+    <a href="https://heka7.github.io/4fun" class="btn">
+      <span>انتقل للرابط الجديد</span>
+      <span>←</span>
+    </a>
+    <div class="loader">سيتم نقلك تلقائياً بعد ثوانٍ...</div>
+  </div>
 </body>
-
-
 </html>
